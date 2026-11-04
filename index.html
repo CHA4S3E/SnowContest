@@ -2313,7 +2313,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   function renderAlerts() {
     const el = $("alerts");
     const polys = (watch && watch.active && Array.isArray(watch.alerts)) ? watch.alerts : [];  // storm-based warnings (e.g. snow squalls) found by the hourly watch
-    const list = polys.concat((weather && weather.alerts) || []).filter((a) => a && a.event && !(a.ends && new Date(a.ends).getTime() < Date.now()));
+    const list = polys.concat(liveAlerts || (weather && weather.alerts) || []).filter((a) => a && a.event && !(a.ends && new Date(a.ends).getTime() < Date.now()));
     el.hidden = !list.length;
     el.innerHTML = list.map((a) => {
       const base = ALERT_COLORS[String(a.event).toLowerCase()] || "#6a7b8c";
@@ -2324,6 +2324,20 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     }).join("");
   }
   setInterval(renderAlerts, 60000);
+  // Live NWS alerts for State College, fetched in the browser (GitHub Pages build). Falls back to the saved snapshot on any failure.
+  let liveAlerts = null;
+  function pullLiveAlerts() {
+    fetch("https://api.weather.gov/alerts/active?point=40.7934,-77.8600", { headers: { "Accept": "application/geo+json" } })
+      .then((r) => r.ok ? r.json() : Promise.reject(r.status))
+      .then((j) => {
+        liveAlerts = (j.features || []).map((f) => f.properties || {}).filter((p) => p.event).map((p) => ({
+          event: p.event, headline: p.headline || p.event, starts: p.onset || p.effective || null, ends: p.ends || p.expires || null }));
+        renderAlerts();
+      })
+      .catch(() => {});
+  }
+  pullLiveAlerts();
+  setInterval(pullLiveAlerts, 600000);
 
   // Season snow total: the normal by month, plus each person's guess (no odds yet)
   const SNOW_NORMAL = 36;  // median season total, 1991-92 to 2025-26 (official State College record)
