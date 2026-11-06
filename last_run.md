@@ -2,7 +2,7 @@
 
 First Flakes Nov 6: Patrick leads Meteo at 17.2%; Anna leads Ritner Floor 2 at 30.5%. Median Nov. 21.
 
-Headline (new): The first flake threat of the season takes shape around Nov. 12-14, topping out near 8%. On the curve, the median slips a day later to Nov. 21.
+Headline (new): A cold shot brings an 8% chance of flakes Nov. 12-14. The median slides a day later to Nov. 21.
 
 ## Input health
 
@@ -11,7 +11,7 @@ Headline (new): The first flake threat of the season takes shape around Nov. 12-
 - FAIL NAM MOS (no data)
 - OK   LAMP
 - OK   European (Open-Meteo)
-- FAIL RRFS (NOAA) (RuntimeError('oint.py", line 36, in get\n    raise RuntimeError("failed: " + url)\nRuntimeError: failed: https://nomads.ncep.noaa.gov/pub/data/nccf/com/rrfs/prod/rrfs.20261106/06/rrfs.t06z.2dfld.3km.f)
+- OK   RRFS (NOAA)
 - OK   HRRR (NOAA)
 - OK   NWS point forecast
 - OK   NWS alerts
