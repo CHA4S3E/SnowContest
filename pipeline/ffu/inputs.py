@@ -350,66 +350,113 @@ def parse_cpc_state(text, state="Pennsylvania"):
     return out, [int(c) for c in conf_all]
 
 
-def cpc_windows(today):
-    """CPC 6-10 and 8-14 day PA windows. Returns dict or None."""
-    txt = get("https://www.cpc.ncep.noaa.gov/products/predictions/610day/fxus06.html", nocache=True)
-    plain = re.sub(r"<[^>]+>", " ", txt)
-    m = re.search(r"(\w+ \d{1,2}, \d{4})", plain)
-    issued = today
+COVERS_PA = re.compile(r"(eastern (third|half|two[- ]thirds|portion|part|u\.?s\.?|conus|seaboard)|east[- ]central|central and eastern|eastern and central|the northeast\b(?!ern| pacific| atlantic)|northeastern (u\.?s\.?|conus|states)|mid-?atlantic|appalachian|ohio valley|"
+                       r"nearly all of the conus|much of the conus|most of the conus|remainder of the conus|entire conus|across the conus|the (entire|whole) (country|lower 48)|"
+                       r"east of the mississippi|(great lakes and|and the) northeast)", re.I)
+NOT_PA = re.compile(r"alaska|hawai|aleutian|florida|gulf coast|west of the|west coast|southwest|pacific northwest|northern plains", re.I)
+STRONG_PA = re.compile(r"appalachian|mid-?atlantic|ohio (and tennessee )?valley|eastern (third|half|conus)|east[- ]central|the northeast\b(?!ern| pacific| atlantic)", re.I)
+CAT_PHRASE = re.compile(r"(below to near[- ]normal|near to below[- ]normal|above to near[- ]normal|near to above[- ]normal|above[- ]normal|below[- ]normal|near[- ]normal|equal chances)", re.I)
+CAT_MAP = {"above": "A", "below": "B", "near": "N", "equal": "EC", "below to near": "B", "near to below": "B", "above to near": "A", "near to above": "A"}
+LOW_CONF = ("below to near", "near to below", "above to near", "near to above")
+
+
+def plain_text(html):
+    t = re.sub(r"<script.*?</script>|<style.*?</style>", " ", html, flags=re.S | re.I)
+    t = re.sub(r"<[^>]+>", " ", t)
+    t = t.replace("&nbsp;", " ").replace("&amp;", "&")
+    return re.sub(r"[ \t]+", " ", t)
+
+
+def prose_category(section, word):
+    """Category CPC's prose gives for Pennsylvania in one section ('temperature' or 'precipitation'): the first sentence
+    that names a region covering PA (the eastern CONUS, the Northeast, most of the CONUS ...) and a category.
+    Returns (cat, soft) or None. Coastal-only carve-outs (the immediate East Coast, New England) don't count."""
+    flat = re.sub(r"\s+", " ", section)
+    for sent in re.split(r"\s*\.\s+(?=[A-Z])", flat):
+        sent = re.sub(r"\([^)]*\)", "", sent)
+        if word not in sent.lower() or not COVERS_PA.search(sent):
+            continue
+        if NOT_PA.search(sent) and not STRONG_PA.search(sent):
+            continue
+        m = CAT_PHRASE.search(sent)
+        if not m:
+            continue
+        ph = re.sub(r"[- ]normal", "", m.group(1).lower()).replace("equal chances", "equal").strip()
+        if ph == "equal":
+            return "EC", False
+        return CAT_MAP.get(ph, "EC"), ph in LOW_CONF
+    return None
+
+
+def cpc_dates(plain, issued_fallback):
+    """{'610': (start, end), '814': (start, end)} and the issue date from the 'Valid: Nov 11 - 15, 2026 (6-10 Day Outlook)' header"""
+    out = {}
+    for m in re.finditer(r"Valid:\s*([A-Za-z]{3}) (\d{1,2})\s*-\s*(?:([A-Za-z]{3}) )?(\d{1,2}),\s*(\d{4})\s*\((6-10|8-14) Day", plain):
+        y = int(m.group(5))
+        d0 = dt.datetime.strptime("%s %s %d" % (m.group(1), m.group(2), y), "%b %d %Y").date()
+        d1 = dt.datetime.strptime("%s %s %d" % (m.group(3) or m.group(1), m.group(4), y), "%b %d %Y").date()
+        if d1 < d0:
+            d1 = d1.replace(year=y + 1)
+        out[m.group(6).replace("-", "")] = (str(d0), str(d1))
+    iss = issued_fallback
+    m = re.search(r"Issued:\s*([A-Za-z]{3}) (\d{1,2}), (\d{4})", plain)
     if m:
-        try:
-            issued = str(dt.datetime.strptime(m.group(1), "%B %d, %Y").date())
-        except ValueError:
-            pass
-    res, confs = parse_cpc_state(txt)
-    if not res:
+        iss = str(dt.datetime.strptime(" ".join(m.groups()), "%b %d %Y").date())
+    return out, iss
+
+
+def cpc_windows(today):
+    """CPC 6-10 and 8-14 day outlooks for Pennsylvania, read from the prognostic discussion's prose. Returns dict or None."""
+    txt = plain_text(get("https://www.cpc.ncep.noaa.gov/products/predictions/610day/fxus06.html", nocache=True))
+    dates, issued = cpc_dates(txt, today)
+    i6 = txt.find("6-10 DAY OUTLOOK FOR")
+    i8 = txt.find("8-14 DAY OUTLOOK FOR")
+    if i6 < 0 or i8 < 0 or not dates:
         return None
-    base = dt.date.fromisoformat(issued)
-    t610 = {"start": str(base + dt.timedelta(5)), "end": str(base + dt.timedelta(9)), "issued": issued}
-    t814 = {"start": str(base + dt.timedelta(7)), "end": str(base + dt.timedelta(13)), "issued": issued}
-    out = {"t610": dict(t610, **res.get("temp", {})), "t814": dict(t814, **res.get("temp", {})),
-           "p610": dict(t610, **res.get("precip", {})), "p814": dict(t814, **res.get("precip", {}))}
-    return out
+    secs = {"610": txt[i6:i8], "814": txt[i8:]}
+    out = {}
+    for k, sec in secs.items():
+        if k not in dates:
+            continue
+        cm = re.search(r"(\d) out of 5", sec)
+        conf = int(cm.group(1)) if cm else 3
+        for name, word in (("t", "temperature"), ("p", "precipitation")):
+            r = prose_category(sec, word)
+            cat, soft = r if r else ("EC", True)
+            out[name + k] = {"start": dates[k][0], "end": dates[k][1], "issued": issued, "cat": cat, "conf": 1 if soft and cat != "EC" else conf}
+    return out if len(out) == 4 else None
 
 
 def cpc_wk34(today):
-    txt = get("https://www.cpc.ncep.noaa.gov/products/predictions/WK34/", nocache=True)
-    plain = re.sub(r"<[^>]+>", " ", txt)
-    res, _ = parse_cpc_state(txt)
-    cat = res.get("temp", {}).get("cat")
-    m = re.search(r"(\w+ \d{1,2}, \d{4})", plain)
-    issued = today
-    if m:
-        try:
-            issued = str(dt.datetime.strptime(m.group(1), "%B %d, %Y").date())
-        except ValueError:
-            pass
-    if not cat:
-        t = plain.lower()
-        if re.search(r"above[- ]normal temperatures? (are )?(favored|likely)", t):
-            cat = "A"
-        elif re.search(r"below[- ]normal temperatures? (are )?(favored|likely)", t):
-            cat = "B"
-    if not cat:
+    txt = plain_text(get("https://www.cpc.ncep.noaa.gov/products/predictions/WK34/", nocache=True))
+    m = re.search(r"Valid:?\s*(\d{1,2}) ([A-Za-z]{3}) (\d{4}) to (\d{1,2}) ([A-Za-z]{3}) (\d{4})", txt)
+    if not m:
         return None
-    base = dt.date.fromisoformat(issued)
-    start = base + dt.timedelta(((5 - base.weekday()) % 7) + 7 if base.weekday() != 5 else 7)  # the 2-week window starts the Saturday after next
-    return {"cat": cat, "conf": 2, "start": str(start), "end": str(start + dt.timedelta(13)), "issued": issued}
+    d0 = dt.datetime.strptime("%s %s %s" % (m.group(1), m.group(2), m.group(3)), "%d %b %Y").date()
+    d1 = dt.datetime.strptime("%s %s %s" % (m.group(4), m.group(5), m.group(6)), "%d %b %Y").date()
+    i = txt.find("Temperature Outlook")
+    r = prose_category(txt[max(0, i - 200):i + 1500], "temperature") if i >= 0 else None
+    cat, _ = r if r else ("EC", True)
+    u = re.search(r"Updated:\s*(\d{1,2}) ([A-Za-z]{3}) (\d{4})", txt)
+    issued = str(dt.datetime.strptime(" ".join(u.groups()), "%d %b %Y").date()) if u else today
+    return {"cat": cat, "conf": 2, "start": str(d0), "end": str(d1), "issued": issued}
 
 
 def parse_enso(text):
-    plain = re.sub(r"<[^>]+>", " ", text)
+    import html as _h
+    plain = _h.unescape(re.sub(r"<[^>]+>", " ", text))
     plain = re.sub(r"\s+", " ", plain)
     m = re.search(r"(El Ni.o|La Ni.a) (Advisory|Watch)|ENSO-neutral", plain)
     if not m:
         return None
-    status = m.group(0).replace("Niño", "Niño")
+    status = m.group(0)
     status = status.replace("Nino", "Niño").replace("Nina", "Niña")
     t = re.search(r"(Synopsis:|SYNOPSIS:)\s*([^.]*\.)", plain)
     detail = ""
     if t:
         detail = t.group(2).strip().rstrip(".")
-        detail = detail[0].lower() + detail[1:]
+        if not re.match(r"(El Ni|La Ni|ENSO)", detail):
+            detail = detail[0].lower() + detail[1:]
     return {"status": status, "text": detail}
 
 
@@ -477,24 +524,36 @@ def parse_wpc_kml(texts, today):
     issued = None
     start = end = None
     for kind, txt in texts:
-        txt = re.sub(r'\sxmlns(:\w+)?="[^"]+"', "", txt, count=0)
-        root = ET.fromstring(txt)
+        txt = re.sub(r'\sxmlns(:\w+)?="[^"]+"', "", txt)
+        txt = re.sub(r'\s\w+:\w+="[^"]*"', "", txt)       # xsi:schemaLocation and other prefixed attributes
+        txt = re.sub(r"<(/?)\w+:", r"<\1", txt)             # gx: elements
+        root = ET.fromstring(txt.encode("utf-8") if txt.lstrip().startswith("<?xml") else txt)
         title = (root.findtext(".//Document/name") or root.findtext(".//name") or "")
-        m = re.search(r"(\d{4}-\d{2}-\d{2})", " ".join([title, root.findtext(".//Document/description") or ""]))
+        m = re.search(r"Created:\s*(\d{2})-(\d{2})-(\d{4})", title)
         if m and not issued:
-            issued = m.group(1)
+            issued = "%s-%s-%s" % (m.group(3), m.group(1), m.group(2))
         for pm in root.iter("Placemark"):
             label = (pm.findtext("name") or "").strip()
-            b = pm.findtext(".//TimeSpan/begin") or ""
-            e = pm.findtext(".//TimeSpan/end") or ""
+            desc = re.sub(r"<[^>]+>", " ", pm.findtext("description") or "")
+            dm_ = re.search(r"Start Date\s*(\d{1,2})/(\d{1,2})/(\d{4})\s*End Date\s*(\d{1,2})/(\d{1,2})/(\d{4})", desc)
+            b = e = ""
+            if dm_:
+                g = dm_.groups()
+                b, e = "%s-%02d-%02d" % (g[2], int(g[0]), int(g[1])), "%s-%02d-%02d" % (g[5], int(g[3]), int(g[4]))
+            else:
+                b = pm.findtext(".//TimeSpan/begin") or ""
+                e = pm.findtext(".//TimeSpan/end") or ""
             polys = []
-            for c in pm.iter("coordinates"):
+            for poly in pm.iter("Polygon"):
+                c = poly.find("outerBoundaryIs/LinearRing/coordinates")
+                if c is None:
+                    continue
                 pts = []
                 for tok in (c.text or "").split():
-                    p = tok.split(",")
-                    if len(p) >= 2:
+                    p_ = tok.split(",")
+                    if len(p_) >= 2:
                         try:
-                            pts.append((float(p[0]), float(p[1])))
+                            pts.append((float(p_[0]), float(p_[1])))
                         except ValueError:
                             pass
                 if len(pts) >= 3:
@@ -550,13 +609,12 @@ def warmth(today):
 
 def tele(today):
     txt = get("https://www.cpc.ncep.noaa.gov/products/precip/CWlink/pna/norm.daily.ao.nao.pna.aao.gdas.120days.csv", nocache=True)
-    rows = list(csv.reader(io.StringIO(txt)))
     data = []
-    for r in rows:
-        if len(r) >= 6 and r[0].strip().isdigit():
+    for r in csv.reader(io.StringIO(txt)):
+        if len(r) >= 4:
             try:
-                d = dt.date(int(r[0]), int(r[1]), int(r[2]))
-                data.append((d, float(r[3]), float(r[4]), float(r[5])))
+                d = dt.datetime.strptime(r[0].strip(), "%d%b%Y").date()
+                data.append((d, float(r[1]), float(r[2]), float(r[3])))
             except ValueError:
                 pass
     if len(data) < 5:

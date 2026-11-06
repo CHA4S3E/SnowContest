@@ -273,7 +273,8 @@ def run(inp):
         ET_ = ZoneInfo("America/New_York")
         n_et = NOW.astimezone(ET_)
         if str(n_et.date()) == inp["date"]:
-            h[day(inp["date"])] *= max(0.0, (24 - n_et.hour - n_et.minute / 60) / 24)
+            left = 24 - n_et.hour - n_et.minute / 60
+            h[day(inp["date"])] *= 0.0 if left < 3 else left / 24  # the last 3 hours of a day with no snow signal count as zero
     today = day(inp["date"])
     for w in inp.get("windows", []):  # cold hazard on the blend's far days (7+ days out)
         if "cold_risk" in w and nb:
