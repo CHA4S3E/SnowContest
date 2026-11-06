@@ -372,12 +372,12 @@ def sentence_places(s, nxt=""):
 
 PLACE_PATTERNS = [(r"nw mtns?|northwest(ern)? (mtns?|mountains)|northwest pa|nw pa", "the NW mountains"), (r"laurel highlands?", "the Laurel Highlands"),
                   (r"alleghen\w* front", "the Allegheny Front"), (r"alleghen\w* (plateau|mountains|mtns)", "the Alleghenies"), (r"poconos?", "the Poconos"),
-                  (r"endless mountains", "the Endless Mountains"), (r"n(or)?th(ern)? tier|nrn pa|northern pa", "the northern tier"),
+                  (r"endless mountains", "the Endless Mountains"), (r"n(or)?th(ern)? tier", "the northern tier"),
                   (r"ridges?\b|ridgetops?", "the ridges"), (r"higher elevations?|high(er)? terrain|summits?", "the higher elevations")]
 STRENGTH_LIGHT = re.compile(r"(dust|coating|trace|slush|light snow|flurr|brief|wet snow|rain/snow|mix(ing|ed)? with|a few snow)", re.I)
 STRENGTH_HEAVY = re.compile(r"(\d+(-\d+)? inches|accumulat|advisory|warning|plowable|heavy snow|significant snow|travel impacts)", re.I)
 HEDGE_RE = re.compile(r"(possible|potential|chance|could|may\b|might|isolated|slight|low confidence|uncertain|out of the question|can.?t rule|not ruled out|cannot be ruled out|if the|depending)", re.I)
-FT_RE = re.compile(r"(\d{3,4}) ?(?:ft|feet)(?: msl)?", re.I)
+FT_RE = re.compile(r"(\d{3,4}) ?(?:ft|feet|msl)\b(?: msl)?", re.I)
 
 
 def snow_details(sents):
@@ -394,7 +394,7 @@ def snow_details(sents):
     joined = " ".join(sents)
     strength = "accumulating" if STRENGTH_HEAVY.search(joined) else "light" if STRENGTH_LIGHT.search(joined) else "unspecified"
     hedged = bool(HEDGE_RE.search(joined))
-    return {"places": places[:3], "elev_ft": min(fts) if fts else None, "strength": strength, "hedged": hedged}
+    return {"places": places[:3], "elev_ft": min(fts) if fts else None, "elev_ft_max": max(fts) if fts else None, "strength": strength, "hedged": hedged}
 
 
 def parse_afd(text, today):
@@ -418,8 +418,10 @@ def parse_afd(text, today):
     summary = ""
     src = bullets[:2] if bullets else ([re.sub(r"\s+", " ", syn.group(1)).strip()] if syn else [])
     if src:
-        summary = " ".join(s.strip() for s in src)
+        src = [re.sub(r"^\d+\)\s*", "", x.strip()).rstrip(" .") + "." for x in src]
+        summary = " ".join(src)
         summary = re.sub(r"\s+", " ", summary)
+        summary = re.sub(r"\s+\.", ".", summary)
         parts = re.split(r"(?<=[.!?])\s+", summary)
         summary = " ".join(parts[:2])
         summary = summary[0].lower() + summary[1:] if summary and not summary[:2].isupper() else summary

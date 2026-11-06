@@ -376,11 +376,11 @@ def nws(f, g, v):
         det = a.get("detail") or {}
         where = join(det.get("places") or [])
         if where or det.get("elev_ft"):
-            c3 = {"where": where or "the higher terrain", "ft": "{:,}".format(det["elev_ft"]) if det.get("elev_ft") else "",
+            c3 = {"where": where or "the higher terrain", "ft": ("{:,}-{:,}".format(det["elev_ft"], det["elev_ft_max"]) if det.get("elev_ft_max") and det["elev_ft_max"] != det["elev_ft"] else "{:,}".format(det["elev_ft"])) if det.get("elev_ft") else "",
                   "kind": "light snow" if det.get("strength") == "light" else "accumulating snow" if det.get("strength") == "accumulating" else "snow"}
             if c3["ft"]:
-                parts.append(sentence(say(v, "fn4d", ["The discussion has {kind} for {where} above roughly {ft} ft.", "Forecasters put {kind} over {where}, above about {ft} ft.",
-                                                      "Their snow call is {kind} for {where}, mainly above {ft} ft."], c3)))
+                parts.append(sentence(say(v, "fn4d", ["The discussion has {kind} for {where} above roughly {ft} ft, well above State College at about 1,200 ft.", "Forecasters put {kind} over {where}, above about {ft} ft; State College sits near 1,200 ft.",
+                                                      "Their snow call is {kind} for {where}, mainly above {ft} ft, far higher than State College at about 1,200 ft."], c3)))
             else:
                 parts.append(sentence(say(v, "fn4e", ["The discussion has {kind} for {where}.", "Forecasters put {kind} over {where}.", "Their snow call is {kind} for {where}."], c3)))
     elif sn == "vague":
