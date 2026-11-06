@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>DUMBASSSSSSSSSS</title>
+<title>First Flakes Pool</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yellowtail&family=Alfa+Slab+One&family=Courier+Prime:wght@400;700&family=Libre+Franklin:wght@400;500;600&display=swap">
 \<style>
@@ -1010,7 +1010,7 @@ body:not(.st) .ffk-hold{display:none}
     <div class="hero-top">
       <div>
         <div class="eyebrow" id="place">State College, PA · 2026</div>
-        <h1><svg aria-hidden="true"><use href="#flake"/></svg><span class="ff-only">DUMBAAASSSSSSS</span><span class="st-only">Season Snow Total</span></h1>
+        <h1><svg aria-hidden="true"><use href="#flake"/></svg><span class="ff-only">First Flakes Pool</span><span class="st-only">Season Snow Total</span></h1>
       </div>
       <span class="status ff-only" id="status">Loading…</span>
     </div>
@@ -1291,8 +1291,8 @@ body:not(.st) .ffk-hold{display:none}
       <button type="button" data-half="pm" role="radio">Noon or later</button>
     </div>
     <form class="unlock card" id="unlockForm">
-      <label for="pw">DUMBASSSS</label>
-      <input id="pw" type="DUMBASSSSS" autocomplete="off" placeholder="Enter DUMBASSSSSSSSSS">
+      <label for="pw">Password</label>
+      <input id="pw" type="password" autocomplete="off" placeholder="Enter password">
       <button type="submit" class="primary" id="unlockBtn">Unlock case</button>
       <span class="unlockmsg" id="unlockMsg" aria-live="polite"></span>
     </form>
@@ -3541,10 +3541,10 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   $("unlockForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const val = $("pw").value.trim().toLowerCase();
-    if (!val) return setMsg("Enter the password OR UR A DUMBASSSSSSSSASASASASSSSSS.", "err");
+    if (!val) return setMsg("Enter the password.", "err");
     let ok = false;
     try { ok = (await sha256(val)) === PW_HASH; } catch (_) { ok = false; }
-    if (!ok) { $("pw").value = ""; setMsg("DUMBASSSSSSSS.", "err"); const c = $("case"); c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake"); return; }
+    if (!ok) { $("pw").value = ""; setMsg("Wrong password. The glass holds.", "err"); const c = $("case"); c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake"); return; }
     if (!isOwner && !unlockOwner()) { setMsg("Right password, but saving is not set up yet.", "err"); return; }
     $("pw").value = "";
     setMsg("");

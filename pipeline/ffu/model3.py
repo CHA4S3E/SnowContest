@@ -269,6 +269,11 @@ def run(inp):
         for k, w in ((1, 2 / 3), (2, 1 / 3)):  # blend out of the NBM
             if last + k < N:
                 h[last + k] = w * tail + (1 - w) * h[last + k]
+    if NOW is not None and not (nb and inp["date"] in nb):  # no model data left for today: only the rest of the day counts
+        ET_ = ZoneInfo("America/New_York")
+        n_et = NOW.astimezone(ET_)
+        if str(n_et.date()) == inp["date"]:
+            h[day(inp["date"])] *= max(0.0, (24 - n_et.hour - n_et.minute / 60) / 24)
     today = day(inp["date"])
     for w in inp.get("windows", []):  # cold hazard on the blend's far days (7+ days out)
         if "cold_risk" in w and nb:
