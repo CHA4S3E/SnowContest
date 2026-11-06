@@ -1,8 +1,8 @@
 # 2026-11-05-pm
 
-First Flakes Nov 5: Kiera leads Meteo at 18.4%; Will leads Ritner Floor 2 at 28.3%. Median Nov. 18.
+First Flakes Nov 5: Kiera leads Meteo at 20.0%; Will leads Ritner Floor 2 at 30.9%. Median Nov. 18.
 
-Headline (new): The models find a snow chance for next Saturday, topping out around 11%. The median edges three days earlier to Nov. 18.
+Headline (new): The first real flake chance of the season is on the board for next Saturday, near 11% at its best. The median nudges three days earlier, to Nov. 18.
 
 ## Input health
 

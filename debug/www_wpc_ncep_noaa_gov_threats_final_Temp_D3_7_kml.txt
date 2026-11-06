@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.opengis.net/kml/2.2 http://schemas.opengis.net/kml/2.2.0/ogckml22.xsd http://www.google.com/kml/ext/2.2 http://code.google.com/apis/kml/schema/kml22gx.xsd">
+<Document id="3-7 Day Temperature Hazards Created: 11-05-2026 Valid: 11-08-2026 - 11-12-2026">
+  <name>3-7 Day Temperature Hazards Created: 11-05-2026 Valid: 11-08-2026 - 11-12-2026</name>
+  <snippet></snippet>
+  <Folder id="FeatureLayer0">
+    <name>3-7 Day Temperature Hazards Created: 11-05-2026 Valid: 11-08-2026 - 11-12-2026</name>
+    <snippet></snippet>
+    <Placemark id="ID_00000">
+      <name>High Winds</name>
+      <snippet></snippet>
+      <description><![CDATA[<div style="font-family: 'Segoe UI', Arial, sans-serif; min-width: 250px; background-color: #ffffff; border: 1px solid #dcdcdc; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1);"><div style="background-color: #1976d2; color: #ffffff; padding: 12px; font-size: 16px; font-weight: bold; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">High Winds</div><div style="padding: 10px 15px;"><table style="width: 100%; border-collapse: collapse; font-size: 13px;"><tr style="border-bottom: 1px solid #eeeeee;"><td style="padding: 8px 0; color: #555555; font-weight: bold;">Start Date</td><td style="padding: 8px 0; text-align: right; color: #222222;">11/9/2026</td></tr><tr style="border-bottom: 1px solid #eeeeee;"><td style="padding: 8px 0; color: #555555; font-weight: bold;">End Date</td><td style="padding: 8px 0; text-align: right; color: #222222;">11/9/2026</td></tr></table></div></div>]]></description>
+      <styleUrl>#PolyStyle00</styleUrl>
+      <MultiGeometry>
+        <Polygon>
+          <extrude>0</extrude><altitudeMode>clampToGround</altitudeMode>
+          <outerBoundaryIs><LinearRing><coordinates> -132.9046027541067,56.23526560299049,0 -133.8173888147035,56.72457071465661,0 -134.6988763777018,57.05487243536096,0 -135.4014578703917,56.93674097254339,0 -135.4127097872239,56.91542399117067,0 -135.3339699046312,56.80518815554089,0 -135.237064409989,56.71656518180851,0 -135.0345680421441,56.5313761958306,0 -135.0389134782243,56.52794137979102,0 -134.6458724779824,56.1626623800649,0 -134.6312159254009,56.15525821064013,0 -134.5860061662901,56.14574036661681,0 -134.4717213980229,56.11683901702237,0 -134.0847528765703,55.99617141355859,0 -133.8303659834613,55.94066881869858,0 -133.7760665186956,55.9288216627497,0 -133.7822114765284,55.92072637921925,0 -133.6105254768192,55.91906137977888,0 -133.4694144769465,56.02238837922046,0 -133.3097004762458,55.9935163796773,0 -133.3093567650288,55.99496894017976,0 -133.3089494444611,55.99488253884709,0 -133.2833169982084,55.98633839009626,0 -133.2381644821336,55.97128755140464,0 -133.2335564766999,55.90407737946759,0 -133.1306915062707,55.88638253084977,0 -133.1768424037502,55.81837068193246,0 -133.2210463524504,55.75636821299065,0 -133.366056508601,55.72362398418244,0 -133.3658938894011,55.72281088818319,0 -133.3666334766036,55.72268337903471,0 -133.3452574765013,55.60964237949247,0 -133.2458264768604,55.57326737928624,0 -133.2423212477965,55.57381967990162,0 -133.2375656142862,55.5713384798093,0 -133.085280109913,55.58085632383262,0 -133.113833641983,55.49995464963439,0 -133.2497903748418,55.34055710076534,0 -133.2518423803212,55.33815130123793,0 -133.2515475213505,55.33682443586994,0 -133.218232120365,55.1869051314352,0 -133.1978537155613,55.09520230981872,0 -133.2057524760458,55.09463637916562,0 -133.1769261391906,55.02774198163644,0 -133.1519050180763,54.95267861829342,0 -133.1427767070105,54.94849480905498,0 -133.1407524759958,54.94379737854641,0 -132.9235240399522,54.84784049873018,0 -132.940597975526,54.79661869200855,0 -132.9457584761226,54.79187537834616,0 -132.9017551828546,54.75197060622055,0 -132.8378161653067,54.69093790765208,0 -132.8338032139876,54.69034776775229,0 -132.8324144760972,54.68908837862597,0 -132.6607544757883,54.66381037844636,0 -132.6613560449455,54.66432326493484,0 -132.5709544771132,54.67235895985337,0 -132.0756003520877,54.69695100861341,0 -131.996070475322,54.69020637802214,0 -131.9960962662615,54.69112885160055,0 -131.8089084745651,54.80032173009005,0 -131.6922847903301,54.87480408304695,0 -131.6357353059893,54.90633167166169,0 -132.1513582060954,55.65821827403097,0 -132.9046027541067,56.23526560299049,0</coordinates></LinearRing></outerBoundaryIs>
+        </Polygon>
+      </MultiGeometry>
+    </Placemark>
+    <Placemark id="ID_00001">
+      <name>Frost/Freeze</name>
+      <snippet></snippet>
+      <description><![CDATA[<div style="font-family: 'Segoe UI', Arial, sans-serif; min-width: 250px; background-color: #ffffff; border: 1px solid #dcdcdc; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1);"><div style="background-color: #1976d2; color: #ffffff; padding: 12px; font-size: 16px; font-weight: bold; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">Frost/Freeze</div><div style="padding: 10px 15px;"><table style="width: 100%; border-collapse: collapse; font-size: 13px;"><tr style="border-bottom: 1px solid #eeeeee;"><td style="padding: 8px 0; color: #555555; font-weight: bold;">Start Date</td><td style="padding: 8px 0; text-align: right; color: #222222;">11/8/2026</td></tr><tr style="border-bottom: 1px solid #eeeeee;"><td style="padding: 8px 0; color: #555555; font-weight: bold;">End Date</td><td style="padding: 8px 0; text-align: right; color: #222222;">11/9/2026</td></tr></table></div></div>]]></description>
+      <styleUrl>#PolyStyle01</styleUrl>
+      <MultiGeometry>
+        <Polygon>
+          <extrude>0</extrude><altitudeMode>clampToGround</altitudeMode>
+          <outerBoundaryIs><LinearRing><coordinates> -83.36252069545262,38.71942140942784,0 -83.77371571566707,38.81690239502005,0 -84.67104919970882,38.9692992641714,0 -85.68820167714702,39.0649630098479,0 -86.71203388195758,38.97476482079699,0 -87.87873467106388,38.73701996715609,0 -88.7245520785813,38.6214641838401,0 -89.62942236523341,38.51843012909742,0 -90.09666465290096,38.52473224304767,0 -90.62394198610369,38.5763385240522,0 -91.07485192883289,38.51925941700776,0 -91.48064082050695,38.17726749703959,0 -91.651491750509,37.8266054884235,0 -91.56262732155682,36.94691091524228,0 -91.26348896188665,36.17737832755266,0 -90.64031873495352,35.48220451571309,0 -90.11355457254675,34.98126690607855,0 -89.22657796654426,34.54832992432674,0 -88.27316051111521,34.26903643047217,0 -87.40103027291079,34.19760963422461,0 -86.67549114071571,34.23608657968603,0 -86.1090367238659,34.41820347142165,0 -85.44890517710169,34.66527625448795,0 -85.05564736474884,34.85729566833547,0 -84.48055568481428,35.15209297218958,0 -84.01844206920251,35.59031316903321,0 -83.33841215805543,35.94582341196065,0 -82.6254008273219,36.43000913934183,0 -82.19471652722385,37.01596373370633,0 -82.17676702673717,37.61429653338669,0 -82.41580671049977,37.99865206033967,0 -82.8014693290834,38.41149745272281,0 -83.36252069545262,38.71942140942784,0</coordinates></LinearRing></outerBoundaryIs>
+        </Polygon>
+      </MultiGeometry>
+    </Placemark>
+  </Folder>
+  <Style id="PolyStyle00">
+    <LabelStyle>
+      <color>00000000</color>
+      <scale>0.000000</scale>
+    </LabelStyle>
+    <LineStyle>
+      <color>7f000000</color>
+      <width>1.000000</width>
+    </LineStyle>
+    <PolyStyle>
+      <color>7f66aacd</color>
+      <outline>1</outline>
+    </PolyStyle>
+  </Style>
+  <Style id="PolyStyle01">
+    <LabelStyle>
+      <color>00000000</color>
+      <scale>0.000000</scale>
+    </LabelStyle>
+    <LineStyle>
+      <color>7f000000</color>
+      <width>1.000000</width>
+    </LineStyle>
+    <PolyStyle>
+      <color>7fff00c5</color>
+      <outline>1</outline>
+    </PolyStyle>
+  </Style>
+</Document>
+</kml>
