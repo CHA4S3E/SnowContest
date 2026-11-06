@@ -1066,7 +1066,7 @@ body:not(.st) .ffk-hold{display:none}
       <div class="stat card lead"><span class="eyebrow">Favorite</span><span class="big" id="favName">—</span></div>
       <div class="stat card"><span class="eyebrow">Median first-flakes date</span><span class="big" id="center">—</span></div>
       <div class="stat card"><span class="eyebrow">80% window</span><span class="big" id="range">—</span></div>
-      <div class="stat card"><span class="eyebrow">Chance it's in October</span><span class="big" id="poct">—</span></div>
+      <div class="stat card"><span class="eyebrow" id="poctLabel">Chance it's in October</span><span class="big" id="poct">—</span></div>
     </div>
     <div class="countdown ff-only" id="countdown" aria-live="polite"></div>
   </header>
@@ -1275,7 +1275,7 @@ body:not(.st) .ffk-hold{display:none}
   <section id="st-details" class="st-only">
     <h2>What's driving this forecast</h2>
     <div class="factors" id="stFactors"></div>
-    <p class="sub method">How it works: the season total so far is the official count at the State College weather station. The rest of the season is built from what State College's last 35 winters (1991-92 to 2025-26) got over the same dates, every winter counting equally (tested against all 35: weighting recent winters more did worse). For the next 10 days the forecast takes over: the National Blend of Models and the European model's expected snow, trusted fully for the next few days and blended back toward the 35-winter average farther out. CPC's 6-10 and 8-14 day outlooks nudge the two weeks after that. Thousands of simulated finishes give each guess its chance of being closest; identical guesses, and two guesses the same distance from the final total, share the win.</p>
+    <p class="sub method">How it works: the season total so far is the official count at the State College weather station. The rest of the season is built from what State College's last 35 winters (1991-92 to 2025-26) got over the same dates, every winter counting equally, each one scaled for State College's long-term decline in snowfall (about 18% less per decade since 1991). Tested against all 35 winters, and forward in time on every winter since 2006-07, that scored better than unscaled winters, and weighting recent winters more did worse. For the next 10 days the forecast takes over: the National Blend of Models and the European model's expected snow, trusted fully for the next few days and blended back toward the 35-winter average farther out. CPC's 6-10 and 8-14 day outlooks nudge the two weeks after that. Thousands of simulated finishes give each guess its chance of being closest; identical guesses, and two guesses the same distance from the final total, share the win.</p>
   </section>
   <section id="sec-chg" class="ff-only" hidden>
     <h2>What changed since the last update</h2>
@@ -1580,6 +1580,19 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   const $ = (id) => document.getElementById(id);
   const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const LONG = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  // The month box follows the calendar: October through Oct. 31, then the month the update was made in (November from Nov. 1)
+  const boxMonth = (u) => (u && u.date && u.date.slice(0, 7) > "2026-10" ? u.date.slice(0, 7) : "2026-10");
+  function monthChance(u, m) {
+    if (!u) return null;
+    m = m || boxMonth(u);
+    if (m === "2026-10" && u.pOct != null) return u.pOct;
+    const dist = u.dist || {};
+    const ks = Object.keys(dist);
+    if (!ks.length) return null;
+    const tot = ks.reduce((a, d) => a + dist[d], 0) || 1;
+    return Math.round(ks.filter((d) => d.slice(0, 7) === m).reduce((a, d) => a + dist[d], 0) / tot * 1000) / 10;
+  }
+  const monthName = (m) => LONG[+m.slice(5, 7) - 1];
   const parse = (s) => { const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); };
   const iso = (d) => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
   const short = (s) => { const d = parse(s); return MONTHS[d.getMonth()] + " " + d.getDate(); };
@@ -2838,7 +2851,8 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     } else {
       if (u.center && prev.center) tiles.push(dayTile("Median first flakes", short(u.center), Math.round((parse(u.center) - parse(prev.center)) / 864e5), short(prev.center)));
       if (u.range80 && prev.range80) tiles.push('<div class="chgt card"><em>Range (80%)</em><b>' + short(u.range80[0]) + "–" + short(u.range80[1]) + "</b><small>" + (u.range80[0] === prev.range80[0] && u.range80[1] === prev.range80[1] ? "unchanged" : "was " + short(prev.range80[0]) + "–" + short(prev.range80[1])) + "</small></div>");
-      if (u.pOct != null && prev.pOct != null) tiles.push(numTile("Chance in October", u.pOct.toFixed(1) + "%", u.pOct - prev.pOct, prev.pOct.toFixed(1) + "%", 1, " pts", true));
+      { const bm = boxMonth(u), c1 = monthChance(u, bm), c0 = monthChance(prev, bm);
+        if (c1 != null && c0 != null) tiles.push(numTile("Chance in " + monthName(bm), c1.toFixed(1) + "%", c1 - c0, c0.toFixed(1) + "%", 1, " pts", true)); }
     }
     tiles.push(leadTile);
     const mv = Object.keys(u.odds).map((n) => [n, u.odds[n] - (prev.odds[n] || 0)]).filter((x) => Math.abs(x[1]) >= 0.3).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 4);
@@ -2955,7 +2969,9 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       $("favName").innerHTML = top ? esc(top[0]) + "<small>" + top[1].toFixed(1) + "%</small>" : "—";
       $("center").textContent = u.center ? short(u.center) : "—";
       $("range").textContent = u.range80 ? short(u.range80[0]) + "–" + short(u.range80[1]) : "—";
-      $("poct").textContent = u.pOct != null ? u.pOct.toFixed(0) + "%" : "—";
+      { const bm = boxMonth(u), c = monthChance(u, bm);
+        $("poct").textContent = c != null ? c.toFixed(0) + "%" : "—";
+        const lab = $("poctLabel"); if (lab) lab.textContent = "Chance it's in " + monthName(bm); }
       if (sorted.length) { renderBoard(u, prev, sorted, out); renderRooting(u, out); }
       else {
         const msg = '<div class="emptypool"><b>No picks in ' + esc(poolName(poolId)) + ' yet</b><span>' + (isOwner ? "Add everyone's guesses with the Add or change a pick button in the calendar section." : "The odds show up here once the picks are in.") + '</span></div>';

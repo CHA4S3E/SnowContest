@@ -24,16 +24,19 @@ jobs:
               w = json.load(open("data/watch.json"))
               c = json.load(open("data/config.json"))
               total = bool(w.get("active")) and w.get("mode") == "total"
-              on = (bool(w.get("active")) or (bool(c.get("firstSnow")) and w.get("stage") not in (None, "ended"))) and not w.get("test")
+              ondeck = w.get("stage") == "ondeck" and not w.get("active")
+              on = (bool(w.get("active")) or ondeck or (bool(c.get("firstSnow")) and w.get("stage") not in (None, "ended"))) and not w.get("test")
+              live = bool(w.get("active")) and not w.get("test")
           except Exception:
-              on = total = False
+              on = total = live = False
           print("run=" + ("true" if on else "false"))
+          print("live=" + ("true" if live else "false"))
           print("total=" + ("true" if total else "false"))
           P
       - if: steps.gate.outputs.run == 'true'
         run: pip install -r pipeline/requirements.txt
       - name: Radar loop
-        if: steps.gate.outputs.run == 'true'
+        if: steps.gate.outputs.live == 'true'
         continue-on-error: true
         run: timeout 540 python pipeline/radar.py data/radar.json
       - name: Snowfall map (season storms only)

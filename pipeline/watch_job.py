@@ -62,7 +62,8 @@ def main():
         save(os.path.join(D_, "watch.json"), prev)
         print("first snow declared; watch closed")
         return 0
-    if not prev or not prev.get("active"):
+    ondeck = bool(prev) and not prev.get("active") and prev.get("stage") == "ondeck"
+    if not prev or not (prev.get("active") or ondeck):
         print("no active watch")
         return 0
     now = dt.datetime.now(dt.timezone.utc) if not a.now else dt.datetime.strptime(a.now, "%Y-%m-%dT%H:%MZ").replace(tzinfo=dt.timezone.utc)
@@ -103,6 +104,23 @@ def main():
             except Exception as e:  # noqa
                 health[m] = repr(e)[:120]
     save(P("prev.json"), prev)
+    if ondeck:  # go-live check: start the hourly live watch only when the snow window is within about 12 hours
+        rc = subprocess.run([sys.executable, os.path.join(HERE, "watch.py"), now_s, P("lamp.json"), P("nbs.json"), P("metars.txt"), P("prev.json"), P("out.json"), "--check"],
+                            capture_output=True, text=True)
+        chk = json.loads(rc.stdout.strip().splitlines()[-1]) if rc.returncode == 0 and rc.stdout.strip() else {}
+        now_et0 = now.astimezone(ET)
+        if chk.get("expired"):
+            prev.update({"stage": "ended", "active": False, "endedAt": now_et0.isoformat(timespec="minutes")})
+            save(os.path.join(D_, "watch.json"), prev)
+            print("on-deck snow chance passed; watch ended")
+            return 0
+        if not chk.get("goLive"):
+            prev["goLiveAt"] = (now_et0 + dt.timedelta(hours=1)).replace(minute=8, second=0, microsecond=0).isoformat(timespec="minutes")
+            prev["checkedAt"] = now_et0.isoformat(timespec="minutes")
+            save(os.path.join(D_, "watch.json"), prev)
+            print("on deck: next18 %s%%, not live yet" % chk.get("next18"))
+            return 0
+        print("snow window close; going live")
     cmd = [sys.executable, os.path.join(HERE, "watch.py"), now_s, P("lamp.json"), P("nbs.json"), P("metars.txt"), P("prev.json"), P("out.json")]
     radar = load(os.path.join(D_, "radar.json"))
     if radar and not radar.get("error"):

@@ -64,11 +64,20 @@ for scen, today in (("quiet", "2026-11-06"), ("snowy", "2026-11-07"), ("frost", 
     check("  models table has RRFS and HRRR rows", "RRFS" in mt and "HRRR" in mt, mt[:200])
     w = J(D + "/watch.json")
     if scen == "snowsoon":
-        check("  snow-soon case starts a watch", bool(w and w.get("active")), w and {k: w.get(k) for k in ("active", "status")})
+        check("  snow-soon case puts a day on deck", bool(w and w.get("stage") == "ondeck" and not w.get("active") and w.get("goLiveAt")), w and {k: w.get(k) for k in ("active", "stage", "goLiveAt")})
 
 # ---- stage 2: hourly First Flakes watch with a fake airport snow report
 w = J(D + "/watch.json")
-if w and w.get("active"):
+if w and w.get("stage") == "ondeck":
+    fxq = tempfile.mkdtemp()  # dry guidance: the on-deck day stays on deck
+    json.dump([[(dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=h)).strftime("%Y-%m-%d %H:00"), 45, 5, 5, "R"] for h in range(1, 12)], open(fxq + "/lamp.json", "w"))
+    json.dump([[(dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=6 * k)).strftime("%Y-%m-%d %H:00"), 45, 5, 5] for k in range(1, 8)], open(fxq + "/nbs.json", "w"))
+    open(fxq + "/metars.txt", "w").write("")
+    r = sh([os.path.join(PIPE, "watch_job.py"), D, "--fixtures", fxq])
+    wq = J(D + "/watch.json", {})
+    check("on-deck check with dry guidance stays on deck", r.returncode == 0 and wq.get("stage") == "ondeck" and not wq.get("active"), (r.stdout + r.stderr)[-250:])
+w = J(D + "/watch.json")
+if w and (w.get("active") or w.get("stage") == "ondeck"):
     fxw = tempfile.mkdtemp()
     now = dt.datetime.now(dt.timezone.utc)
     lamp = [[(now + dt.timedelta(hours=h)).strftime("%Y-%m-%d %H:00"), 31, 60, 70, "S"] for h in range(1, 12)]
@@ -78,6 +87,7 @@ if w and w.get("active"):
     r = sh([os.path.join(PIPE, "watch_job.py"), D, "--fixtures", fxw])
     w2 = J(D + "/watch.json", {})
     check("watch job ran", r.returncode == 0, r.stderr[-300:])
+    check("  snow window close: on-deck goes live", w2.get("active") is True and w2.get("stage") == "live", {k: w2.get(k) for k in ("active", "stage")})
     check("  airport snow flips status to reported", w2.get("status") == "reported", w2.get("status"))
     check("  breaking headline written", bool(w2.get("title")) and bool(w2.get("headline")), w2.get("headline"))
 

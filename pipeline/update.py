@@ -237,19 +237,33 @@ def main():
     # ---------------- watch (6b)
     dc = out["dayChance"]
     first2 = list(sorted(dc))[:2]
-    hot = any(dc[d] >= 10 for d in first2)
-    if hot and not (watch and watch.get("active")):
-        title, hd = watch_txt.title_headline(f, derive.derive(dict(f, watch={"active": True})), vf(0))
-        days = [{"date": d, "chance": dc[d]} for d in sorted(dc) if dc[d] >= 10]
-        watch = {"active": True, "status": "watching", "startedAt": now_et.isoformat(timespec="minutes"), "updatedAt": now_et.isoformat(timespec="minutes"),
-                 "until": days[-1]["date"] if days else first2[-1], "baseDays": dc, "days": days, "hours": [], "obs": None, "reported": None, "title": title, "headline": hd}
-    elif watch and watch.get("active"):
+    hot_days = [d for d in sorted(dc) if dc[d] >= 10]
+    days_list = [{"date": d, "chance": dc[d]} for d in sorted(dc)]
+    # the live watch starts 12 hours before the first day with a 10% chance: noon ET the day before (at least 10 minutes from now)
+    go_live = None
+    if hot_days:
+        go_live = max(dt.datetime.combine(dt.date.fromisoformat(hot_days[0]) - dt.timedelta(1), dt.time(12), tzinfo=now_et.tzinfo), now_et + dt.timedelta(minutes=10))
+    if watch and watch.get("active"):
         watch["baseDays"] = dc
-        hot_days = [d for d in sorted(dc) if dc[d] >= 10]
         if hot_days:
             watch["until"] = max(watch.get("until", hot_days[-1]), hot_days[-1])
         if watch.get("reported") and not cfg.get("firstSnow") and watch.get("until") and dt.date.fromisoformat(today) > dt.date.fromisoformat(watch["until"]) + dt.timedelta(1):
-            watch.update({"active": False, "endedAt": now_et.isoformat(timespec="minutes")})
+            watch.update({"active": False, "stage": "ended", "endedAt": now_et.isoformat(timespec="minutes")})
+    elif watch and watch.get("stage") == "ondeck" and not cfg.get("firstSnow"):
+        if hot_days:
+            title, hd = watch_txt.title_headline(f, derive.derive(dict(f, watch={"active": False})), vf(0))
+            watch.update({"baseDays": dc, "days": [d for d in days_list if d["chance"] >= 1], "until": max(watch.get("until", hot_days[-1]), hot_days[-1]),
+                          "title": title, "headline": hd})
+            if not watch.get("goLiveAt") or go_live.isoformat(timespec="minutes") < watch["goLiveAt"]:
+                watch["goLiveAt"] = go_live.isoformat(timespec="minutes")
+        else:  # the chance faded before the live watch started
+            watch.update({"stage": "ended", "active": False, "endedAt": now_et.isoformat(timespec="minutes")})
+            log.append("The on-deck snow chance faded; watch called off.")
+    elif hot_days and not cfg.get("firstSnow"):
+        title, hd = watch_txt.title_headline(f, derive.derive(dict(f, watch={"active": False})), vf(0))
+        watch = {"active": False, "stage": "ondeck", "onDeckAt": now_et.isoformat(timespec="minutes"), "until": hot_days[-1], "baseDays": dc,
+                 "days": [d for d in days_list if d["chance"] >= 1], "hours": [], "obs": None, "reported": None, "title": title, "headline": hd,
+                 "goLiveAt": go_live.isoformat(timespec="minutes")}
     # ---------------- season snowfall for the season race (hidden until that mode)
     try:
         y = int(today[:4]) if today >= "%s-07-01" % today[:4] else int(today[:4]) - 1
