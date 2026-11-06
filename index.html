@@ -625,6 +625,8 @@ body.alarm.holding #ffalarm { --spd: .55s; }
 .wneedle .ng { transform-origin: 230px 230px; transition: transform 1.1s cubic-bezier(.3,1.35,.5,1); }
 .wneedle .big { font: 800 2.6rem/1 var(--display); }
 .wneedle .dl { font: 600 .8rem/1 var(--mono); }
+.wtrend { width: 100%; height: auto; display: block; }
+.walerts { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 4px; font-size: .9rem; }
 .wneedle .note { font-size: .78rem; opacity: .85; text-align: center; max-width: 42ch; }
 .wneedle svg.sp { width: 100%; height: 44px; }
 .wneedle .spx { width: 100%; display: flex; justify-content: space-between; font: .68rem/1 var(--mono); opacity: .8; }
@@ -2905,7 +2907,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     const n = updates.length, sl = $("slider");
     sl.max = Math.max(0, n - 1); sl.value = Math.max(0, idx); sl.disabled = n < 2;
     $("prevBtn").disabled = idx <= 0; $("nextBtn").disabled = idx >= n - 1; $("playBtn").disabled = n < 2;
-    $("whenLabel").innerHTML = u ? (u.live ? "Now" + (u.liveAt ? " · " + clock(new Date(u.liveAt)) : "") + '<span class="livebadge">live</span>' : esc(short(u.date) + tag(u))) + (u.live ? "" : u.preview ? '<span class="livebadge past">preview</span>' : idx === n - 1 ? '<span class="livebadge">latest</span>' : '<span class="livebadge past">past</span>') : "—";
+    $("whenLabel").innerHTML = u ? (u.live ? 'Now<span class="livebadge">live</span>' : esc(short(u.date) + tag(u))) + (u.live ? "" : u.preview ? '<span class="livebadge past">preview</span>' : idx === n - 1 ? '<span class="livebadge">latest</span>' : '<span class="livebadge past">past</span>') : "—";
     $("ticks").innerHTML = n ? "<span>" + short(updates[0].date) + "</span><span>" + short(updates[n - 1].date) + "</span>" : "";
     const latest = updates[n - 1];
     if (latest) {
@@ -2977,7 +2979,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     $("prevBtn").disabled = idx <= 0;
     $("nextBtn").disabled = idx >= n - 1;
     $("playBtn").disabled = n < 2;
-    $("whenLabel").innerHTML = u ? (u.live ? "Now" + (u.liveAt ? " · " + clock(new Date(u.liveAt)) : "") + '<span class="livebadge">live</span>' : esc(short(u.date) + tag(u)) + (idx === n - 1 ? '<span class="livebadge">latest</span>' : '<span class="livebadge past">past</span>')) : "—";
+    $("whenLabel").innerHTML = u ? (u.live ? 'Now<span class="livebadge">live</span>' : esc(short(u.date) + tag(u)) + (idx === n - 1 ? '<span class="livebadge">latest</span>' : '<span class="livebadge past">past</span>')) : "—";
     $("ticks").innerHTML = n ? "<span>" + short(updates[0].date) + "</span><span>" + short(updates[n - 1].date) + "</span>" : "";
 
     if (u) {
@@ -3178,6 +3180,33 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     const t = $("smTabs"); if (t) t.onclick = (e) => { const b = e.target.closest("button"); if (b) { smView = b.dataset.v; renderWatch(); } };
     const h = $("smThs"); if (h) h.onclick = (e) => { const b = e.target.closest("button"); if (b) { smTh = +b.dataset.t; renderWatch(); } };
   }
+  // Small chart helpers for the watches. Times run left to right, the likely range is shaded, the line is the best estimate.
+  function watchTrend(pts, o) {
+    pts = (pts || []).filter((x) => x && x.t && x.v != null);
+    if (pts.length < 2) return '<div class="wlegend">' + o.empty + '</div>';
+    const W = 560, H = 170, L = 38, Rr = 10, T = 12, B = 26;
+    const t0 = new Date(pts[0].t).getTime(), t1 = new Date(pts[pts.length - 1].t).getTime(), span = Math.max(1, t1 - t0);
+    const ymax = o.ymax(Math.max(...pts.map((x) => Math.max(x.v, x.hi != null ? x.hi : x.v))));
+    const X = (t) => L + (new Date(t).getTime() - t0) / span * (W - L - Rr), Y = (v) => T + (1 - Math.min(1, v / ymax)) * (H - T - B);
+    const withBand = pts.filter((x) => x.lo != null && x.hi != null);
+    const band = withBand.length > 1 ? '<path d="' + withBand.map((x, i) => (i ? "L" : "M") + X(x.t).toFixed(1) + " " + Y(x.hi).toFixed(1)).join(" ") + " " + withBand.slice().reverse().map((x) => "L" + X(x.t).toFixed(1) + " " + Y(x.lo).toFixed(1)).join(" ") + ' Z" fill="rgba(255,255,255,.22)"/>' : "";
+    const line = pts.map((x, i) => (i ? "L" : "M") + X(x.t).toFixed(1) + " " + Y(x.v).toFixed(1)).join(" ");
+    const last = pts[pts.length - 1];
+    const ticks = [0, .5, 1].map((f) => { const v = ymax * f; return '<line x1="' + L + '" x2="' + (W - Rr) + '" y1="' + Y(v).toFixed(1) + '" y2="' + Y(v).toFixed(1) + '" stroke="rgba(255,255,255,.22)" stroke-dasharray="3 4"/><text x="' + (L - 6) + '" y="' + (Y(v) + 4).toFixed(1) + '" text-anchor="end" font-size="11" fill="currentColor" opacity=".85" font-family="IBM Plex Mono, monospace">' + o.fmt(v) + '</text>'; }).join("");
+    const xl = [0, .5, 1].map((f) => '<text x="' + (L + f * (W - L - Rr)).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="' + (f === 0 ? "start" : f === 1 ? "end" : "middle") + '" font-size="11" fill="currentColor" opacity=".85" font-family="IBM Plex Mono, monospace">' + esc(hourLabel(new Date(t0 + f * span))) + '</text>').join("");
+    return '<svg class="wtrend" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(o.label) + '">' + ticks + band + '<path d="' + line + '" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/>' +
+      '<circle cx="' + X(last.t).toFixed(1) + '" cy="' + Y(last.v).toFixed(1) + '" r="5" fill="#fff"/>' + xl + '</svg>' + '<div class="wlegend">' + o.legend + '</div>';
+  }
+  function hourShape(hs, o) {   // bars by hour: the shape of the night
+    if (!hs.length) return '<div class="wlegend">The hour-by-hour shape fills in on the next check.</div>';
+    const W = 560, H = 150, L = 34, T = 10, B = 26, n = hs.length, bw = (W - L - 6) / n;
+    const ymax = o.ymax(Math.max(...hs.map((x) => x.v)));
+    const Y = (v) => T + (1 - Math.min(1, v / ymax)) * (H - T - B);
+    const bars = hs.map((x, i) => '<rect x="' + (L + i * bw + 1).toFixed(1) + '" y="' + Y(x.v).toFixed(1) + '" width="' + Math.max(1, bw - 2).toFixed(1) + '" height="' + Math.max(0, H - B - Y(x.v)).toFixed(1) + '" rx="2" fill="' + (o.color ? o.color(x.v) : "#fff") + '" opacity=".92"/>').join("");
+    const lab = hs.map((x, i) => i % Math.max(1, Math.round(n / 6)) === 0 ? '<text x="' + (L + i * bw + bw / 2).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="currentColor" opacity=".85" font-family="IBM Plex Mono, monospace">' + esc(hourLabel(new Date(x.t))) + '</text>' : "").join("");
+    const ticks = [0, 1].map((f) => '<text x="' + (L - 6) + '" y="' + (Y(ymax * f) + 4).toFixed(1) + '" text-anchor="end" font-size="11" fill="currentColor" opacity=".85" font-family="IBM Plex Mono, monospace">' + o.fmt(ymax * f) + '</text>').join("");
+    return '<svg class="wtrend" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(o.label) + '">' + ticks + bars + lab + '</svg><div class="wlegend">' + o.legend + '</div>';
+  }
   function renderStormWatch() {
     const sec = $("sec-watch"), box = $("watch"), chip = $("watchChip");
     const on = !!(watch && watch.active && watch.mode === "total");
@@ -3208,9 +3237,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       const bands = edges.slice(0, -1).map((e, i) => { const col = e < 0.1 ? "rgba(255,255,255,.18)" : SM_COLS[SM_BINS.indexOf(e)]; return '<path d="' + arc(frac(e), frac(edges[i + 1])) + '" fill="none" stroke="' + col + '" stroke-width="44"/>'; }).join("");
       const tickVals = scale === 12 ? [0, 3, 6, 9, 12] : scale === 24 ? [0, 6, 12, 18, 24] : [0, 12, 24, 36, 48];
       const tks = tickVals.map((v) => { const q = pt(frac(v), R + 38); return '<text x="' + q[0].toFixed(0) + '" y="' + (q[1] + 4).toFixed(0) + '" text-anchor="middle" font-size="13" fill="currentColor" opacity=".8" font-family="IBM Plex Mono, monospace">' + v + '</text>'; }).join("");
-      const nl = watch.needleLog || [], mxv = Math.max(2, hi, ...nl.map((x) => x.v));
-      const W = 560, Hh = 44;
-      const sp = nl.map((x, i) => (i ? "L" : "M") + (nl.length > 1 ? i / (nl.length - 1) * W : 0).toFixed(1) + " " + (Hh - 3 - x.v / mxv * (Hh - 8)).toFixed(1)).join(" ");
+      const nl = watch.needleLog || [];
       const d0 = nl.length > 1 ? ex - nl[0].v : 0;
       const ang = (x) => -90 + 180 * frac(x);
       html += '<div class="wneed"><div class="wbox wneedle"><h3 style="justify-self:start">The Storm Needle · expected storm total</h3>' +
@@ -3220,7 +3247,9 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
         '<g class="ng" id="stormNeedle" style="transform:rotate(' + ang(ex) + 'deg)"><path d="M225 230 L230 66 L235 230 Z" fill="#fff"/></g><circle cx="230" cy="230" r="13" fill="#fff"/><circle cx="230" cy="230" r="4.5" fill="var(--wc)"/></svg>' +
         '<div style="display:flex;gap:12px;align-items:baseline"><span class="big">' + stFmt(ex) + ' in</span>' + (nl.length > 1 ? '<span class="dl">' + (d0 >= 0.05 ? "▲ " : d0 <= -0.05 ? "▼ " : "") + (Math.abs(d0) < 0.05 ? "steady" : stFmt(Math.abs(d0)) + " in") + ' since the watch began</span>' : "") + '</div>' +
         '<div class="note">Shaded: the likely range for this storm (' + stFmt(lo) + ' to ' + stFmt(hi) + ' in). The needle drifts inside it between checks.</div>' +
-        (nl.length > 1 ? '<svg class="sp" viewBox="0 0 560 44" preserveAspectRatio="none" aria-hidden="true"><path d="' + sp + '" fill="none" stroke="#fff" stroke-width="2.5"/></svg><div class="spx"><span>' + hourLabel(new Date(nl[0].t)) + '</span><span>now</span></div>' : "") + '</div></div>';
+        '</div>' +
+        '<div class="wbox"><h3>How the forecast has changed</h3>' + watchTrend(nl, { ymax: (m) => Math.max(2, Math.ceil(m / 2) * 2), fmt: (v) => stFmt(v) + '"', label: "Expected storm total over the watch, with the likely range shaded",
+          empty: "The chart fills in as the watch runs: one point per hourly check.", legend: "Line: expected storm total at each check. Shaded: the likely range, narrowing as the storm gets closer." }) + '</div></div>';
       clearInterval(window.__needleT);
       window.__needleT = setInterval(() => { const n = document.getElementById("stormNeedle"); if (!n || matchMedia("(prefers-reduced-motion: reduce)").matches) return; const v = Math.max(lo, Math.min(hi, ex + (Math.random() - .5) * Math.min(scale / 4, hi - lo))); n.style.transform = "rotate(" + ang(v) + "deg)"; }, 1500);
     }
@@ -3244,6 +3273,24 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       strip += '<div class="wlegend">White bar: expected inches that hour. Faint bar: chance of snow. About ' + stFmt(tot) + ' inches in the next ' + hours.length + ' hours.</div>';
     }
     html += '<div class="wgrid"><div class="wbox"><h3>Snow by the hour</h3>' + strip + '</div>';
+    // timing: when the snow starts, peaks and ends, from the hourly forecast
+    {
+      const hs = (watch.hours || []).filter((x) => new Date(x.t).getTime() >= Date.now() - 30 * 60000);
+      const wet = hs.filter((x) => (x.inches || 0) >= 0.05);
+      let tb = '<p class="wlegend">No measurable snow left in the hourly forecast.</p>';
+      if (wet.length) {
+        const pk = wet.reduce((a, x) => ((x.inches || 0) > (a.inches || 0) ? x : a), wet[0]), first = new Date(wet[0].t), end = new Date(new Date(wet[wet.length - 1].t).getTime() + 36e5);
+        const dn = (d) => (iso(d) === todayIso ? "" : " " + dayName(iso(d)));
+        const snowingNow = watch.status === "snowing";
+        tb = '<div class="sea"><div class="row"><span>' + (snowingNow ? "Snowing since" : "Snow starts") + '</span><b>' + (snowingNow && new Date(wet[0].t).getTime() <= Date.now() + 36e5 ? "already falling" : "about " + clock(first) + dn(first)) + '</b></div>' +
+          '<div class="row"><span>Heaviest</span><b>' + clock(new Date(pk.t)) + dn(new Date(pk.t)) + ' (' + stFmt(pk.inches) + ' in/hr)</b></div>' +
+          '<div class="row"><span>Snow ends</span><b>about ' + clock(end) + dn(end) + '</b></div></div>';
+      }
+      html += '<div class="wbox"><h3>Storm timing</h3>' + tb + '</div>';
+      const al = (watch.alerts || []).filter((a) => a && a.event), alog = (watch.alertLog || []).slice().reverse();
+      html += '<div class="wbox"><h3>NWS alerts</h3>' + (al.length ? '<ul class="walerts">' + al.map((a) => '<li><b>' + esc(a.event) + '</b>' + (a.ends ? ' until ' + clock(new Date(a.ends)) + (iso(new Date(a.ends)) !== todayIso ? " " + esc(dayName(iso(new Date(a.ends)))) : "") : "") + '</li>').join("") + '</ul>' : '<p class="wlegend">No watches, warnings or advisories in effect right now.</p>') +
+        (alog.length ? '<ol class="wlog">' + alog.map((e) => '<li><time>' + clock(new Date(e.t)) + '</time><span><b>' + esc(e.event) + '</b> ' + esc(e.what) + '</span></li>').join("") + '</ol>' : "") + '</div>';
+    }
     // on the line: knockout chances from this storm
     const kn = (watch.knock && watch.knock[poolId]) || {};
     const rows = Object.entries(kn).filter(([, k]) => k.chance >= 1).sort((a, b) => a[1].line - b[1].line).slice(0, 5);
@@ -3350,8 +3397,6 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       const nl = watch.needleLog || [];
       const log = nl.length && nl[nl.length - 1].t === watch.updatedAt ? nl.slice(0, -1).concat([{ t: watch.updatedAt, v: needle }]) : nl.concat([{ t: watch.updatedAt, v: needle }]);
       const first = log[0] ? log[0].v : needle, d = needle - first;
-      const W = 560, Hh = 44, mxv = Math.max(40, ...log.map((x) => x.v));
-      const sp = log.map((x, i) => (i ? "L" : "M") + (log.length > 1 ? i / (log.length - 1) * W : 0).toFixed(1) + " " + (Hh - 3 - x.v / mxv * (Hh - 8)).toFixed(1)).join(" ");
       html += '<div class="wneed"><div class="wbox wneedle"><h3 style="justify-self:start">The Flake Needle · chance of first flakes tonight</h3>' +
         '<svg class="g" viewBox="0 0 460 262" role="img" aria-label="' + needle + ' percent chance of first flakes tonight">' + bands +
         '<path d="' + arc(band[0], band[1]) + '" fill="none" stroke="#0b1a2c" stroke-opacity=".28" stroke-width="58"/>' + tks +
@@ -3359,10 +3404,14 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
         '<g class="ng" id="flakeNeedle" style="transform:rotate(' + (-90 + 1.8 * needle) + 'deg)"><path d="M225 230 L230 66 L235 230 Z" fill="#fff"/></g><circle cx="230" cy="230" r="13" fill="#fff"/><circle cx="230" cy="230" r="4.5" fill="var(--wc)"/></svg>' +
         '<div style="display:flex;gap:12px;align-items:baseline"><span class="big">' + needle + '%</span><span class="dl">' + (d >= 0 ? "▲ " : "▼ ") + Math.abs(d) + ' pts since the watch began</span></div>' +
         '<div class="note">Shaded: the range between the models (' + band[0] + '–' + band[1] + '%). The needle drifts inside it between hourly checks.</div>' +
-        '<svg class="sp" viewBox="0 0 560 44" preserveAspectRatio="none" aria-hidden="true"><path d="' + sp + '" fill="none" stroke="#fff" stroke-width="2.5"/></svg>' +
-        '<div class="spx"><span>' + (log[0] && log[0].t ? hourLabel(new Date(log[0].t)) : "") + '</span><span>now</span></div></div>';
+        '</div>';
       const L2 = (watch.log || []).slice().reverse();
-      html += '<div class="wbox"><h3>Tonight so far</h3><ol class="wlog">' + L2.map((e) => '<li><time>' + clock(new Date(e.t)) + '</time><span><b>' + esc(e.title) + '.</b> ' + esc(e.text || "") + '</span></li>').join("") + '</ol>' +
+      const shape = (watch.hours || []).filter((h) => { const t = new Date(h.t).getTime(); return t >= nowMs - 30 * 60000 && t <= endN.getTime(); }).map((h) => ({ t: h.t, v: h.snow || 0 }));
+      html += '<div class="wbox"><h3>How the chance has moved</h3>' + watchTrend(log.map((x) => ({ t: x.t, v: x.v, lo: x.lo != null ? x.lo : band[0], hi: x.hi != null ? x.hi : band[1] })), { ymax: (m) => Math.max(20, Math.ceil(m / 10) * 10), fmt: (v) => Math.round(v) + "%", label: "Chance of first flakes tonight over the watch, with the model range shaded",
+          empty: "The chart fills in as the watch runs: one point per hourly check.", legend: "Line: chance of first flakes tonight at each check. Shaded: the range between the models." }) + '</div>' +
+        '<div class="wbox"><h3>The shape of tonight</h3>' + hourShape(shape, { ymax: (m) => Math.max(10, Math.ceil(m / 10) * 10), fmt: (v) => Math.round(v) + "%", label: "Chance of flakes each hour from now to 8 AM",
+          legend: "Bars: chance of flakes in each hour, now until 8 AM." }) + '</div>' +
+        '<div class="wbox"><h3>Tonight so far</h3><ol class="wlog">' + L2.map((e) => '<li><time>' + clock(new Date(e.t)) + '</time><span><b>' + esc(e.title) + '.</b> ' + esc(e.text || "") + '</span></li>').join("") + '</ol>' +
         '<div class="wlegend" style="margin-top:10px">A new line appears only when the headline changes.</div></div></div>';
       clearInterval(window.__needleT);
       window.__needleT = setInterval(() => { const n = document.getElementById("flakeNeedle"); if (!n || matchMedia("(prefers-reduced-motion: reduce)").matches) return; const v = Math.max(band[0], Math.min(band[1], needle + (Math.random() - .5) * Math.min(10, band[1] - band[0]))); n.style.transform = "rotate(" + (-90 + 1.8 * v) + "deg)"; }, 1500);

@@ -156,7 +156,7 @@ watch.update({"active": not end, "mode": "total", "status": "snowing" if snowing
               "passed": [{"t": t, "inches": v} for t, v in sorted(passed.items())],
               "total": {"soFar": so_far, "through": season.get("through"), "dist": res["dist"], "q": res["final"]}})
 nlog = [x for x in (prev.get("needleLog") or []) if x.get("t") != watch["updatedAt"]][-47:] if prev.get("active") else []
-watch["needleLog"] = nlog + [{"t": watch["updatedAt"], "v": storm["expected"]}]   # one point per run: the expected storm total, for the page's needle history
+watch["needleLog"] = nlog + [{"t": watch["updatedAt"], "v": storm["expected"], "lo": storm["low"], "hi": storm["high"]}]   # one point per run: the expected storm total, for the page's needle history
 if end:
     watch["endedAt"] = watch["updatedAt"]
 json.dump(watch, open(sys.argv[10], "w"), ensure_ascii=False)

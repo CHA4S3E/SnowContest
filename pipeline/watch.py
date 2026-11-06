@@ -254,7 +254,7 @@ def main():
     if band[1] - band[0] < 6:
         band = [max(0, needle - 5), min(100, needle + 5)]
     nlog = [x for x in (prev.get("needleLog") or []) if x.get("t") != now.astimezone(ET).isoformat(timespec="minutes")][-47:]
-    nlog.append({"t": now.astimezone(ET).isoformat(timespec="minutes"), "v": needle})
+    nlog.append({"t": now.astimezone(ET).isoformat(timespec="minutes"), "v": needle, "lo": band[0], "hi": band[1]})
 
     # ---- breaking-news check: rewrite the headline only when something real changed
     top = [h for h in hours[:24] if max([x["snow"] for x in hours[:24]] or [0]) >= 3 and h["snow"] >= 0.6 * max(x["snow"] for x in hours[:24])]

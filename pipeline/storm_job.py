@@ -43,6 +43,18 @@ def run(D):
         w["alerts"] = inputs.alerts() or w.get("alerts", [])
     except Exception:
         pass
+    # alert timeline: what was issued or ended while the watch ran (the first run lists what was already in effect)
+    stamp = w.get("updatedAt")
+    was = {x.get("event") for x in (prev.get("alerts") or [])}
+    cur = {x.get("event") for x in (w.get("alerts") or [])}
+    alog = list(prev.get("alertLog") or [])
+    first = not prev.get("alertLog") and not prev.get("alerts") and not prev.get("alertsSeen")
+    for e in sorted(cur - was):
+        alog.append({"t": stamp, "event": e, "what": "in effect when the watch began" if first else "issued"})
+    for e in sorted(was - cur):
+        alog.append({"t": stamp, "event": e, "what": "ended or expired"})
+    w["alertLog"] = alog[-20:]
+    w["alertsSeen"] = True
     st = w.get("storm") or {}
     ex, lo, hi = st.get("expected", 0), st.get("low", 0), st.get("high", 0)
     if w.get("active"):
