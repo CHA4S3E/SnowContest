@@ -34,7 +34,7 @@ def rand_facts(seed):
     u = {"center": center, "range80": [lo, hi], "pOct": round(r.uniform(0, 40), 1) if today <= "2026-10-31" else 0.0,
          "dist": dist_from(center, r.uniform(7, 14), r), "nbmThrough": add(today, r.randint(7, 10))}
     scen = r.choice(["quiet", "quiet", "quiet", "snowy", "cold", "warm", "rain", "storm", "hazard"])
-    md = {k: {} for k in ("nbm", "gfs", "ecmwf", "nam", "lamp")}
+    md = {k: {} for k in ("nbm", "gfs", "ecmwf", "nam", "lamp", "rrfs", "hrrr")}
     for k in range(0, 10):
         d = add(today, k)
         base = {"quiet": 0.2, "snowy": 14, "cold": 4, "warm": 0.05, "rain": 0.6, "storm": 6, "hazard": 2}[scen]
@@ -44,6 +44,10 @@ def rand_facts(seed):
             md["gfs"][d] = round(min(95, max(0, v * r.uniform(0.3, 2.2))), 1)
         if k < 10 and r.random() < 0.9:
             md["ecmwf"][d] = round(min(95, max(0, v * r.uniform(0.0, 2.0))), 1)
+        if k < 4 and r.random() < 0.9:
+            md["rrfs"][d] = round(min(95, max(0, v * r.uniform(0.0, 2.2))), 1)
+        if k < 2 and r.random() < 0.9:
+            md["hrrr"][d] = round(min(95, max(0, v * r.uniform(0.0, 2.2))), 1)
         if k < 3:
             md["lamp"][d] = round(min(95, max(0, v * r.uniform(0, 2))), 1)
     for k in list(md):
@@ -75,7 +79,7 @@ def rand_facts(seed):
                 "lows": [min(x["lo"] for x in wx.values()), max(x["lo"] for x in wx.values())],
                 "coldest_dates": [min(wx, key=lambda d: wx[d]["lo"])],
                 "pop_max": [r.choice(nbk), r.randint(10, 90)]}
-    for k, runh in (("gfs", "00Z"), ("ecmwf", "00Z"), ("lamp", "09Z")):
+    for k, runh in (("gfs", "00Z"), ("ecmwf", "00Z"), ("lamp", "09Z"), ("rrfs", "06Z"), ("hrrr", "12Z")):
         if md[k]:
             kk = sorted(md[k])
             pk = max(md[k].items(), key=lambda x: x[1])

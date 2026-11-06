@@ -650,6 +650,24 @@ def dry_streak(today):
     return {"days": n}
 
 
+# ---------------------------------------------------------------------------- RRFS and HRRR (NOAA 3-km models, via cam_point.py)
+def cam(model):
+    import os, subprocess, sys, tempfile
+    out = os.path.join(tempfile.mkdtemp(), model + ".json")
+    r = subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "cam_point.py"), model, out],
+                       capture_output=True, text=True, timeout=300)
+    if r.returncode != 0 or not os.path.exists(out):
+        raise RuntimeError((r.stderr or r.stdout or "cam_point failed")[-200:])
+    d = json.load(open(out))
+    d.pop("hours", None)
+    d["run_dt"] = d.get("run")
+    # a run more than 36 hours old is stale: leave it out
+    age = dt.datetime.utcnow() - dt.datetime.strptime(d["run"], "%Y-%m-%d %HZ")
+    if age > dt.timedelta(hours=36):
+        raise RuntimeError("stale run %s" % d["run"])
+    return d
+
+
 # ---------------------------------------------------------------------------- everything at once
 def gather(today):
     """Returns (raw, health). raw holds whatever could be read."""
@@ -660,6 +678,8 @@ def gather(today):
     raw["nam"] = try_("NAM MOS", nam, today_utc)
     raw["lamp"] = try_("LAMP", lamp)
     raw["ecmwf"] = try_("European (Open-Meteo)", ecmwf)
+    raw["rrfs"] = try_("RRFS (NOAA)", cam, "rrfs")
+    raw["hrrr"] = try_("HRRR (NOAA)", cam, "hrrr")
     raw["pfc"] = try_("NWS point forecast", point_forecast)
     raw["alerts"] = try_("NWS alerts", alerts)
     raw["afd"] = try_("NWS forecast discussion", lambda: parse_afd(afos("AFDCTP"), today))

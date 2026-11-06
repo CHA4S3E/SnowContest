@@ -47,12 +47,21 @@ for scen, today in (("quiet", "2026-11-06"), ("snowy", "2026-11-07"), ("frost", 
         for r_ in raw["lamp"][0]:
             r_.update({"tmp": 30, "p01": 40, "pos": 60})
         json.dump(raw, open(fx + "/raw.json", "w"))
+    raw = json.load(open(fx + "/raw.json"))  # RRFS and HRRR feeds (6-hour periods, same form as the European)
+    t0 = dt.date.fromisoformat(today)
+    for m_, hrs_ in (("rrfs", 14), ("hrrr", 8)):
+        raw[m_] = {"model": m_, "run": t0.isoformat() + " 06Z", "periods": [
+            {"end": (dt.datetime.combine(t0, dt.time(12)) + dt.timedelta(hours=6 * k)).strftime("%Y-%m-%d %H:%M"), "hours": 6,
+             "tp": 1.2 if scen == "snowsoon" else 0.0, "sf": 1.0 if scen == "snowsoon" else 0.0, "t": 29 if scen == "snowsoon" else 46} for k in range(hrs_)]}
+    json.dump(raw, open(fx + "/raw.json", "w"))
     r = sh([os.path.join(PIPE, "update.py"), D, "--fixtures", fx, "--today", today, "--edition", "morning", "--force"])
     ups = J(D + "/updates.json", [])
     last = ups[-1] if ups else {}
     check("update %s %s ran" % (scen, today), r.returncode == 0 and last.get("id") == today, r.stderr[-300:] + r.stdout[-200:])
     check("  headline is clean text", bool(last.get("headline")) and "None" not in last["headline"] and "{" not in last["headline"], last.get("headline"))
     check("  has picks, factors, models", bool(last.get("power")) and bool(last.get("factors")) and bool(last.get("models")))
+    mt = " ".join(str(x) for x in (last.get("models") or []))
+    check("  models table has RRFS and HRRR rows", "RRFS" in mt and "HRRR" in mt, mt[:200])
     w = J(D + "/watch.json")
     if scen == "snowsoon":
         check("  snow-soon case starts a watch", bool(w and w.get("active")), w and {k: w.get(k) for k in ("active", "status")})

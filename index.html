@@ -595,6 +595,41 @@ body.alarm.holding #ffalarm { --spd: .55s; }
 .wtitle { flex: 1 1 260px; min-width: 0; }
 .wtitle b { display: block; font: 800 1.3rem/1.15 var(--display); }
 .wtitle span { display: block; font-size: .92rem; opacity: .92; margin-top: 4px; }
+.watch.wdeck { padding: 14px 16px; }
+.wdeckin { position: relative; z-index: 1; display: grid; gap: 8px; }
+.wdeckin .wlive { justify-self: start; }
+.wdeckdays { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 500 .85rem/1.3 var(--mono); }
+.wdecknote { font-size: .85rem; opacity: .88; }
+.wbreak { position: relative; z-index: 1; margin: -16px -16px 0; padding: 9px 16px; background: #b81f27; display: flex; align-items: center; gap: 10px; font: 600 .74rem/1 var(--mono); letter-spacing: .14em; }
+.watch.reported .wbreak { background: #0f2236; }
+.wbreak .wbdot { width: 9px; height: 9px; border-radius: 50%; background: #fff; animation: wpulse 1.6s infinite; flex: none; }
+.wbreak .wbsince { margin-left: auto; letter-spacing: .02em; font-weight: 500; opacity: .9; white-space: nowrap; }
+@media (max-width: 520px) { .wbreak .wbl { display: none; } .wbreak { letter-spacing: .08em; } }
+.wneed > .wbox:last-child { align-self: start; }
+.watch .wgrid { align-items: start; }
+.wtitle2 { position: relative; z-index: 1; display: grid; gap: 6px; }
+.wtitle2 h3 { margin: 0; font: 800 clamp(1.5rem, 4.4vw, 2.2rem)/1.05 var(--display); letter-spacing: -.02em; }
+.wtitle2 p { margin: 0; font-size: 1rem; line-height: 1.45; opacity: .95; max-width: 68ch; }
+.wtick { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 6px 18px; font: 500 .8rem/1.3 var(--mono); padding: 9px 12px; border-radius: 10px; background: rgba(0,0,0,.18); border: 1px solid rgba(255,255,255,.22); }
+.wtick b { font-weight: 700; }
+.wtick .lv { display: inline-flex; align-items: center; gap: 6px; }
+.wtick .lv i { width: 7px; height: 7px; border-radius: 50%; background: #7ef0b1; }
+.wneed { position: relative; z-index: 1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+@media (min-width: 760px) { .wneed { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); } }
+.wneedle { display: grid; justify-items: center; gap: 4px; }
+.wneedle svg.g { width: 100%; max-width: 360px; height: auto; overflow: visible; }
+.wneedle .ng { transform-origin: 230px 230px; transition: transform 1.1s cubic-bezier(.3,1.35,.5,1); }
+.wneedle .big { font: 800 2.6rem/1 var(--display); }
+.wneedle .dl { font: 600 .8rem/1 var(--mono); }
+.wneedle .note { font-size: .78rem; opacity: .85; text-align: center; max-width: 42ch; }
+.wneedle svg.sp { width: 100%; height: 44px; }
+.wneedle .spx { width: 100%; display: flex; justify-content: space-between; font: .68rem/1 var(--mono); opacity: .8; }
+.wlog { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.wlog li { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 10px; font-size: .9rem; line-height: 1.4; opacity: .82; }
+.wlog li:first-child { opacity: 1; }
+.wlog li time { font: 600 .76rem/1.6 var(--mono); }
+.wlog li:first-child time { color: #ffe08a; }
+@media (prefers-reduced-motion: reduce) { .wbreak .wbdot { animation: none; } .wneedle .ng { transition: none; } }
 .wupd { font: 500 .78rem/1.3 var(--mono); opacity: .85; white-space: nowrap; }
 @media (min-width: 600px) { .wupd { text-align: right; } }
 .wupd.stale { color: #ffe08a; opacity: 1; }
@@ -3171,7 +3206,19 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     if (stOn()) return renderStormWatch();
     const sec = $("sec-watch"), box = $("watch"), chip = $("watchChip");
     const on = !!(watch && watch.active && watch.mode !== "total" && !(config && config.firstSnow));
-    sec.hidden = !on; chip.hidden = !on;
+    const deck = !on && !!(watch && watch.stage === "ondeck" && watch.mode !== "total" && !(config && config.firstSnow));
+    sec.hidden = !(on || deck); chip.hidden = !(on || deck);
+    if (deck) {  // heads-up: a day is on deck; the hourly live watch starts closer to the snow window
+      clearInterval(window.__needleT);
+      box.className = "watch wdeck";
+      const dd = (watch.days || []).filter((d) => d.date >= todayIso && d.chance >= 1);
+      const gl = watch.goLiveAt ? new Date(watch.goLiveAt) : null;
+      box.innerHTML = '<div class="wdeckin"><span class="wlive"><i></i>On deck</span><div class="wtitle"><b>' + esc(watch.title || "A chance of first flakes is coming up") + '</b>' +
+        (watch.headline ? '<span>' + esc(watch.headline) + '</span>' : "") + '</div>' +
+        '<div class="wdeckdays">' + dd.map((d) => '<span><b>' + esc(dayName(d.date)) + '</b> ' + (d.chance >= 1 ? Math.round(d.chance) : d.chance.toFixed(1)) + '%</span>').join("") + '</div>' +
+        '<div class="wdecknote">' + (gl ? "The live watch starts around " + clock(gl) + (iso(gl) !== todayIso ? " " + esc(((n) => /^(Today|Tomorrow)$/.test(n) ? n.toLowerCase() : n)(dayName(iso(gl)))) : "") + ", once the snow window is about 12 hours out." : "The live watch starts once the snow window is about 12 hours out.") + ' Chances refresh with the twice-daily update until then.</div></div>';
+      return;
+    }
     if (!on) { box.innerHTML = ""; return; }
     const st = watch.reported ? "reported" : (watch.status === "possible" ? "possible" : "watching");
     box.className = "watch " + st;
@@ -3179,9 +3226,23 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     const stale = upd && (Date.now() - upd.getTime()) > 100 * 60000;
     const label = { watching: "Snow watch", possible: "Flakes possible", reported: "Snow reported" }[st];
     const title = watch.title || (st === "reported" ? "The airport just reported snow" : st === "possible" ? "Flakes could fly soon" : "Watching a chance of flakes");
-    let html = '<div class="whead"><span class="wlive"><i></i>' + label + '</span>' +
-      '<div class="wtitle"><b>' + esc(title) + '</b>' + (watch.headline ? '<span>' + esc(watch.headline) + '</span>' : "") + '</div>' +
-      '<div class="wupd' + (stale ? " stale" : "") + '">' + (upd ? "Updated " + clock(upd) + "<br>" + ago(upd) : "") + (stale ? "<br>checking again soon" : "") + '</div></div>';
+    // Chance first flakes fall tonight (now through 8 AM): the highest hour in each 3-hour block, combined
+    const nowMs = Date.now(), endN = new Date(); endN.setHours(8, 0, 0, 0); if (endN.getTime() <= nowMs) endN.setDate(endN.getDate() + 1);
+    const blocks = {};
+    for (const h of watch.hours || []) { const t = new Date(h.t).getTime(); if (t < nowMs - 30 * 60000 || t > endN.getTime()) continue; const k = Math.floor(t / 108e5); blocks[k] = Math.max(blocks[k] || 0, (h.snow || 0) / 100); }
+    const needle = Math.round((1 - Object.values(blocks).reduce((q, v) => q * (1 - v), 1)) * 100);
+    const band = watch.band || [Math.max(0, needle - 12), Math.min(100, needle + 14)];
+    const hAt = watch.headlineAt ? new Date(watch.headlineAt) : upd;
+    let html = '<div class="wbreak"><span class="wbdot"></span><span>' + (st === "watching" ? "SNOW WATCH" : "BREAKING · SNOW WATCH") + '</span><span class="wbsince">' + (hAt ? '<span class="wbl">Headline as of </span>' + clock(hAt) : "") + '</span></div>' +
+      '<div class="wtitle2"><h3>' + esc(title) + '</h3>' + (watch.headline ? '<p>' + esc(watch.headline) + '</p>' : "") + '</div>';
+    const pk = (watch.hours || []).filter((h) => new Date(h.t).getTime() >= nowMs - 30 * 60000).slice(0, 24);
+    const mx = Math.max(0, ...pk.map((h) => h.snow || 0));
+    const top = pk.filter((h) => mx >= 3 && (h.snow || 0) >= mx * 0.6);
+    const tk = ['<span class="lv"><i></i>' + (stale ? "Last check " : "Live · ") + (upd ? clock(upd) : "") + '</span>', '<span><b>' + needle + '%</b> chance tonight</span>'];
+    if (watch.obs && watch.obs.temp != null) tk.push('<span><b>' + watch.obs.temp + '°F</b> at the airport' + (watch.obs.text ? " · " + esc(watch.obs.text.toLowerCase()) : "") + '</span>');
+    if (radar && !radar.error && radar.summary && radar.summary.latest && radar.summary.latest.snow && radar.summary.latest.snow.nearest_mi != null) { const r = radar.summary.latest.snow; tk.push('<span>Radar: <b>snow ' + Math.round(r.nearest_mi) + ' mi ' + r.nearest_dir + '</b></span>'); }
+    if (top.length) tk.push('<span>Best window <b>' + hourLabel(new Date(top[0].t)) + '–' + hourLabel(new Date(new Date(top[top.length - 1].t).getTime() + 36e5)) + '</b></span>');
+    html += '<div class="wtick">' + tk.join("") + '</div>';
 
     if (watch.reported) {
       const rt = watch.reported.time ? new Date(watch.reported.time) : null;
@@ -3217,6 +3278,33 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
         (lead ? '<span><b>' + esc(lead[0]) + '</b> leads at ' + lead[1].toFixed(1) + '%</span>' : "") +
         (movers.length ? movers.map((m) => '<span class="wmv ' + (m[2] > 0 ? "up" : "down") + '">' + esc(m[0]) + ' ' + (m[2] > 0 ? "▲" : "▼") + Math.abs(m[2]).toFixed(1) + '</span>').join("") : '<span class="wmv">No big moves since this morning</span>') +
         '<a href="#sec-board">Full board</a></div>';
+    }
+    {
+      const cx = 230, cy = 230, R = 150;
+      const pt = (p) => { const a = Math.PI * (1 - p / 100); return [cx + R * Math.cos(a), cy - R * Math.sin(a)]; };
+      const arc = (p0, p1) => { const a = pt(p0), b = pt(p1); return "M" + a[0].toFixed(1) + " " + a[1].toFixed(1) + " A" + R + " " + R + " 0 0 1 " + b[0].toFixed(1) + " " + b[1].toFixed(1); };
+      const cuts = [0, 10, 25, 50, 75, 100], al = [0.16, 0.28, 0.42, 0.62, 0.85];
+      const bands = cuts.slice(0, 5).map((c, i) => '<path d="' + arc(c, cuts[i + 1]) + '" fill="none" stroke="rgba(255,255,255,' + al[i] + ')" stroke-width="44"/>').join("");
+      const tks = [0, 25, 50, 75, 100].map((p) => { const q = (() => { const a = Math.PI * (1 - p / 100); return [cx + (R + 38) * Math.cos(a), cy - (R + 38) * Math.sin(a)]; })(); return '<text x="' + q[0].toFixed(0) + '" y="' + (q[1] + 4).toFixed(0) + '" text-anchor="middle" font-size="13" fill="currentColor" opacity=".8" font-family="IBM Plex Mono, monospace">' + p + '%</text>'; }).join("");
+      const nl = watch.needleLog || [];
+      const log = nl.length && nl[nl.length - 1].t === watch.updatedAt ? nl.slice(0, -1).concat([{ t: watch.updatedAt, v: needle }]) : nl.concat([{ t: watch.updatedAt, v: needle }]);
+      const first = log[0] ? log[0].v : needle, d = needle - first;
+      const W = 560, Hh = 44, mxv = Math.max(40, ...log.map((x) => x.v));
+      const sp = log.map((x, i) => (i ? "L" : "M") + (log.length > 1 ? i / (log.length - 1) * W : 0).toFixed(1) + " " + (Hh - 3 - x.v / mxv * (Hh - 8)).toFixed(1)).join(" ");
+      html += '<div class="wneed"><div class="wbox wneedle"><h3 style="justify-self:start">The Flake Needle · chance of first flakes tonight</h3>' +
+        '<svg class="g" viewBox="0 0 460 262" role="img" aria-label="' + needle + ' percent chance of first flakes tonight">' + bands +
+        '<path d="' + arc(band[0], band[1]) + '" fill="none" stroke="#0b1a2c" stroke-opacity=".28" stroke-width="58"/>' + tks +
+        '<text x="40" y="258" font-size="12" fill="currentColor" opacity=".85" font-family="IBM Plex Mono, monospace">STAYS DRY</text><text x="420" y="258" text-anchor="end" font-size="12" fill="currentColor" opacity=".85" font-family="IBM Plex Mono, monospace">FLAKES</text>' +
+        '<g class="ng" id="flakeNeedle" style="transform:rotate(' + (-90 + 1.8 * needle) + 'deg)"><path d="M225 230 L230 66 L235 230 Z" fill="#fff"/></g><circle cx="230" cy="230" r="13" fill="#fff"/><circle cx="230" cy="230" r="4.5" fill="var(--wc)"/></svg>' +
+        '<div style="display:flex;gap:12px;align-items:baseline"><span class="big">' + needle + '%</span><span class="dl">' + (d >= 0 ? "▲ " : "▼ ") + Math.abs(d) + ' pts since the watch began</span></div>' +
+        '<div class="note">Shaded: the range between the models (' + band[0] + '–' + band[1] + '%). The needle drifts inside it between hourly checks.</div>' +
+        '<svg class="sp" viewBox="0 0 560 44" preserveAspectRatio="none" aria-hidden="true"><path d="' + sp + '" fill="none" stroke="#fff" stroke-width="2.5"/></svg>' +
+        '<div class="spx"><span>' + (log[0] && log[0].t ? hourLabel(new Date(log[0].t)) : "") + '</span><span>now</span></div></div>';
+      const L2 = (watch.log || []).slice().reverse();
+      html += '<div class="wbox"><h3>Tonight so far</h3><ol class="wlog">' + L2.map((e) => '<li><time>' + clock(new Date(e.t)) + '</time><span><b>' + esc(e.title) + '.</b> ' + esc(e.text || "") + '</span></li>').join("") + '</ol>' +
+        '<div class="wlegend" style="margin-top:10px">A new line appears only when the headline changes.</div></div></div>';
+      clearInterval(window.__needleT);
+      window.__needleT = setInterval(() => { const n = document.getElementById("flakeNeedle"); if (!n || matchMedia("(prefers-reduced-motion: reduce)").matches) return; const v = Math.max(band[0], Math.min(band[1], needle + (Math.random() - .5) * Math.min(10, band[1] - band[0]))); n.style.transform = "rotate(" + (-90 + 1.8 * v) + "deg)"; }, 1500);
     }
     html += radarHtml() + (watch.test ? snowmapHtml() : "");
     html += '<div class="wgrid"><div class="wbox"><h3>Next ' + (hours.length > 24 ? "48" : "24") + ' hours</h3>' + strip + '</div>';

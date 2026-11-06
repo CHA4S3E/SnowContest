@@ -51,6 +51,9 @@ def build_inputs(today, raw, prev_doc, flakes_possible):
     ec = raw.get("ecmwf")
     if ec:
         inp["ecmwf"] = ec
+    for k in ("rrfs", "hrrr"):
+        if raw.get(k):
+            inp[k] = raw[k]
     win = []
     cpc = raw.get("cpc") or {}
     t610, t814 = cpc.get("t610"), cpc.get("t814")
@@ -155,6 +158,14 @@ def src_summaries(inp, out, raw, today):
         s["ecmwf"] = {"run": ec["run"], "peak": list(pk), "coldest": list(min(ts)) if ts else None}
     else:
         s["ecmwf"] = {"missing": True}
+    for k in ("rrfs", "hrrr"):
+        c = raw.get(k)
+        if c and md.get(k):
+            ts = [(p["t"], p["end"][:10]) for p in c["periods"] if p.get("t") is not None]
+            pk = max(md[k].items(), key=lambda x: x[1])
+            s[k] = {"run": c["run"], "peak": list(pk), "coldest": list(min(ts)) if ts else None}
+        else:
+            s[k] = {"missing": True}
     lm = raw.get("lamp")
     if lm and md["lamp"]:
         ts = [r["tmp"] for r in lm[0][:24] if r.get("tmp") is not None]

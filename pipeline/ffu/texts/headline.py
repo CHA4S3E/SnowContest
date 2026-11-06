@@ -96,7 +96,7 @@ def build_ctx(f, g):
         mx = max(g["cons"][d] for d in sd)
         c["snow_max"] = pct_n(mx)
         c["snow_max_x"] = pct(mx)
-        names = {"nbm": "the National Blend", "gfs": "the GFS", "ecmwf": "the European", "lamp": "LAMP", "nam": "the NAM"}
+        names = {"nbm": "the National Blend", "gfs": "the GFS", "ecmwf": "the European", "lamp": "LAMP", "nam": "the NAM", "rrfs": "the RRFS", "hrrr": "the HRRR"}
         who = [names[k] for k in g["src_names_snow"] if k in names]
         c["snow_who"] = join(who) if who else "the models"
         if len(who) >= 3:

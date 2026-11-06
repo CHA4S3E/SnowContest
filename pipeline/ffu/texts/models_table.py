@@ -137,6 +137,25 @@ def euro_row(f, g, v):
     return row(name, rng_s(days[0], days[-1]) if days else "—", call, "15% of daily chance")
 
 
+def cam_row(key, label, full, f, g, v):
+    s = (f.get("src") or {}).get(key) or {}
+    ser = ((f.get("u") or {}).get("modelDays") or {}).get(key) or {}
+    run = run_label(s.get("run_label") or s.get("run") or "")
+    name = "%s (%s%s)" % (label, full, ", %s run" % run if run else "")
+    if s.get("missing") or not ser:
+        return row("%s (%s)" % (label, full), "—", "Not available today", "Not used today")
+    t = g["today"]
+    days = sorted(d for d in ser if d >= t)
+    pk = max(((d, ser[d]) for d in days), key=lambda x: x[1]) if days else None
+    if pk and pk[1] >= 0.5:
+        call = "Snow chance %s (peak %s)" % (pct_t(pk[1]), dms(pk[0]))
+    else:
+        call = "Snow chance 0% every day"
+    if s.get("coldest"):
+        call += "; coldest %s" % deg(s["coldest"][0])
+    return row(name, rng_s(days[0], days[-1]) if days else "—", call, "10% of daily chance")
+
+
 def nws_row(f, g, v):
     a = g["afd"]
     if not a:
@@ -266,7 +285,8 @@ def enso_row(f, g, v):
 
 
 def make(f, g, v):
-    rows = [curve_row(f, g, v), nbm_row(f, g, v), gfs_row(f, g, v), nam_row(f, g, v), lamp_row(f, g, v), euro_row(f, g, v), nws_row(f, g, v), wpc_row(f, g, v),
+    rows = [curve_row(f, g, v), nbm_row(f, g, v), gfs_row(f, g, v), nam_row(f, g, v), lamp_row(f, g, v), cam_row("rrfs", "RRFS", "Rapid Refresh Forecast System", f, g, v),
+            cam_row("hrrr", "HRRR", "High-Resolution Rapid Refresh", f, g, v), euro_row(f, g, v), nws_row(f, g, v), wpc_row(f, g, v),
             cpc_row("CPC 6-10 day", g["t610"], "temp", g, v), cpc_row("CPC 8-14 day", g["t814"], "temp", g, v),
             cpc_row("CPC 6-10 day precip", g["p610"], "precip", g, v), cpc_row("CPC 8-14 day precip", g["p814"], "precip", g, v),
             haz_row(f, g, v), cpc_row("CPC week 3-4", g["wk34"], "temp", g, v, base="the 8-14 day"), warmth_row(f, g, v), tele_row(f, g, v), enso_row(f, g, v)]

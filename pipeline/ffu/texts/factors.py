@@ -168,7 +168,7 @@ def consensus_card(f, g, v):
     if g["snow_days"] and len(names_snow) >= 3:
         a = ["The models agree on a snow chance, with {who} all flagging it.", "There's real agreement this time: {who} all show flakes.",
              "Most of the models line up on a snow chance, led by {who}."]
-        who = join([{"nbm": "the National Blend", "gfs": "the GFS", "ecmwf": "the European", "lamp": "LAMP", "nam": "the NAM"}[k] for k in names_snow])
+        who = join([{"nbm": "the National Blend", "gfs": "the GFS", "ecmwf": "the European", "lamp": "LAMP", "nam": "the NAM", "rrfs": "the RRFS", "hrrr": "the HRRR"}[k] for k in names_snow])
         ctx["who"] = who
         agree = say(v, "fc_a", a, ctx)
     elif split:
@@ -218,6 +218,20 @@ def consensus_card(f, g, v):
         parts.append(sentence(say(v, "fc_e", opts, c)))
     elif "ecmwf" in src and src["ecmwf"].get("missing"):
         parts.append("The European isn't available today.")
+    for key, nm in (("rrfs", "RRFS"), ("hrrr", "HRRR")):
+        cm, cp = src.get(key) or {}, g["src_peak"].get(key)
+        if cm and not cm.get("missing") and cp:
+            c = {"nm": nm, "run": run_label(cm.get("run_label") or cm.get("run", "")), "peak": pct(cp[1]), "peak_dm": dm(cp[0])}
+            if cm.get("coldest"):
+                c["cold"] = deg(cm["coldest"][0])
+            cold = ", coldest {cold}" if cm.get("coldest") else ""
+            if cp[1] < 0.5:
+                opts = ["The {nm} ({run} run) shows no snow chance" + cold + ".", "The {nm} ({run} run) keeps flakes out of its forecast" + cold + ".",
+                        "The 3-km {nm} ({run} run) stays at 0%" + cold + "."]
+            else:
+                opts = ["The {nm} ({run} run) peaks at {peak} on {peak_dm}" + cold + ".", "The 3-km {nm} ({run} run) reaches {peak} on {peak_dm}" + cold + ".",
+                        "The {nm} ({run} run) tops out at {peak} on {peak_dm}" + cold + "."]
+            parts.append(sentence(say(v, "fc_" + key, opts, c)))
     if lamp and not lamp.get("missing") and lp is not None:
         c = {"run": run_label(lamp.get("run_label") or lamp.get("run", "")), "peak": pct(lp[1])}
         if lamp.get("coldest"):

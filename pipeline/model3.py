@@ -25,6 +25,9 @@ Chance the first flakes fall on day t, given none yet (a daily hazard), built fr
      cold-air share (36F - coldest temp) / 6F when it's dry.
      (The GFS and European ensembles aren't used separately: the NBM already blends them after
      calibration, and raw ensembles are overconfident.)
+  3c. RRFS (NWS 3-km Rapid Refresh Forecast System, 84 h) and HRRR (3-km High-Resolution Rapid Refresh, 48 h), newest
+     00/06/12/18Z runs read from NOAA at the grid point nearest State College (cam_point.py), join at weight 0.1 each,
+     handled exactly like the European (hourly precip and its frozen share summed into 6-h periods).
   4. CPC outlooks for Pennsylvania on days past the models, scaled by CPC's stated
      confidence (1-5): 6-10 / 8-14 day and week 3-4 temperature (above normal lowers
      the chance, below normal raises it), 6-10 / 8-14 day precipitation (wetter raises
@@ -217,12 +220,13 @@ def ecmwf_daily(src):
     return full_days(out, cover)
 
 
-WEIGHTS = {"nbm": 0.6, "gfs": 0.3, "ecmwf": 0.15, "nam": 0.1, "lamp": 0.1}
+WEIGHTS = {"nbm": 0.6, "gfs": 0.3, "ecmwf": 0.15, "nam": 0.1, "rrfs": 0.1, "hrrr": 0.1, "lamp": 0.1}
 
 
 def consensus(inp):
     srcs = {"nbm": nbm_daily(inp.get("nbm", [])), "gfs": gfs_daily(inp.get("gfs", [])), "nam": nam_daily(inp.get("nam", [])),
-            "lamp": lamp_daily(inp.get("lamp", [])), "ecmwf": ecmwf_daily(inp.get("ecmwf"))}
+            "lamp": lamp_daily(inp.get("lamp", [])), "ecmwf": ecmwf_daily(inp.get("ecmwf")),
+            "rrfs": ecmwf_daily(inp.get("rrfs")), "hrrr": ecmwf_daily(inp.get("hrrr"))}
     nb = srcs["nbm"]
     out = {}
     for d in nb:  # the NBM sets the forecast range; the others refine days they share

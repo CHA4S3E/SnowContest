@@ -21,7 +21,7 @@ facts (f) layout, every key optional unless noted:
 """
 from .lib import D, iso, add, days_between, safe_get
 
-WEIGHTS = {"nbm": 0.6, "gfs": 0.3, "ecmwf": 0.15, "nam": 0.1, "lamp": 0.1}
+WEIGHTS = {"nbm": 0.6, "gfs": 0.3, "ecmwf": 0.15, "nam": 0.1, "rrfs": 0.1, "hrrr": 0.1, "lamp": 0.1}
 RAIN_WORDS = ("rain", "shower", "drizzle", "storm", "t-storm", "thunder", "wet")
 SNOW_WORDS = ("snow", "flurr", "wintry", "sleet", "freezing rain")
 

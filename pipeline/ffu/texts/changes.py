@@ -52,7 +52,7 @@ def make(f, g, v, prev_fs, limit=5):
         if p.get("snow_days") and not cur["snow_days"]:
             lines.append((9, say(v, "ch_sn0", ["The snow chances of 5% or more that showed up before are gone from the blend.", "The earlier snow signal faded out of the blend."], {})))
         # individual models
-        for k, label in (("gfs", "The GFS"), ("ecmwf", "The European")):
+        for k, label in (("gfs", "The GFS"), ("ecmwf", "The European"), ("rrfs", "The RRFS"), ("hrrr", "The HRRR")):
             a, b = (p.get("src_peak") or {}).get(k), cur["src_peak"].get(k)
             if a and b and abs(a[1] - b[1]) >= 2:
                 up = b[1] > a[1]
