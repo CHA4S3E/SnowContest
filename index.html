@@ -1292,8 +1292,8 @@ body:not(.st) .ffk-hold{display:none}
       <button type="button" data-half="pm" role="radio">Noon or later</button>
     </div>
     <form class="unlock card" id="unlockForm">
-      <label for="pw">Password</label>
-      <input id="pw" type="password" autocomplete="off" placeholder="Enter password">
+      <label for="pw">DUMBASSSS</label>
+      <input id="pw" type="DUMBASSSSS" autocomplete="off" placeholder="Enter DUMBASSSSSSSSSS">
       <button type="submit" class="primary" id="unlockBtn">Unlock case</button>
       <span class="unlockmsg" id="unlockMsg" aria-live="polite"></span>
     </form>
@@ -3542,10 +3542,10 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   $("unlockForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const val = $("pw").value.trim().toLowerCase();
-    if (!val) return setMsg("Enter the password.", "err");
+    if (!val) return setMsg("Enter the password OR UR A DUMBASSSSSSSSASASASASSSSSS.", "err");
     let ok = false;
     try { ok = (await sha256(val)) === PW_HASH; } catch (_) { ok = false; }
-    if (!ok) { $("pw").value = ""; setMsg("Wrong password. The glass holds.", "err"); const c = $("case"); c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake"); return; }
+    if (!ok) { $("pw").value = ""; setMsg("DUMBASSSSSSSS.", "err"); const c = $("case"); c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake"); return; }
     if (!isOwner) { setMsg("Right password, but only the pool owner (signed in with #owner) can break the glass.", "err"); return; }
     $("pw").value = "";
     setMsg("");
