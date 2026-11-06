@@ -397,7 +397,7 @@ def model_fields(latest, lats, lons):
     elev = blur(field("HGT"), 1.5)
     eccodes.codes_release(g0)
     pt = {"snow": field("CSNOW") >= 0.5, "rain": field("CRAIN") >= 0.5, "fzra": field("CFRZR") >= 0.5, "pellets": field("CICEP") >= 0.5}
-    return {"pt": pt, "elev": elev, "elev_model": blur(elev, 5.0), "run": run.strftime("%Y-%m-%d %HZ f%02d" % back)}
+    return {"pt": pt, "elev": elev, "elev_model": blur(elev, 5.0), "run": run.strftime("%Y-%m-%d %HZ") + " f%02d" % back}
 
 
 def terrain_adjust(f, elev, elev_model, lapse):
