@@ -152,6 +152,22 @@ if "storm" in w:
 for n in ("config", "updates", "weather", "watch", "season", "seasonfc"):
     check("json %s parses" % n, J(D + "/%s.json" % n) is not None)
 
+
+# ---- reading the NWS forecast discussion: where the snow is matters
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pipeline"))
+from ffu.inputs import parse_afd, parse_hazards
+_hd = "Area Forecast Discussion\n734 AM EST Fri Nov 6 2026\n\n.DISCUSSION...\n"
+_fx = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pipeline", "fixtures", "afd_nov06_ridges_only.txt")
+check("AFD real text (snow only NW Mtns and Laurel Highlands) is not snow in town", parse_afd(open(_fx).read(), "2026-11-06")["snow"] == "elev")
+for _t, _w in [("Snow showers likely across State College Saturday night.", "state"), ("Light snow is expected across the region Sunday.", "state"),
+               ("Snow showers possible Saturday. Mainly over the higher elevations.", "elev"), ("A few flurries over the ridges Saturday night.", "elev"),
+               ("Rain showers with no snow expected Saturday.", "none"), ("Rain rather than snow for most locations.", "none"),
+               ("Snow showers possible Saturday night.", "vague"), ("It is not out of the question to see a slushy coating above 2100 ft MSL Saturday.", "elev")]:
+    check("AFD: " + _t[:50], parse_afd(_hd + _t + "\n&&\n$$\n", "2026-11-06")["snow"] == _w)
+check("AFD: snow in the climate section is ignored", parse_afd(_hd + "Dry.\n\n.CLIMATE...\nSnow across State College record 1990.\n&&\n$$\n", "2026-11-06")["snow"] == "none")
+check("CPC hazards: mountain-only heavy snow does not cover PA", not parse_hazards("\nSlight risk of heavy snow for the central Appalachians, Nov 15-16\n", "2026-11-06")["flags"][0]["covers_pa"])
+check("CPC hazards: heavy snow for Pennsylvania covers PA", parse_hazards("\nSlight risk of heavy snow for Pennsylvania, Nov 15-16\n", "2026-11-06")["flags"][0]["covers_pa"])
+
 print("\n%d failed" % len(FAILS) if FAILS else "\nALL PASSED")
 print("data dir:", D)
 sys.exit(1 if FAILS else 0)

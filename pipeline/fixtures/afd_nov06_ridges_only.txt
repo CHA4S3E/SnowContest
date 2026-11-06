@@ -1,0 +1,161 @@
+
+000
+FXUS61 KCTP 061234
+AFDCTP
+
+Area Forecast Discussion
+National Weather Service State College PA
+734 AM EST Fri Nov 6 2026
+
+.WHAT HAS CHANGED...
+* Maintained lower temps Sat and slightly higher values Sat 
+  night due to cloud cover and wind.
+
+&&
+
+.KEY MESSAGES...
+1) Unseasonably mild through today with 2.5 weeks-long dry 
+spell now over.
+
+2) Trending cooler this weekend with lake enhanced rain showers
+beneath upper level low, mixing with some wet snow showers early 
+Sat across the NW Mtns and Laurel Highlands .
+
+&&
+
+.DISCUSSION...
+KEY MESSAGE 1: Unseasonably mild through Friday with 2.5 weeks-
+long dry spell now over.
+
+A slow moving and weak cold front over Eastern Pennsylvania will 
+be the focus for some morning showers across the region to the 
+East of the Route 15/Interstate 81 corridors. A secondary cold 
+front will push through Northwestern PA later this morning and 
+move across the rest of Central PA and the Susquehanna Valley this
+afternoon. 
+
+One more day of unseasonably warm temperatures across much of
+the CWA, though even highs in the mid to upper 50s across the NW
+Mtns is still quite mild for early Nov.
+
+High temp departures from normal today will be +10 to 12F 
+across much of the Northern and Western Mtns and as much as +15F
+above normal throughout the Central and Southern Valleys. 
+
+
+KEY MESSAGE 2: Trending cooler this weekend with lake enhanced 
+rain showers beneath upper level low
+
+Update...
+00Z guidance continues to highlight the trough of the upcoming 
+cooldown occurring Sat morning when a pocket of -7 to -8C 850 
+mb temps pivots through NRN PA accompanied by deep moisture and 
+some mesoscale focus for lift and occasional rain/wet snow 
+showers along and in the wake of yet a 3rd cfrontal boundary 
+with a boost of enhanced orographic lift. 
+
+Its not out of the question to see a light slushy coating of
+snow during the mid/late morning hours Sat at elevations above
+2100 ft MSL across the NW and over 2600 MSL in the Laurel
+Highlands - the first of this mild/very pleasant fall season so
+far. GFS is by far the coldest of the model guidance but it 
+should be highlighted than Lake Erie is still 60-62F (near or
+slightly over record warm water temps for this date). This will
+undoubtedly temper this cooler guidance. 
+
+Previous disc... 
+
+We have been constantly been pulling NBM (mean) temp guidance 
+down closer to MOS blend for Sat, and we've now done it more so 
+with continued support from many sources. We have also pulled 
+temps up a few degs for Sat night due to the same clouds and 
+also wind which should keep us more- mixed. 
+
+Seasonably cooler/breezy pattern to start the first full 
+weekend of November. The passage of closed H5 low followed by 
+mean cyclonic flow favors persistent clouds and periods of lake 
+enhanced rain over the western and central Alleghenies on 
+Saturday. We were keen to manually adjust max temps a few 
+degrees lower on 11/7 to account for the cooler pattern shift 
+which looks to continue into early next week. If the current 
+forecast holds, it will be the first below average daytime high 
+in three weeks!
+
+&&
+
+.AVIATION /12Z FRIDAY THROUGH TUESDAY/...
+Patchy MVFR ceilings (KMDT/KLNS) and localized fog (mainly 
+KIPT, with patchy BR/FG around KMDT/KLNS as well) will persist 
+over eastern Pennsylvania this morning as a cold front slowly 
+presses eastward. A compact shortwave moving over the Great 
+Lakes will reinvigorate convection ahead of the front this 
+morning, mainly along the I-95 corridor, though a few showers 
+may move across KLNS before drier air moves in for the 
+afternoon. While thunder cannot be ruled out at KLNS (10% 
+chance), MUCAPE trending towards 0 J/kg around the onset of 
+these showers precludes thunder mentions at this time. For KMDT,
+drier air filtering in behind the front will limit shower 
+activity, with PoPs of around 10-20%. Brief MVFR visibilities 
+will be possible with these showers, primarily at KLNS, with 
+restrictions otherwise unlikely.
+
+Otherwise, surface winds today will continue to trend westerly 
+behind the front, with cloud bases lowering as the shortwave 
+approaches from the northwest. Ceiling restrictions will be most
+likely at KBFD/KJST within this common upslope/lake flow setup,
+primarily around and after 18Z Friday, with lower chances east 
+of the Alleghenies. A few light showers will be possible as 
+well, mainly over KBFD closer to the center of the shortwave. 
+Additionally, brief periods of VFR may occur at KBFD/KJST 
+between roughly 00Z and 06Z Saturday as a dry slot wraps around 
+the center of the shortwave before low-level moisture flows 
+back in.
+
+Outlook...
+
+Sat-Mon...Breezy with showers and sub-VFR ceilings possible 
+over the NW 1/2 of the airspace. Max gusts 20-25kt.
+
+Tue...Mainly VFR with westerly winds gusting up to around 20-25
+kts during the daytime.
+
+&&
+
+.CLIMATE...
+1. Thursday marked the end of the following Consecutive Days 
+streaks without measurable rain:
+
+10/17 through 11/4 (19 days): Harrisburg, Williamsport, 
+Altoona, State College 
+
+10/18 through 11/4 (18 days): Johnstown
+
+
+2. Daily record highs for 11/4 and 11/5: 
+
+Harrisburg           78/1994 | 79/1975
+Williamsport         75/2003 | 77/1994
+Altoona              77/2003 | 77/2015
+Bradford     *TIED = 74/2015 | 76/2024
+State College        78/2003 | 75/2015
+
+
+3. The sun will set at 5PM on Saturday 11/7 in State College. 
+This will mark the beginning of a 2 month period during which 
+sunsets will occur before 5PM surrounding the Winter Solstice.
+
+&&
+
+.CTP WATCHES/WARNINGS/ADVISORIES...
+None.
+
+&&
+
+$$
+
+WHAT HAS CHANGED...Lambert/Dangelo
+KEY MESSAGES...Lambert/Banghoff
+DISCUSSION...Lambert/Dangelo
+AVIATION...Teare
+CLIMATE...Steinbugl/Banghoff
+

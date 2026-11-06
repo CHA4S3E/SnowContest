@@ -255,19 +255,45 @@ def alerts():
 
 
 # ---------------------------------------------------------------------------- NWS forecast discussion
-ELEV_WORDS = re.compile(r"(higher elevations|ridges?|ridgetops?|mountain|alleghen|laurel|highlands|higher terrain|above \d{3,4} feet)", re.I)
-TOWN_WORDS = re.compile(r"(state college|centre county|central pennsylvania|central pa|across the area|region ?wide|valley|valleys|most locations|much of the (area|region))", re.I)
-SNOW_RE = re.compile(r"(snow|flurr|wintry|sleet|graupel)", re.I)
+# What the discussion says about snow is sorted by WHERE it says it:
+#   state = it names State College / Centre County, or says snow for the whole area with nothing narrowing it
+#   elev  = snow only for the mountains, ridges, a named range, a part of the state (NW, northern tier) or above a stated elevation
+#   vague = a storm signal, or snow with no place given (we cannot say it is in town, so it never counts as in town)
+# Only the forecast sections are read (not aviation, climate, marine), one sentence at a time, plus the sentence
+# after it when that one only narrows the place ("Mainly over the higher elevations.").
+ELEV_WORDS = re.compile(
+    r"(higher elevations?|high(er)? terrain|elevations? (above|over)|(above|over|greater than) \d{3,4} ?(ft|feet|msl)|\d{3,4} ?(ft|feet) msl|\bmsl\b|"
+    r"ridges?\b|ridgetops?|summits?|mountain|mtns?\b|mts\b|alleghen|laurel|highlands|poconos?|endless|tug hill|"
+    r"\bnw\b|northwest(ern)?\b|\bnrn\b|northern (pa|pennsylvania|tier|mtns|mountains)|north(ern)? central mtns|far (north|northwest)|"
+    r"lake[- ](effect|enhanced)|upslope|orographic|\bbfd\b|\bjst\b|bradford|warren|elk|mckean|potter|cameron|tioga)", re.I)
+TOWN_WORDS = re.compile(r"(state college|centre county|centre co\b|bellefonte|happy valley|\bunv\b)", re.I)
+AREA_WORDS = re.compile(r"(\b(to|over|for|in|across) the (area|region|cwa|forecast area)\b|across (the )?(entire |whole )?(area|region|cwa|forecast area|central pa|central pennsylvania)|area-?wide|region-?wide|widespread|most (locations|of (the )?(area|region|cwa|central))|much of (the )?(area|region|cwa|central)|all of (central|the))", re.I)
+NARROW_NEXT = re.compile(r"^\W*(but |though |however )?(mainly|mostly|primarily|especially|only|just|limited to|confined to|best chance|favou?red|highest)\b", re.I)
+SNOW_RE = re.compile(r"(\bsnow(fall|y|flakes?|showers?|squalls?)?\b|flurr|wintry|\bsleet\b|graupel|\bslush)", re.I)
 STORM_RE = re.compile(r"(storm|nor.?easter|coastal low|strong(er)? (system|front)|wintry pattern|winter weather|accumulating)", re.I)
-DOW_IDX = {n.lower(): i for i, n in enumerate(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])}
+NEG_RE = re.compile(
+    r"(\b(no|not|without|never|nothing|neither|nor)\b\W+(\w+\W+){0,5}?(snow|flurr|wintry|sleet)|"
+    r"(snow|flurr\w*|wintry\w*|sleet)\W+(\w+\W+){0,4}?(not (expected|likely|anticipated|a concern)|unlikely|ruled out|out of the question)|"
+    r"(rather than|instead of|not|vs\.?|versus)\W+(any\W+)?(snow|flurr)|"
+    r"too (warm|mild) (for|to) (snow|support)|snow[- ]free|no (accumulat|wintry))", re.I)
+# "not out of the question" is the opposite of a negation
+NOT_NEG = re.compile(r"not out of the question|can.?t rule out|cannot be ruled out|not (completely |entirely )?ruled out|isn.?t out of the question", re.I)
+DOW_NAMES = [("monday", "mon"), ("tuesday", "tue"), ("wednesday", "wed"), ("thursday", "thu"), ("friday", "fri"), ("saturday", "sat"), ("sunday", "sun")]
+SKIP_SECTIONS = re.compile(r"^\.(AVIATION|CLIMATE|MARINE|FIRE WEATHER|HYDROLOGY|CTP WATCHES|WATCHES|TIDES|BEACH|RIVER|SKYWARN|PRELIMINARY)", re.I)
 
 
 def dates_in(sentence, today):
     out = []
     low = sentence.lower()
     t = dt.date.fromisoformat(today)
-    for name, i in DOW_IDX.items():
-        if re.search(r"\b" + name + r"\b", low) or re.search(r"\b" + name[:3] + r"\b\.?", low) and name in ("mon", "tue"):
+    if re.search(r"\b(today|this (afternoon|morning|evening))\b", low):
+        out.append(str(t))
+    if re.search(r"\b(tonight|overnight)\b", low):
+        out.append(str(t))
+    if re.search(r"\btomorrow\b", low):
+        out.append(str(t + dt.timedelta(1)))
+    for i, (full, ab) in enumerate(DOW_NAMES):
+        if re.search(r"\b" + full + r"\b", low) or re.search(r"\b" + ab + r"\b\.?", low):
             for k in range(0, 8):
                 d = t + dt.timedelta(k)
                 if d.weekday() == i:
@@ -276,9 +302,38 @@ def dates_in(sentence, today):
     return sorted(set(out))
 
 
+def forecast_text(body):
+    """The discussion with the sections that are not about the forecast (aviation, climate, ...) cut out."""
+    has_head = bool(re.search(r"(?m)^\.[A-Z][A-Z /&-]*\.{3}", body))
+    keep, on = [], not has_head      # the lines above the first section are the header (issue time, office), not forecast
+    for line in body.split("\n"):
+        if re.match(r"^\.[A-Z][A-Z /&-]*\.{3}", line):
+            on = not SKIP_SECTIONS.match(line)
+            line = re.sub(r"^\.[A-Z][A-Z /&-]*\.{3}", "", line)
+        if line.strip() == "&&":
+            continue
+        if line.startswith("$$"):
+            break
+        if on:
+            keep.append(line)
+    return "\n".join(keep)
+
+
+def sentence_places(s, nxt=""):
+    """'elev' | 'state' | 'none' (no place given) for one sentence that talks about snow."""
+    if TOWN_WORDS.search(s):
+        return "state"
+    if ELEV_WORDS.search(s):
+        return "elev"
+    if nxt and NARROW_NEXT.search(nxt) and ELEV_WORDS.search(nxt):
+        return "elev"
+    if AREA_WORDS.search(s):
+        return "state"
+    return "none"
+
+
 def parse_afd(text, today):
     body = re.sub(r"\r", "", text)
-    m = re.search(r"Area Forecast Discussion[\s\S]*?\n(\d{3,4}) (AM|PM) (\w+) \w+ (\w+) (\d+) (\d{4})", body)
     issued = ""
     mm = re.search(r"\n(\d{3,4} (?:AM|PM) E[SD]T [A-Za-z]{3} [A-Za-z]{3} \d{1,2} \d{4})", body)
     if mm:
@@ -290,7 +345,7 @@ def parse_afd(text, today):
     km = re.search(r"\.KEY MESSAGES\.\.\.([\s\S]*?)(?:\n&&|\n\.[A-Z ]+\.\.\.)", body)
     bullets = []
     if km:
-        for b in re.split(r"\n\s*-\s+", "\n" + km.group(1)):
+        for b in re.split(r"\n\s*(?:-|\d+\))\s+", "\n" + km.group(1)):
             b = re.sub(r"\s+", " ", b).strip()
             if b:
                 bullets.append(b)
@@ -303,26 +358,28 @@ def parse_afd(text, today):
         parts = re.split(r"(?<=[.!?])\s+", summary)
         summary = " ".join(parts[:2])
         summary = summary[0].lower() + summary[1:] if summary and not summary[:2].isupper() else summary
-    near = re.split(r"\.LONG TERM", body)[0]
-    sentences = re.split(r"(?<=[.!?])\s+", re.sub(r"\s+", " ", body.replace("\n", " ")))
+    fc = forecast_text(body)
+    sentences = [x for x in re.split(r"(?<=[.!?])\s+(?=[A-Z0-9])", re.sub(r"\s+", " ", re.sub(r"\.[A-Z][A-Z /&-]*\.{3}", " ", fc).replace("\n", " "))) if x.strip()]
     snow = "none"
-    dates = []
-    for s in sentences:
+    dates, why = [], ""
+    rank = {"none": 0, "vague": 1, "elev": 2, "state": 3}
+    for i, s in enumerate(sentences):
+        nxt = sentences[i + 1] if i + 1 < len(sentences) else ""
         if SNOW_RE.search(s):
-            if re.search(r"(no|not|without|isn.t|aren.t)\W+(\w+\W+){0,3}(snow|flurr)", s, re.I):
+            if NEG_RE.search(s) and not NOT_NEG.search(s):
                 continue
-            if ELEV_WORDS.search(s) and not TOWN_WORDS.search(s):
-                if snow == "none":
-                    snow = "elev"
-                    dates = dates_in(s, today)
-            else:
-                snow = "state"
-                dates = dates_in(s, today) or dates
-        elif snow == "none" and STORM_RE.search(s) and re.search(r"(possible|potential|watch|monitor|signal|threat|chance|uncertain)", s, re.I):
+            where = sentence_places(s, nxt)
+            kind = {"state": "state", "elev": "elev", "none": "vague"}[where]
+            if rank[kind] > rank[snow]:
+                snow, dates, why = kind, dates_in(s, today), s[:200]
+            elif kind == snow:
+                dates = sorted(set(dates) | set(dates_in(s, today)))
+        elif snow == "none" and STORM_RE.search(s) and re.search(r"(possible|potential|watch|monitor|signal|threat|chance|uncertain)", s, re.I) and not re.search(r"\b(thunder|severe|convective|tstm)", s, re.I):
             snow = "vague"
             dates = dates_in(s, today)
-    low = body.lower()
-    return {"issued": issued, "snow": snow, "snow_dates": dates, "summary": summary,
+            why = s[:200]
+    low = fc.lower()
+    return {"issued": issued, "snow": snow, "snow_dates": dates, "summary": summary, "why": why,
             "warm": bool(re.search(r"above (average|normal)|unseasonably (warm|mild)", low)), "cold": bool(re.search(r"below (average|normal)|unseasonably cold", low))}
 
 
@@ -418,7 +475,7 @@ def cpc_windows(today):
     for k, sec in secs.items():
         if k not in dates:
             continue
-        cm = re.search(r"(\d) out of 5", sec)
+        cm = re.search(r"(\d)\s+out\s+of\s+5", sec)
         conf = int(cm.group(1)) if cm else 3
         for name, word in (("t", "temperature"), ("p", "precipitation")):
             r = prose_category(sec, word)
@@ -461,6 +518,7 @@ def parse_enso(text):
 
 
 SEV = {"slight": "slight", "moderate": "moderate", "high": "high"}
+HAZ_HIGH = re.compile(r"(high(er)? elevations?|high(er)? terrain|mountain|mtns?\\b|ridges?|summits?|appalachian|alleghen|laurel|poconos?|lake[- ](effect|enhanced)|upslope)", re.I)
 PA_REG = re.compile(r"(pennsylvania|mid-atlantic|appalachian|ohio valley|upper mid-atlantic|central appalachians)", re.I)
 
 
@@ -492,8 +550,10 @@ def parse_hazards(text, today):
             d2 = dt.date(year, mon2, int(d.group(4))) if d.group(4) else d1
         except Exception:
             continue
-        flags.append({"kind": kind, "level": lvl.lower(), "start": str(d1), "end": str(d2), "region": region.strip(), "label": what.strip(),
-                      "covers_pa": bool(PA_REG.search(region)) and not re.fullmatch(r".*(northeast|new england)\W*", region.strip(), re.I) or bool(re.search(r"pennsylvania|mid-atlantic|appalachians", region, re.I))})
+        covers = bool(PA_REG.search(region)) and not re.fullmatch(r".*(northeast|new england)\W*", region.strip(), re.I) or bool(re.search(r"pennsylvania|mid-atlantic|appalachians", region, re.I))
+        if kind == "snow" and HAZ_HIGH.search(what + " " + region):
+            covers = False      # snow for the high elevations or the mountain ranges is not snow in State College
+        flags.append({"kind": kind, "level": lvl.lower(), "start": str(d1), "end": str(d2), "region": region.strip(), "label": what.strip(), "covers_pa": covers})
     base = dt.date.fromisoformat(issued)
     return {"issued": issued, "start": str(base + dt.timedelta(7)), "end": str(base + dt.timedelta(13)), "flags": flags, "carried": []}
 
