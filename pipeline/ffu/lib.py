@@ -48,6 +48,22 @@ def dow(s):
     return DOWS[D(s).weekday()]
 
 
+def night_label(today, d):
+    """Name of the night whose low is filed under date d. The point forecast files a low under the date it lands on (dawn),
+    so the low under Nov. 13 belongs to Thursday night (Nov. 12 into 13). -> 'this morning', 'tonight', 'tomorrow night', 'Thursday night', 'next Thursday night'"""
+    start = add(d, -1)
+    n = days_between(today, start)
+    if n < 0:
+        return "this morning"
+    if n == 0:
+        return "tonight"
+    if n == 1:
+        return "tomorrow night"
+    if n < 6:
+        return dow(start) + " night"
+    return "next %s night" % dow(start)
+
+
 def dow3(s):
     return DOWS[D(s).weekday()][:3]
 

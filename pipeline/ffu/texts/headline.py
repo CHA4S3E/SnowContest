@@ -3,7 +3,7 @@
 Rules (enforced by lint.py): no names, no picks/windows, nothing about the method changing, no 'you'.
 Each scenario has a pile of templates; a template that needs a fact we don't have is skipped automatically.
 """
-from ..lib import (D, add, dm, dow, dow3, rng, join, pct, pct_loose, pct_n, days_phrase, deg, degs, numw, daycount, plural,
+from ..lib import (D, night_label, add, dm, dow, dow3, rng, join, pct, pct_loose, pct_n, days_phrase, deg, degs, numw, daycount, plural,
                    days_between, sentence, clean, cap)
 
 MAX_LEN = 235
@@ -36,14 +36,7 @@ def when_phrase(today, d):
 
 
 def night_phrase(today, d):
-    n = days_between(today, d)
-    if n <= 0:
-        return "tonight"
-    if n == 1:
-        return "tomorrow night"
-    if n < 6:
-        return dow(d) + " night"
-    return "next %s night" % dow(d)
+    return night_label(today, d)
 
 
 def span_phrase(today, a, b):

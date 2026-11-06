@@ -3084,6 +3084,8 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     // First freeze alert: a forecast night at or below 32°F, and none earlier in the season's records
     // A day's low lands near dawn, so today's low has already happened once it is past 8 AM
     const nyHour = Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", hour12: false }).format(new Date())) % 24;
+    // the forecast files a low under the date it lands on (dawn), so the low under Thu Nov 12 belongs to Wednesday night
+    const nightOf = (d) => { const p = parse(d); p.setDate(p.getDate() - 1); const iso = p.getFullYear() + "-" + String(p.getMonth() + 1).padStart(2, "0") + "-" + String(p.getDate()).padStart(2, "0"); return d <= todayIso ? "this morning, " + short(d) : DOW[p.getDay()] + " night, " + short(iso); };
     const lowDone = (d) => d < todayIso || (d === todayIso && nyHour >= 8);
     let pastFreeze = Object.keys(wx).some((d) => lowDone(d) && wx[d].lo != null && wx[d].lo <= 32) || !!(weather && weather.firstFreeze);
     try {
@@ -3095,7 +3097,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     if (freezeDays.length && !(config && config.firstSnow)) {
       const f = freezeDays[0];
       fz.hidden = false;
-      fz.innerHTML = '<svg aria-hidden="true"><use href="#flake"/></svg><div><b>' + (pastFreeze ? "Another freeze" : "First freeze") + ' in the forecast: ' + DOW[parse(f).getDay()] + ' night, ' + short(f) + '</b><span>Low of ' + wx[f].lo + '°F' +
+      fz.innerHTML = '<svg aria-hidden="true"><use href="#flake"/></svg><div><b>' + (pastFreeze ? "Another freeze" : "First freeze") + ' in the forecast: ' + nightOf(f) + '</b><span>Low of ' + wx[f].lo + '°F' +
         (freezeDays.length > 1 ? ", plus " + (freezeDays.length - 1) + " more freezing night" + (freezeDays.length > 2 ? "s" : "") + " this week" : "") + '. Cold enough for flakes if any moisture shows up.</span></div>';
     } else fz.hidden = true;
     const coldDays = days.filter((d) => wx[d] && wx[d].lo != null && wx[d].lo < COLD_F);

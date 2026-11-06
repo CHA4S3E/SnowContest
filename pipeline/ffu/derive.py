@@ -132,15 +132,17 @@ def derive(f):
     days = sorted(d for d in wx if d >= today)[:8]
     g["wx_days"] = days
     hi = [(wx[d].get("hi"), d) for d in days if wx[d].get("hi") is not None]
-    lo = [(wx[d].get("lo"), d) for d in days if wx[d].get("lo") is not None]
+    # a day's low lands at dawn, so once the update runs after 8 AM, today's low is already over and does not count
+    lo_days = [d for d in days if not (d == today and (f.get("hour") or 5) >= 8)]
+    lo = [(wx[d].get("lo"), d) for d in lo_days if wx[d].get("lo") is not None]
     g["max_hi"] = max(hi) if hi else None
     g["min_hi"] = min(hi) if hi else None
     g["min_lo"] = min(lo) if lo else None
     g["max_lo"] = max(lo) if lo else None
     g["today_hi"] = wx.get(today, {}).get("hi")
     g["today_lo"] = wx.get(today, {}).get("lo")
-    g["freeze_days"] = [d for d in days if wx[d].get("lo") is not None and wx[d]["lo"] <= 32]
-    g["frost_days"] = [d for d in days if wx[d].get("lo") is not None and 32 < wx[d]["lo"] <= 36]
+    g["freeze_days"] = [d for d in lo_days if wx[d].get("lo") is not None and wx[d]["lo"] <= 32]
+    g["frost_days"] = [d for d in lo_days if wx[d].get("lo") is not None and 32 < wx[d]["lo"] <= 36]
     g["warm_days"] = [d for d in days if wx[d].get("hi") is not None and wx[d]["hi"] >= 65]
     g["cold_days"] = [d for d in days if wx[d].get("hi") is not None and wx[d]["hi"] <= 45]
     g["very_cold_days"] = [d for d in days if wx[d].get("hi") is not None and wx[d]["hi"] <= 38]

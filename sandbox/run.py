@@ -176,6 +176,8 @@ _w = _wins({"a": "2026-11-13", "b": "2026-11-20", "c": "2026-11-27"}, "2026-09-2
 _txt = lambda pick, side: " | ".join(t[0] for _, _, t, _ in hh_candidates(None, _g, pick, side, _w[pick]))
 check("scouting: snow Nov 12-14 helps a Nov 13 pick", "snow_span" in _txt("2026-11-13", "helps") and "snow_span" not in _txt("2026-11-13", "hurts"))
 check("scouting: snow Nov 12-14 hurts a Nov 20 pick, not helps", "snow_span" in _txt("2026-11-20", "hurts") and "snow_span" not in _txt("2026-11-20", "helps"))
+from ffu.lib import night_label
+check("night names: the low filed under Nov. 7 belongs to tonight (Fri Nov. 6); under Nov. 13 to Thursday night", night_label("2026-11-06", "2026-11-07") == "tonight" and night_label("2026-11-06", "2026-11-13") == "next Thursday night" and night_label("2026-11-06", "2026-11-12") == "Wednesday night" and night_label("2026-11-06", "2026-11-06") == "this morning")
 check("CPC hazards: mountain-only heavy snow does not cover PA", not parse_hazards("\nSlight risk of heavy snow for the central Appalachians, Nov 15-16\n", "2026-11-06")["flags"][0]["covers_pa"])
 check("CPC hazards: heavy snow for Pennsylvania covers PA", parse_hazards("\nSlight risk of heavy snow for Pennsylvania, Nov 15-16\n", "2026-11-06")["flags"][0]["covers_pa"])
 

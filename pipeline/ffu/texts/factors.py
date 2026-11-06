@@ -3,7 +3,7 @@
 The names and order match what the page has always shown. Effect means: does this signal raise (earlier) or lower
 (later) the chance of first flakes compared with the starting curve?
 """
-from ..lib import (D, add, dm, dms, dow, rng, join, pct, deg, numw, plural, days_between, sentence, clean, cap, days_phrase,
+from ..lib import (D, night_label, add, dm, dms, dow, rng, join, pct, deg, numw, plural, days_between, sentence, clean, cap, days_phrase,
                    run_label, issued_label)
 
 CAT_WORD = {"A": "above normal", "B": "below normal", "N": "near normal", "EC": "no clear lean"}
@@ -372,9 +372,9 @@ def nws(f, g, v):
     if ctx["summary"]:
         parts.append(sentence(say(v, "fn1", ["NWS ({issued}): {summary}.", "From NWS's {issued} discussion: {summary}.",
                                              "NWS forecasters ({issued}): {summary}."], ctx)))
-    lows = [(d, wx[d]["lo"]) for d in ds if wx[d].get("lo") is not None and wx[d]["lo"] <= 38]
+    lows = [(d, wx[d]["lo"]) for d in ds if wx[d].get("lo") is not None and wx[d]["lo"] <= 38 and not (d == t and (f.get("hour") or 5) >= 8)]
     if lows:
-        bits = ["%s %s" % (deg(lo), dow(d) + " night") for d, lo in lows[:3]]
+        bits = ["%s %s" % (deg(lo), night_label(t, d)) for d, lo in lows[:3]]
         parts.append(sentence(say(v, "fn2", ["The point forecast has lows of {bits}.", "Point-forecast lows: {bits}.", "The forecast lows are {bits}."],
                                   {"bits": join(bits)})))
     sn = a.get("snow", "none")
