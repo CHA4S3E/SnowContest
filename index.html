@@ -3548,9 +3548,9 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       '<input type="range" id="radarSlider" min="0" max="' + (fr.length - 1) + '" value="' + radarIdx + '" aria-label="Radar frame">' +
       '<span id="radarTime">' + esc(clock(new Date(f.t))) + '</span></div></div>' +
       '<div class="wmap"><div class="wframe">'+lakeLayer()+'<img id="radarImg" alt="Radar around State College at ' + esc(clock(new Date(f.t))) + '" src="' + rsrc(f) + '">' + mapOverlay(!!radar.bare, freezeSvg(radar.freeze, fzLinesAt(fr, radarIdx))) + '</div></div>' +
-      '<div class="rinfo"><div class="rleg"><span><i style="width:28px;background:linear-gradient(90deg,#cde6fc,#78aff3 35%,#1e4bc8 62%,#16329f 80%,#5523af)"></i>Snow (purple = very heavy)</span><span><i style="background:#ec64be"></i>Freezing rain (est.)</span><span><i style="background:#aa6ee1"></i>Mix / borderline</span><span><i style="width:28px;background:linear-gradient(90deg,#b9ebaf,#3caf4b 45%,#3caf4b 55%,#f5e13c 66%,#fa961e 80%,#e84b19 90%,#c81419)"></i>Rain (red = very heavy)</span><span>Darker = heavier</span>' + freezeKey(radar.freeze) + '</div>' +
+      '<div class="rinfo"><div class="rleg"><span><i style="width:28px;background:linear-gradient(90deg,#cde6fc,#78aff3 35%,#1e4bc8 62%,#16329f 80%,#5523af)"></i>Snow (purple = very heavy)</span><span><i style="background:#f7982f"></i>Sleet</span><span><i style="background:#ec64be"></i>Freezing rain</span><span><i style="background:#aa6ee1"></i>Mix / borderline</span><span><i style="width:28px;background:linear-gradient(90deg,#b9ebaf,#3caf4b 45%,#3caf4b 55%,#f5e13c 68%,#e84b19 84%,#c81419)"></i>Rain (red = very heavy)</span><span>Darker = heavier</span>' + freezeKey(radar.freeze) + '</div>' +
       (radar.note ? '<p class="rnote">' + esc(radar.note) + '</p>' : "") +
-      '<div class="rsub">NOAA MRMS radar, frames every 10 minutes; snow or rain from radar plus model temperature. Freezing rain is estimated (rain with a surface at or below 32°F); sleet is not separated and shows as mix. Updated ' + (radar.updatedAt ? esc(clock(new Date(radar.updatedAt))) + " (" + esc(ago(radar.updatedAt)) + ")" : "") + '.</div></div></div>';
+      '<div class="rsub">NOAA MRMS radar, frames every 10 minutes; snow or rain from radar plus model temperature, terrain and the HRRR model precip type (which supplies sleet and freezing rain; older data shows freezing rain as rain onto a surface at or below 32°F, with no sleet). Updated ' + (radar.updatedAt ? esc(clock(new Date(radar.updatedAt))) + " (" + esc(ago(radar.updatedAt)) + ")" : "") + '.</div></div></div>';
   }
   function showRadar(i) {
     const fr = radarFrames(); if (!fr) return;
@@ -4600,23 +4600,25 @@ sync();
 })();
 </script>
 <script>
-/* Radar weather: faint snow, freezing rain, mix and rain fall across the whole map and show only inside the matching radar colors */
+/* Radar weather: faint snow, sleet, freezing rain, mix and rain fall across the whole map and show only inside the matching radar colors */
 (function(){
 if (window.__radarFx) return; window.__radarFx = 1;
 if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 var PAL = [[1,190,225,255],[1,110,175,245],[1,40,110,220],[4,255,190,225],[4,236,100,190],[4,180,25,130],
-           [2,215,180,240],[2,170,110,225],[2,120,50,190],[3,150,225,150],[3,60,175,75],[3,20,120,40]];
+           [2,215,180,240],[2,170,110,225],[2,120,50,190],[3,150,225,150],[3,60,175,75],[3,20,120,40],
+           [3,245,225,60],[3,232,75,25],[3,200,20,25],[3,135,10,30],[5,255,190,110],[5,247,152,52],[5,225,118,22],[5,175,82,10],[5,255,224,175]];
 var cv = null, cx = null, img = null, raf = 0, last = 0, W = 0, H = 0;
-var masks = {}, has = {1:0,2:0,3:0,4:0};           // one alpha mask per radar class, same size as the image
+var masks = {}, has = {1:0,2:0,3:0,4:0,5:0};           // one alpha mask per radar class, same size as the image
 var layer = document.createElement("canvas"), lx = layer.getContext("2d");
 var src = document.createElement("canvas"), sx0 = src.getContext("2d", { willReadFrequently: true });
 // particle fields cover the whole map: x, y are 0..1 so they survive resizes
 var kinds = {
   f: { n: 0, a: .62 },   // snow flake
   d: { n: 0, a: .7 },    // freezing rain drop
-  r: { n: 0, a: .55 }    // rain streak
+  r: { n: 0, a: .55 },   // rain streak
+  s: { n: 0, a: .8 }     // sleet pellet
 };
-var fields = { f: [], d: [], r: [] };
+var fields = { f: [], d: [], r: [], s: [] };
 function rnd(a, b) { return a + Math.random() * (b - a); }
 function fill(list, n) { while (list.length < n) list.push({ x: Math.random(), y: Math.random(), ph: Math.random() * 6.28, v: rnd(.85, 1.15) }); list.length = n; }
 function build() {
@@ -4625,8 +4627,8 @@ function build() {
   src.width = w; src.height = h; sx0.imageSmoothingEnabled = false; sx0.clearRect(0, 0, w, h);
   var d;
   try { sx0.drawImage(img, 0, 0); d = sx0.getImageData(0, 0, w, h).data; } catch (e) { masks = {}; return; }
-  var out = {}, cnt = {1:0,2:0,3:0,4:0}, datas = {};
-  [1, 2, 3, 4].forEach(function (c) { out[c] = new ImageData(w, h); datas[c] = out[c].data; });
+  var out = {}, cnt = {1:0,2:0,3:0,4:0,5:0}, datas = {};
+  [1, 2, 3, 4, 5].forEach(function (c) { out[c] = new ImageData(w, h); datas[c] = out[c].data; });
   var cache = {};
   for (var i = 0, n = w * h; i < n; i++) {
     var a = d[i * 4 + 3]; if (a < 110) continue;
@@ -4635,7 +4637,7 @@ function build() {
     datas[c][i * 4 + 3] = 255; cnt[c]++;
   }
   masks = {}; has = cnt;
-  [1, 2, 3, 4].forEach(function (c) { if (cnt[c] < 12) return; var m = document.createElement("canvas"); m.width = w; m.height = h; m.getContext("2d").putImageData(out[c], 0, 0); masks[c] = m; });
+  [1, 2, 3, 4, 5].forEach(function (c) { if (cnt[c] < 12) return; var m = document.createElement("canvas"); m.width = w; m.height = h; m.getContext("2d").putImageData(out[c], 0, 0); masks[c] = m; });
 }
 function size() {
   var w = cv.clientWidth, h = cv.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -4653,6 +4655,7 @@ function move(list, dt, speed, drift, slant) {
 }
 function drawFlakes() { lx.globalAlpha = kinds.f.a; lx.fillStyle = "#fff"; lx.beginPath(); fields.f.forEach(function (p) { var X = p.x * W, Y = p.y * H; lx.moveTo(X + 1.35, Y); lx.arc(X, Y, 1.35, 0, 6.283); }); lx.fill(); }
 function drawDrops() { lx.globalAlpha = kinds.d.a; lx.fillStyle = "#fff"; lx.strokeStyle = "rgba(70,20,80,.35)"; lx.lineWidth = .5; lx.beginPath(); fields.d.forEach(function (p) { var X = p.x * W, Y = p.y * H; lx.moveTo(X + .95, Y); lx.ellipse(X, Y, .95, 1.8, 0, 0, 6.283); }); lx.fill(); lx.stroke(); }
+function drawSleet() { lx.globalAlpha = kinds.s.a; lx.fillStyle = "#fff3e0"; lx.strokeStyle = "rgba(150,70,0,.5)"; lx.lineWidth = .6; lx.beginPath(); fields.s.forEach(function (p) { var X = p.x * W, Y = p.y * H; lx.moveTo(X + 1.15, Y); lx.arc(X, Y, 1.15, 0, 6.283); }); lx.fill(); lx.stroke(); }
 function drawRain() { lx.globalAlpha = kinds.r.a; lx.strokeStyle = "#eaf4ff"; lx.lineWidth = .9; lx.beginPath(); fields.r.forEach(function (p) { var X = p.x * W, Y = p.y * H; lx.moveTo(X, Y); lx.lineTo(X - 1.6, Y - 7.5); }); lx.stroke(); }
 function pass(mask, draws, dpr) {
   lx.save(); lx.setTransform(1, 0, 0, 1, 0, 0); lx.clearRect(0, 0, layer.width, layer.height); lx.restore();
@@ -4670,11 +4673,12 @@ function frame(ts) {
   var dpr = size();
   cx.clearRect(0, 0, cv.width, cv.height);
   var area = W * H; if (!area) return;
-  fill(fields.f, Math.round(area / 200)); fill(fields.d, Math.round(area / 170)); fill(fields.r, Math.round(area / 190));
-  move(fields.f, dt, 15, 9, 0); move(fields.d, dt, 40, 0, 2); move(fields.r, dt, 90, 0, 14);
+  fill(fields.f, Math.round(area / 200)); fill(fields.d, Math.round(area / 170)); fill(fields.r, Math.round(area / 190)); fill(fields.s, Math.round(area / 180));
+  move(fields.f, dt, 15, 9, 0); move(fields.d, dt, 40, 0, 2); move(fields.r, dt, 90, 0, 14); move(fields.s, dt, 62, 2, 6);
   if (masks[1]) pass(masks[1], [drawFlakes], dpr);
   if (masks[4]) pass(masks[4], [drawDrops], dpr);
   if (masks[2]) pass(masks[2], [drawFlakes, drawDrops], dpr);
+  if (masks[5]) pass(masks[5], [drawSleet], dpr);
   if (masks[3]) pass(masks[3], [drawRain], dpr);
 }
 function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; cv = null; img = null; }

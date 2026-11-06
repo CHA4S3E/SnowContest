@@ -2,3 +2,4 @@ numpy
 eccodes
 pillow
 opencv-python-headless
+scipy

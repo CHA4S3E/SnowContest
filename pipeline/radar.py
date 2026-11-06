@@ -13,8 +13,14 @@ Echo classes (reflectivity >= 5 dBZ with precipitation flagged):
   snow          flag = snow and wet-bulb <= 32 F
   freezing rain flag = rain and surface temperature <= 32 F (an estimate: rain falling onto a subfreezing surface; shown pink)
   rain          flag = rain and wet-bulb >= 36 F
-  borderline    wet-bulb 33-35 F, or flag and temperature disagree; this is where sleet and mixes land (shown purple)
-There is no sleet class: the radar's precip type has none, and sleet depends on a warm layer aloft that this data lacks.
+  sleet         the HRRR model says ice pellets (shown orange)
+  borderline    wet-bulb 33-35 F, or flag and temperature disagree (shown purple)
+Two upgrades on top of the radar flag (both optional; without them the older rules above still run):
+  HRRR precip type   the model's own rain / snow / ice pellets / freezing rain fields (CRAIN, CSNOW, CICEP, CFRZR) from the newest
+                     hourly run, which add sleet and sharpen snow vs rain where the radar flag and temperature disagree
+  terrain correction the model temperatures are smooth; HRRR terrain (HGT) minus a smoothed copy of itself gives how far each point
+                     sits above or below the model surface, and wet-bulb / surface temperature are cooled about 3 F per 1,000 ft,
+                     so ridges can be snow while the valleys are rain. The snow line (32 F wet-bulb elevation) near town is reported.
 Output: {updatedAt, frames: [{t (ET ISO), png (base64), kf (true for a real radar image)}], summary: {...}, note, timing}
 The echoes are drawn smooth (OpenCV) and the motion between frames is saved too, so the page can glide the echoes from one frame to the next.
 OpenCV (opencv-python-headless) is optional: without it the plain three-shade frames are saved.
@@ -24,6 +30,10 @@ from zoneinfo import ZoneInfo
 
 import numpy as np
 import eccodes
+try:
+    from scipy.spatial import cKDTree
+except Exception:
+    cKDTree = None
 from PIL import Image, ImageDraw
 try:
     import cv2
@@ -110,25 +120,33 @@ def grid(key):
     return v, lats, lons
 
 
-def classify(refl, flag, wb_f, sfc_f=None):
+def classify(refl, flag, wb_f, sfc_f=None, pt=None):
+    """pt: optional model precip type {"snow","rain","fzra","pellets"} as boolean grids on the same grid"""
     echo = (refl >= 5) & (flag > 0)
     is_snow = np.isin(flag, [SNOW])
     is_rain = np.isin(flag, RAIN_CODES + (HAIL,))
-    cls = np.zeros(refl.shape, np.uint8)  # 0 none, 1 snow, 2 borderline, 3 rain, 4 freezing rain
+    cls = np.zeros(refl.shape, np.uint8)  # 0 none, 1 snow, 2 borderline, 3 rain, 4 freezing rain, 5 sleet
     if wb_f is None:
         cls[echo & is_snow] = 1
         cls[echo & is_rain] = 3
         cls[echo & ~is_snow & ~is_rain] = 2
-        if sfc_f is not None:
-            cls[echo & is_rain & (sfc_f <= 32)] = 4
-        return cls
-    snow = echo & is_snow & (wb_f <= 32)
-    rain = echo & is_rain & (wb_f >= 36)
-    cls[echo] = 2
-    cls[snow] = 1
-    cls[rain] = 3
+    else:
+        snow = echo & is_snow & (wb_f <= 32)
+        rain = echo & is_rain & (wb_f >= 36)
+        if pt is not None:  # radar flag and model agree: trust them a degree further; the model alone can tip a disagreeing flag
+            snow |= echo & is_snow & pt["snow"] & (wb_f <= 34)
+            rain |= echo & is_rain & pt["rain"] & (wb_f >= 35)
+            snow |= echo & ~is_rain & pt["snow"] & (wb_f <= 32)
+            rain |= echo & ~is_snow & pt["rain"] & (wb_f >= 36)
+        cls[echo] = 2
+        cls[snow] = 1
+        cls[rain] = 3
     if sfc_f is not None:  # rain onto a subfreezing surface
         cls[echo & is_rain & (sfc_f <= 32)] = 4
+    if pt is not None:
+        cold = np.ones(refl.shape, bool) if wb_f is None else (wb_f <= 37)
+        cls[echo & pt["fzra"] & cold] = 4
+        cls[echo & pt["pellets"] & cold] = 5
     return cls
 
 
@@ -151,7 +169,7 @@ def solid(sel):
 
 def stats(cls, refl, d, brg):
     out = {}
-    for name, sel in (("snow", cls == 1), ("fzra", cls == 4), ("borderline", cls == 2), ("rain", cls == 3), ("snowish", (cls == 1) | (cls == 2))):
+    for name, sel in (("snow", cls == 1), ("fzra", cls == 4), ("borderline", cls == 2), ("rain", cls == 3), ("sleet", cls == 5), ("snowish", (cls == 1) | (cls == 2))):
         s = {}
         sel = solid(sel)  # distances and coverage ignore stray single pixels
         if sel.any():
@@ -172,12 +190,14 @@ CITIES = [("State College", 40.79, -77.86), ("Altoona", 40.52, -78.40), ("Willia
 COLORS = {1: [(190, 225, 255), (110, 175, 245), (40, 110, 220)],      # snow: light / moderate / heavy (the plain, no-OpenCV drawing)
           2: [(215, 180, 240), (170, 110, 225), (120, 50, 190)],      # borderline (purple)
           3: [(150, 225, 150), (60, 175, 75), (20, 120, 40)],         # rain
-          4: [(255, 190, 225), (236, 100, 190), (180, 25, 130)]}      # freezing rain (pink)
+          4: [(255, 190, 225), (236, 100, 190), (180, 25, 130)],      # freezing rain (pink)
+          5: [(255, 215, 160), (245, 150, 50), (190, 90, 10)]}        # sleet (orange)
 # Smooth drawing: each type runs through a ramp of (dBZ, colour) steps. Snow echoes are weaker than rain at the same intensity.
 RAMPS = {1: [(5, (205, 230, 252)), (12, (165, 205, 248)), (18, (120, 175, 243)), (24, (80, 140, 235)), (30, (48, 105, 222)), (35, (30, 75, 200)), (38, (22, 50, 178)), (42, (85, 35, 175))],
          2: [(5, (228, 205, 245)), (14, (205, 165, 240)), (22, (180, 125, 230)), (30, (150, 85, 215)), (38, (115, 45, 190))],
-         3: [(5, (185, 235, 175)), (14, (135, 215, 135)), (24, (85, 190, 100)), (35, (40, 155, 65)), (39, (245, 225, 60)), (45, (250, 150, 30)), (50, (232, 75, 25)), (56, (200, 20, 25)), (65, (135, 10, 30))],
-         4: [(5, (255, 215, 235)), (14, (250, 170, 215)), (22, (240, 120, 195)), (30, (215, 70, 170)), (38, (175, 25, 130))]}
+         3: [(5, (185, 235, 175)), (14, (135, 215, 135)), (24, (85, 190, 100)), (35, (40, 155, 65)), (39, (245, 225, 60)), (44, (232, 75, 25)), (52, (200, 20, 25)), (62, (135, 10, 30))],   # no pure orange up here: orange is sleet
+         4: [(5, (255, 215, 235)), (14, (250, 170, 215)), (22, (240, 120, 195)), (30, (215, 70, 170)), (38, (175, 25, 130))],
+         5: [(5, (255, 224, 175)), (14, (255, 190, 110)), (22, (247, 152, 52)), (30, (225, 118, 22)), (38, (175, 82, 10))]}
 
 
 def blur(a, sigma):
@@ -206,7 +226,7 @@ def render_rgba(cls, refl):
     m = echo.astype(np.float32)
     num, den = blur(np.where(echo, refl, 0), 1.1), blur(m, 1.1)
     z = np.where(den > 1e-3, num / np.maximum(den, 1e-3), 0)
-    mem = np.stack([blur(((cls == c) & echo), 1.6) for c in (1, 2, 3, 4)])
+    mem = np.stack([blur(((cls == c) & echo), 1.6) for c in (1, 2, 3, 4, 5)])
     cs = mem.argmax(0) + 1
     img = np.zeros((h, w, 3), np.float32)
     for c, st in RAMPS.items():
@@ -231,7 +251,7 @@ def render_flat(cls, refl):
     """the plain three-shade drawing, used only if OpenCV is not available"""
     h, w = cls.shape
     img = np.zeros((h, w, 4), np.uint8)
-    LEVELS = {1: [18, 28], 2: [20, 32], 3: [20, 35], 4: [20, 35]}
+    LEVELS = {1: [18, 28], 2: [20, 32], 3: [20, 35], 4: [20, 35], 5: [20, 32]}
     for c, shades in COLORS.items():
         lvl = np.digitize(refl, LEVELS[c])
         for k, rgb in enumerate(shades):
@@ -313,6 +333,89 @@ def sfc_at(sfc, prev, t_new, t_old, t):
     return prev * (1 - w) + sfc * w
 
 
+HRRR = "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.{d}/conus/hrrr.t{h:02d}z.wrfsfcf{f:02d}.grib2"
+LAPSE_WB, LAPSE_SFC = 3.0, 3.5       # F per 1,000 ft (wet-bulb cools a little slower: precipitation keeps the air near saturated)
+M_PER_KFT = 304.8
+
+
+def _hrrr_msgs(url, want):
+    """{name: raw GRIB message} for the wanted surface fields of one HRRR file, by byte range from its .idx"""
+    idx = get(url + ".idx")
+    if idx is None:
+        return None
+    lines = idx.decode().splitlines()
+    out = {}
+    for i, l in enumerate(lines):
+        p = l.split(":")
+        if len(p) > 4 and p[3] in want and p[4] == "surface" and p[3] not in out:
+            end = int(lines[i + 1].split(":")[1]) - 1 if i + 1 < len(lines) else ""
+            req = urllib.request.Request(url, headers={"Range": "bytes=%s-%s" % (p[1], end)})
+            for k in range(4):
+                try:
+                    with urllib.request.urlopen(req, timeout=60) as r:
+                        out[p[3]] = r.read()
+                    break
+                except Exception:
+                    time.sleep(1.5 * 2 ** k)
+    return out
+
+
+def model_fields(latest, lats, lons):
+    """HRRR precip-type flags and terrain on the radar grid -> {"pt": {...bool grids}, "elev": metres, "elev_model": metres, "run": str} or None"""
+    if cKDTree is None or cv2 is None:
+        return None
+    want = ("CSNOW", "CRAIN", "CFRZR", "CICEP", "HGT")
+    base = latest.replace(minute=0, second=0, microsecond=0)
+    for back in range(0, 4):    # the newest hourly run that is already posted, read at the hour nearest to now
+        run = base - dt.timedelta(hours=back)
+        url = HRRR.format(d=run.strftime("%Y%m%d"), h=run.hour, f=back)
+        try:
+            msgs = _hrrr_msgs(url, want)
+        except Exception:
+            msgs = None
+        if msgs and all(k in msgs for k in want):
+            break
+    else:
+        return None
+    TIMING["hrrr_bytes"] = sum(len(v) for v in msgs.values())
+    g0 = eccodes.codes_new_from_message(msgs["HGT"])
+    la = eccodes.codes_get_array(g0, "latitudes")
+    lo = eccodes.codes_get_array(g0, "longitudes")
+    lo = np.where(lo > 180, lo - 360, lo)
+    keep = np.where((la >= LAT_S - 0.4) & (la <= LAT_N + 0.4) & (lo >= LON_W - 0.5) & (lo <= LON_E + 0.5))[0]
+    k = math.cos(math.radians(LAT0))
+    tree = cKDTree(np.c_[la[keep], lo[keep] * k])
+    tla, tlo = np.meshgrid(lats, lons, indexing="ij")
+    _, nn = tree.query(np.c_[tla.ravel(), tlo.ravel() * k])
+    src = keep[nn]
+
+    def field(name):
+        g = eccodes.codes_new_from_message(msgs[name])
+        v = eccodes.codes_get_values(g)
+        eccodes.codes_release(g)
+        return np.nan_to_num(v[src].reshape(tla.shape).astype(np.float32), nan=0.0)
+    elev = blur(field("HGT"), 1.5)
+    eccodes.codes_release(g0)
+    pt = {"snow": field("CSNOW") >= 0.5, "rain": field("CRAIN") >= 0.5, "fzra": field("CFRZR") >= 0.5, "pellets": field("CICEP") >= 0.5}
+    return {"pt": pt, "elev": elev, "elev_model": blur(elev, 5.0), "run": run.strftime("%Y-%m-%d %HZ f%02d" % back)}
+
+
+def terrain_adjust(f, elev, elev_model, lapse):
+    """cool (or warm) a model temperature field for how far the real ground sits above (below) the smooth model surface"""
+    if f is None or elev is None or f.shape != elev.shape:
+        return f
+    return f - np.clip((elev - elev_model) / M_PER_KFT * lapse, -6.0, 6.0)
+
+
+def snow_line_ft(wb, elev, d):
+    """elevation (ft) where the wet-bulb reaches 32 F, the median over the 30 miles around town; None if the field is not usable"""
+    if wb is None or elev is None or wb.shape != elev.shape:
+        return None
+    ring = d <= 30
+    ft = (elev / M_PER_KFT * 1000 + (wb - 32.0) / LAPSE_WB * 1000)[ring]
+    return int(round(float(np.median(ft)) / 100.0) * 100)
+
+
 def to_f(tv):
     return tv * 9 / 5 + 32 if np.nanmedian(tv) < 60 else (tv - 273.15) * 9 / 5 + 32  # C or K -> F
 
@@ -383,7 +486,8 @@ def main():
         except Exception as e:
             out["surface_error"] = str(e)[:200]
     frames, series, rgbas = [], [], []
-    d = brg = None
+    d = brg = mf = pt = None
+    snowline = None
     for t in frames_t:
         refl, lats, lons = grid(R[t])
         flag, _, _ = grid(F[pairs[t]])
@@ -393,7 +497,19 @@ def main():
             sfc = None
         if d is None:
             d, brg = dist_bearing(lats, lons)
-        cls = classify(refl, np.round(flag).astype(int), wb, sfc_at(sfc, sfc_prev, sfc_t, sfc_pt, t))   # freezing rain follows the same blended surface as the 32 F line
+            try:   # model precip type + terrain; any failure leaves the radar-flag rules as they were
+                mf = model_fields(latest, lats, lons)
+            except Exception as e:
+                mf = None
+                out["model_error"] = str(e)[:200]
+            if mf is not None:
+                pt = mf["pt"]
+                snowline = snow_line_ft(wb, mf["elev_model"], d)
+                wb = terrain_adjust(wb, mf["elev"], mf["elev_model"], LAPSE_WB)
+                sfc = terrain_adjust(sfc, mf["elev"], mf["elev_model"], LAPSE_SFC)
+                sfc_prev = terrain_adjust(sfc_prev, mf["elev"], mf["elev_model"], LAPSE_SFC)
+                out["model"] = {"run": mf["run"], "terrain": True}
+        cls = classify(refl, np.round(flag).astype(int), wb, sfc_at(sfc, sfc_prev, sfc_t, sfc_pt, t), pt)   # freezing rain follows the same blended surface as the 32 F line
         s = stats(cls, refl, d, brg)
         s["t"] = t.astimezone(ET).isoformat(timespec="minutes")
         series.append(s)
@@ -433,7 +549,7 @@ def main():
     first, last = series[0], series[-1]
     mins = max(1.0, (frames_t[-1] - frames_t[0]).total_seconds() / 60)
     summ = {"latest": last, "first": first, "minutes": round(mins)}
-    for k in ("snow", "snowish", "rain", "fzra"):
+    for k in ("snow", "snowish", "rain", "fzra", "sleet"):
         a, b = first[k].get("nearest_mi"), last[k].get("nearest_mi")
         if a is not None and b is not None:
             summ[k + "_closing_mph"] = round((a - b) / mins * 60, 1)
@@ -442,17 +558,20 @@ def main():
     out["summary"] = summ
     # plain-language note
     parts = []
-    for k, label in (("snow", "Snow"), ("fzra", "Freezing rain (estimated)"), ("borderline", "Borderline snow/rain"), ("rain", "Rain")):
+    for k, label in (("snow", "Snow"), ("sleet", "Sleet"), ("fzra", "Freezing rain"), ("borderline", "Borderline snow/rain"), ("rain", "Rain")):
         s = last[k]
         if "nearest_mi" in s and s["nearest_mi"] <= 120:
             txt = "%s %s" % (label, "over town" if s["nearest_mi"] <= 3 else "%d miles %s" % (round(s["nearest_mi"]), s["nearest_dir"]))
-            ck = {"snow": "snow", "fzra": "fzra", "borderline": "snowish", "rain": "rain"}[k]
+            ck = {"snow": "snow", "sleet": "sleet", "fzra": "fzra", "borderline": "snowish", "rain": "rain"}[k]
             mph = summ.get(ck + "_closing_mph")
             if mph is not None and s["nearest_mi"] > 3:
                 txt += ", closing about %d mph" % round(mph) if mph >= 5 else (", moving away" if mph <= -5 else ", not getting closer")
                 if summ.get(ck + "_eta"):
                     txt += " (reaches town around %s if it holds)" % dt.datetime.fromisoformat(summ[ck + "_eta"]).strftime("%-I:%M %p")
             parts.append(txt + ".")
+    if snowline is not None and 300 <= snowline <= 4500 and parts:
+        out["snowline_ft"] = snowline
+        parts.append("Model snow line near %s ft: higher ground is colder than the valleys." % format(snowline, ","))
     out["note"] = " ".join(parts) or "Nothing on radar within about 120 miles."
     out["frames"] = frames
     out["bare"] = True  # frames carry echoes only (no rings, towns or time stamp)
