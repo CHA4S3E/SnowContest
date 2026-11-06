@@ -21,7 +21,7 @@ class SD(dict):
 def say(v, key, options, ctx):
     head = key.split(":")[0]
     # the scouting report slots mean different things per pick (leader or not, before or after the median, helps or hurts), so no shared extras
-    options = list(options) + ([] if head in ("hh", "p1", "p2", "p3") else list(_EXTRA.get(head, [])))
+    options = list(options) + ([] if head in ("hh", "p1", "p2", "p3", "fb1", "fcp1") else list(_EXTRA.get(head, [])))
     i = v.idx(key, len(options))
     for k in range(len(options)):
         try:
@@ -75,14 +75,26 @@ def blend(f, g, v):
                                        "No National Blend run came through today, so the forecast leans on the starting curve and CPC's outlooks until it returns."], {})}
     run = run_label(nb.get("run_label") or nb.get("run") or "")
     last = nb.get("last") or g["cons_last"]
-    pk_d, pk_p = g["peak_day"], g["peak_pct"]
+    # this card is about the National Blend alone, so every number comes from its own days (not the weighted consensus)
+    nbd = {d: x for d, x in (((f.get("u") or {}).get("modelDays") or {}).get("nbm") or {}).items() if d >= t}
+    pk_d, pk_p = (max(nbd.items(), key=lambda x: x[1]) if nbd else (g["peak_day"], g["peak_pct"]))
+    if nbd:
+        last = max(nbd)
     ctx = {"run": run, "last_dm": dm(last), "peak_dm": dm(pk_d) if pk_d else "", "peak_x": pct(pk_p), "peak_dow": dow(pk_d) if pk_d else "",
            "first_dm": dm(nb.get("first") or t)}
-    if g["zero_through"]:
-        ctx["zero_dm"] = dm(g["zero_through"])
-    if g["snow_days"]:
-        ctx["snow_span"] = rng(g["snow_days"][0], g["snow_days"][-1])
-        ctx["snow_first"] = dm(g["snow_days"][0])
+    nb_zero = None
+    for d_ in sorted(nbd):
+        if nbd[d_] < 0.5:
+            nb_zero = d_
+        else:
+            break
+    nb_snow = [d_ for d_, x in sorted(nbd.items()) if x >= 5] if nbd else list(g["snow_days"])
+    if nb_zero:
+        ctx["zero_dm"] = dm(nb_zero)
+    if nb_snow:
+        ctx["snow_span"] = rng(nb_snow[0], nb_snow[-1])
+        ctx["snow_first"] = dm(nb_snow[0])
+    g = dict(g, zero_through=nb_zero, snow_days=nb_snow)
     s1 = []
     if g["snow_days"]:
         s1 = [
@@ -98,9 +110,9 @@ def blend(f, g, v):
         ]
     elif g["zero_through"] and g["zero_through"] < last:
         s1 = [
-            "The National Blend of Models ({run} run, the newest available) keeps the snow chance at essentially 0% through {zero_dm} and gives {peak_x} on {last_dm}, the last full day it covers.",
-            "The National Blend of Models ({run} run) has essentially no snow chance through {zero_dm}, and just {peak_x} on {last_dm}, the last full day it covers.",
-            "The National Blend ({run} run, the newest available) holds the snow chance near 0% through {zero_dm}, then edges to {peak_x} on {last_dm}.",
+            "The National Blend of Models ({run} run, the newest available) keeps the snow chance at essentially 0% through {zero_dm}, then reaches {peak_x} on {peak_dm}, with {last_dm} the last full day it covers.",
+            "The National Blend of Models ({run} run) has essentially no snow chance through {zero_dm}, and its best is {peak_x} on {peak_dm}, out to {last_dm}.",
+            "The National Blend ({run} run, the newest available) holds the snow chance near 0% through {zero_dm}, then edges to {peak_x} on {peak_dm}.",
         ]
     elif g["zero_through"]:
         s1 = [
@@ -641,7 +653,7 @@ def wk34(f, g, v):
         tail = ["It falls inside the shorter outlooks' range, so the 8-14 day outlook decides those days."]
         effect = "neutral"
     name = "CPC week 3-4 (%s)" % span
-    return {"name": name, "effect": effect, "text": sentence(say(v, "fk1", head, ctx)) + " " + say(v, "fk2", tail, ctx)}
+    return {"name": name, "effect": effect, "text": sentence(say(v, "fk1" if cat == "A" else "fkb1:" + cat, head, ctx)) + " " + say(v, "fk2" if cat == "A" else "fkb2:" + cat, tail, ctx)}
 
 
 ORDER = [history, blend, consensus_card, enso, warmth, tele, nws, wpc, cpc_temp, cpc_precip, cpc_haz, wk34]

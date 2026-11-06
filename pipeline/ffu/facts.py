@@ -133,7 +133,8 @@ def src_summaries(inp, out, raw, today):
     s = {}
     nb = raw.get("nbe")
     if nb:
-        rows = [r for r in nb[0] if r.get("txn") is not None]
+        # the 12Z rows hold the overnight minimum; the 00Z rows hold the daytime maximum
+        rows = [r for r in nb[0] if r.get("txn") is not None and dt.datetime.fromisoformat(r["ftime"]).hour == 12]
         lows = [r["txn"] for r in rows if local_date(r["ftime"]) >= today]
         pops = [(local_date(r["ftime"]), r["p12"]) for r in nb[0] if r.get("p12") is not None and local_date(r["ftime"]) >= today]
         days = sorted(md["nbm"])

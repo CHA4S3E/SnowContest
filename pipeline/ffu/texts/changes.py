@@ -39,18 +39,18 @@ def make(f, g, v, prev_fs, limit=5):
         if a and b and abs(a[1] - b[1]) >= 1.0:
             c = {"a": pct(a[1]), "b": pct(b[1]), "d": dm(b[0])}
             lines.append((8, say(v, "ch_pk", [
-                "The best daily chance of flakes in the blend " + ("rose" if b[1] > a[1] else "fell") + " from {a} to {b}, now on {d}.",
-                "The blend's peak flake chance " + ("climbed" if b[1] > a[1] else "slipped") + " from {a} to {b} (best day {d}).",
-                "The top day in the blend " + ("gained" if b[1] > a[1] else "lost") + " ground, going from {a} to {b} on {d}."], c)))
+                "The best daily chance of flakes in the model consensus " + ("rose" if b[1] > a[1] else "fell") + " from {a} to {b}, now on {d}.",
+                "The consensus peak flake chance " + ("climbed" if b[1] > a[1] else "slipped") + " from {a} to {b} (best day {d}).",
+                "The top day in the model consensus " + ("gained" if b[1] > a[1] else "lost") + " ground, going from {a} to {b} on {d}."], c)))
         elif a and b and a[0] != b[0] and b[1] >= 0.5:
-            lines.append((5, say(v, "ch_pkd", ["The best flake day in the blend moved from {a} to {b}.", "The blend's best chance of flakes shifted from {a} to {b}."],
+            lines.append((5, say(v, "ch_pkd", ["The best flake day in the model consensus moved from {a} to {b}.", "The consensus's best chance of flakes shifted from {a} to {b}."],
                                  {"a": dm(a[0]), "b": dm(b[0])})))
         # snow appeared / vanished
         if cur["snow_days"] and not p.get("snow_days"):
-            lines.append((10, say(v, "ch_sn1", ["Snow chances of 5% or more appeared in the blend for {s}.", "The blend shows snow chances at 5% or higher for {s}."],
+            lines.append((10, say(v, "ch_sn1", ["Snow chances of 5% or more appeared in the model consensus for {s}.", "The model consensus shows snow chances at 5% or higher for {s}."],
                                   {"s": rng(cur["snow_days"][0], cur["snow_days"][-1])})))
         if p.get("snow_days") and not cur["snow_days"]:
-            lines.append((9, say(v, "ch_sn0", ["The snow chances of 5% or more that showed up before are gone from the blend.", "The earlier snow signal faded out of the blend."], {})))
+            lines.append((9, say(v, "ch_sn0", ["The snow chances of 5% or more that showed up before are gone from the model consensus.", "The earlier snow signal faded out of the model consensus."], {})))
         # individual models
         for k, label in (("gfs", "The GFS"), ("ecmwf", "The European"), ("rrfs", "The RRFS"), ("hrrr", "The HRRR")):
             a, b = (p.get("src_peak") or {}).get(k), cur["src_peak"].get(k)
@@ -118,8 +118,8 @@ def make(f, g, v, prev_fs, limit=5):
         if p.get("nbm_through") and cur.get("nbm_through") and cur["nbm_through"] != p["nbm_through"] and abs(days_between(p["nbm_through"], cur["nbm_through"])) >= 1:
             lines.append((2, "The blend's last full day moved from %s to %s." % (dm(p["nbm_through"]), dm(cur["nbm_through"]))))
         if p.get("dry_days") and not cur.get("dry_days") and p["dry_days"] >= 7:
-            lines.append((3, say(v, "ch_dry", ["Rain broke a %d-day dry spell." % p["dry_days"], "The %d-day dry streak ended with rain." % p["dry_days"],
-                                                 "A %d-day stretch without rain came to an end." % p["dry_days"]], {})))
+            lines.append((3, say(v, "ch_dry", ["Rain broke %s %d-day dry spell." % (("an" if str(p["dry_days"])[0] == "8" or p["dry_days"] in (11, 18) else "a"), p["dry_days"]), "The %d-day dry streak ended with rain." % p["dry_days"],
+                                                 "%s %d-day stretch without rain came to an end." % (("An" if str(p["dry_days"])[0] == "8" or p["dry_days"] in (11, 18) else "A"), p["dry_days"])], {})))
         if cur["watch"] and not p.get("watch"):
             lines.append((10, say(v, "ch_won", ["The live snow watch switched on.", "The live snow watch is now on.", "A live snow watch started."], {})))
         if p.get("watch") and not cur["watch"]:
