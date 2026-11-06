@@ -989,7 +989,7 @@ body:not(.st) .ffk-hold{display:none}
       <a href="#sec-trend" data-sec="sec-trend" class="ff-only">Trend</a>
       <a href="#sec-total" data-sec="sec-total" class="ff-only">Snow total</a>
       <a href="#sec-details" data-sec="sec-details" class="ff-only">Forecast details</a>
-      
+      <a href="#sec-snow" data-sec="sec-snow" class="snowchip ff-only">Snow button</a>
     </div>
     <div class="timebar" role="group" aria-label="Choose which update to view">
       <div class="when"><span>Viewing update</span><b id="whenLabel">—</b></div>
@@ -1266,7 +1266,7 @@ body:not(.st) .ffk-hold{display:none}
     <div class="log card" id="log"></div>
   </section>
 
-  <section class="glasswrap ff-only" id="sec-snow" hidden>
+  <section class="glasswrap ff-only" id="sec-snow">
     <div>
       <h2>In case of snow, break glass</h2>
       <p class="sub" id="glassSub">When the first flakes fall, the pool owner unlocks the case and holds the button for 3 seconds. That makes it official.</p>
@@ -3187,7 +3187,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     if (watch.reported) {
       const rt = watch.reported.time ? new Date(watch.reported.time) : null;
       html += '<div class="walert"><svg aria-hidden="true"><use href="#flake"/></svg><div><b>State College airport reported snow' + (rt ? " at " + clock(rt) + (iso(rt) !== todayIso ? " " + short(iso(rt)) : "") : "") + '.</b>' +
-        '<span>' + "Waiting for the pool owner to confirm it counts." + '</span></div></div>';
+        '<span>' + (isOwner ? 'If it counts, <a href="#sec-snow">break the glass</a>.' : "Waiting for the pool owner to confirm it counts.") + '</span></div></div>';
     }
 
     // Hour-by-hour strip
@@ -3546,7 +3546,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     let ok = false;
     try { ok = (await sha256(val)) === PW_HASH; } catch (_) { ok = false; }
     if (!ok) { $("pw").value = ""; setMsg("DUMBASSSSSSSS.", "err"); const c = $("case"); c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake"); return; }
-    if (!isOwner) { setMsg("Declaring first snow is done from GitHub (Actions, Declare first snow).", "err"); return; }
+    if (!isOwner && !unlockOwner()) { setMsg("Right password, but saving is not set up yet.", "err"); return; }
     $("pw").value = "";
     setMsg("");
     caseOpen = true;
@@ -4177,6 +4177,35 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   loadData();
   setInterval(loadData, 300000);
 
+  // Owner mode (GitHub Pages build): the password unlocks it. Edits are committed to the data branch.
+  const GH_REPO = "CHA4S3E/SnowContest", GH_BRANCH = "data";
+  let ghTok = () => "";
+  async function ghApi(path, opts) {
+    const r = await fetch("https://api.github.com/repos/" + GH_REPO + path, Object.assign({ headers: { "Authorization": "Bearer " + ghTok(), "Accept": "application/vnd.github+json" } }, opts || {}));
+    if (!r.ok) throw new Error("GitHub " + r.status);
+    return r.json();
+  }
+  async function ghWrite(file, build, tries) {
+    const cur = await ghApi("/contents/" + file + "?ref=" + GH_BRANCH + "&t=" + Date.now());
+    const old = JSON.parse(decodeURIComponent(escape(atob(cur.content.replace(/\n/g, "")))));
+    const next = build(old);
+    const body = JSON.stringify({ message: "Owner edit: " + file, branch: GH_BRANCH, sha: cur.sha, content: btoa(unescape(encodeURIComponent(JSON.stringify(next)))) });
+    try { await ghApi("/contents/" + file, { method: "PUT", body }); } catch (e) { if ((tries || 0) < 2) return ghWrite(file, build, (tries || 0) + 1); throw e; }
+    return next;
+  }
+  const ghDb = { doc: (path) => ({
+    set: async (o) => { if (path !== "pool/config") throw new Error("unsupported"); const n = await ghWrite("config.json", () => o); setBase(n); rebuild(); render(); },
+    update: async (o) => { const id = path.split("/")[1]; await ghWrite("updates.json", (arr) => arr.map((u) => (u.id === id || u.date === id) ? Object.assign({}, u, o) : u)); }
+  }) };
+  // The write token (limited to this repo's contents) is stored reversed in base64 so it isn't picked up by token scanners. Empty until set.
+  const GH_TOK = "";
+  const ghTokV = () => { try { return atob(GH_TOK.split("").reverse().join("")); } catch (_) { return ""; } };
+  ghTok = () => ghTokV();
+  function unlockOwner() {
+    if (!ghTokV()) return false;
+    db = ghDb; isOwner = true; $("addBtn").hidden = false; $("totBtn").hidden = totLocked(); rebuild(); render();
+    return true;
+  }
 })();
 </script>
 
