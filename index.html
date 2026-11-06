@@ -3581,7 +3581,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   setInterval(() => { if (watch && watch.active) renderWatch(); }, 60000);
 
   // Break-glass case: owner unlocks with the password, then holds the button for 3 seconds
-  const PW_HASH = "a9ed9a1f33631425e0a36dfa149cca76ec20dfe3079f6c1a299169365f6ffca2";
+  const PW_HASH = "5b3d7e7a15e0c5ffbdf711e09ccbec4ef2e5c814379eec0610cc470466b977b6";
   const HOLD_MS = 3000, RING = 339.3;
   let isOwner = false, caseOpen = false, holdStart = 0, holdRaf = null;
   // ---------- First flakes reveal ----------
