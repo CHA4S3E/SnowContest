@@ -212,6 +212,38 @@ def nws_headers():
     return {"Accept": "application/geo+json"}
 
 
+def _dur_hours(s):
+    m = re.match(r"P(?:(\d+)D)?(?:T(?:(\d+)H)?)?", s)
+    return (int(m.group(1) or 0) * 24 + int(m.group(2) or 0)) if m else 0
+
+
+def grid_days(url):
+    """Per local day from NWS's numeric forecast grid: snowfall in inches (summed) and the highest chance of precipitation."""
+    if not url:
+        return {}
+    pr = get_json(url, headers=nws_headers())["properties"]
+    out = {}
+    for rec in pr.get("snowfallAmount", {}).get("values") or []:
+        t0, dur = rec["validTime"].split("/")
+        start = dt.datetime.fromisoformat(t0.replace("Z", "+00:00"))
+        hrs = max(1, _dur_hours(dur))
+        inches = (rec.get("value") or 0) / 25.4
+        for h in range(hrs):         # spread the amount evenly over its hours, then file each hour under its local date
+            day = str((start + dt.timedelta(hours=h)).astimezone(ET_TZ).date())
+            e = out.setdefault(day, {"snow_in": 0.0, "pop": 0})
+            e["snow_in"] += inches / hrs
+    for rec in pr.get("probabilityOfPrecipitation", {}).get("values") or []:
+        t0, dur = rec["validTime"].split("/")
+        start = dt.datetime.fromisoformat(t0.replace("Z", "+00:00"))
+        for h in range(max(1, _dur_hours(dur))):
+            day = str((start + dt.timedelta(hours=h)).astimezone(ET_TZ).date())
+            e = out.setdefault(day, {"snow_in": 0.0, "pop": 0})
+            e["pop"] = max(e["pop"], rec.get("value") or 0)
+    for e in out.values():
+        e["snow_in"] = round(e["snow_in"], 2)
+    return out
+
+
 def point_forecast():
     p = get_json("https://api.weather.gov/points/%s,%s" % (LAT, LON), headers=nws_headers())
     fc = get_json(p["properties"]["forecast"], headers=nws_headers())
@@ -234,6 +266,12 @@ def point_forecast():
             if not en["text"]:
                 en["text"] = short
     days = {d: v for d, v in days.items() if v["hi"] is not None or v["lo"] is not None}
+    try:
+        for d, g_ in grid_days(p["properties"].get("forecastGridData")).items():
+            if d in days:
+                days[d].update(g_)
+    except Exception as ex:      # the grid is a bonus; the text forecast above still stands
+        note("NWS snowfall grid", False, repr(ex)[:80])
     try:
         iss = dt.datetime.fromisoformat(issued.replace("Z", "+00:00")).astimezone(ET_TZ).strftime("%I:%M %p %Z %a %b %d %Y").lstrip("0")
     except Exception:
@@ -332,6 +370,33 @@ def sentence_places(s, nxt=""):
     return "none"
 
 
+PLACE_PATTERNS = [(r"nw mtns?|northwest(ern)? (mtns?|mountains)|northwest pa|nw pa", "the NW mountains"), (r"laurel highlands?", "the Laurel Highlands"),
+                  (r"alleghen\w* front", "the Allegheny Front"), (r"alleghen\w* (plateau|mountains|mtns)", "the Alleghenies"), (r"poconos?", "the Poconos"),
+                  (r"endless mountains", "the Endless Mountains"), (r"n(or)?th(ern)? tier|nrn pa|northern pa", "the northern tier"),
+                  (r"ridges?\b|ridgetops?", "the ridges"), (r"higher elevations?|high(er)? terrain|summits?", "the higher elevations")]
+STRENGTH_LIGHT = re.compile(r"(dust|coating|trace|slush|light snow|flurr|brief|wet snow|rain/snow|mix(ing|ed)? with|a few snow)", re.I)
+STRENGTH_HEAVY = re.compile(r"(\d+(-\d+)? inches|accumulat|advisory|warning|plowable|heavy snow|significant snow|travel impacts)", re.I)
+HEDGE_RE = re.compile(r"(possible|potential|chance|could|may\b|might|isolated|slight|low confidence|uncertain|out of the question|can.?t rule|not ruled out|cannot be ruled out|if the|depending)", re.I)
+FT_RE = re.compile(r"(\d{3,4}) ?(?:ft|feet)(?: msl)?", re.I)
+
+
+def snow_details(sents):
+    """Places, elevation thresholds, strength and hedging read out of the snow sentences."""
+    places, fts = [], []
+    for s in sents:
+        for pat, name in PLACE_PATTERNS:
+            if re.search(pat, s, re.I) and name not in places:
+                places.append(name)
+        for m in FT_RE.finditer(s):
+            v = int(m.group(1))
+            if 1000 <= v <= 4000:
+                fts.append(v)
+    joined = " ".join(sents)
+    strength = "accumulating" if STRENGTH_HEAVY.search(joined) else "light" if STRENGTH_LIGHT.search(joined) else "unspecified"
+    hedged = bool(HEDGE_RE.search(joined))
+    return {"places": places[:3], "elev_ft": min(fts) if fts else None, "strength": strength, "hedged": hedged}
+
+
 def parse_afd(text, today):
     body = re.sub(r"\r", "", text)
     issued = ""
@@ -362,6 +427,7 @@ def parse_afd(text, today):
     sentences = [x for x in re.split(r"(?<=[.!?])\s+(?=[A-Z0-9])", re.sub(r"\s+", " ", re.sub(r"\.[A-Z][A-Z /&-]*\.{3}", " ", fc).replace("\n", " "))) if x.strip()]
     snow = "none"
     dates, why = [], ""
+    by_kind = {"state": [], "elev": [], "vague": []}
     rank = {"none": 0, "vague": 1, "elev": 2, "state": 3}
     for i, s in enumerate(sentences):
         nxt = sentences[i + 1] if i + 1 < len(sentences) else ""
@@ -370,6 +436,7 @@ def parse_afd(text, today):
                 continue
             where = sentence_places(s, nxt)
             kind = {"state": "state", "elev": "elev", "none": "vague"}[where]
+            by_kind[kind].append(s + (" " + nxt if where == "elev" and not ELEV_WORDS.search(s) else ""))
             if rank[kind] > rank[snow]:
                 snow, dates, why = kind, dates_in(s, today), s[:200]
             elif kind == snow:
@@ -379,7 +446,9 @@ def parse_afd(text, today):
             dates = dates_in(s, today)
             why = s[:200]
     low = fc.lower()
-    return {"issued": issued, "snow": snow, "snow_dates": dates, "summary": summary, "why": why,
+    det = snow_details(by_kind[snow]) if snow != "none" else {"places": [], "elev_ft": None, "strength": "unspecified", "hedged": False}
+    return {"issued": issued, "snow": snow, "snow_dates": dates, "summary": summary, "why": why, "detail": det,
+            "also": [k for k in ("state", "elev", "vague") if by_kind[k] and k != snow],
             "warm": bool(re.search(r"above (average|normal)|unseasonably (warm|mild)", low)), "cold": bool(re.search(r"below (average|normal)|unseasonably cold", low))}
 
 

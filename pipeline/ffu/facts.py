@@ -116,7 +116,13 @@ def build_inputs(today, raw, prev_doc, flakes_possible):
             win.append({"start": d, "end": d, "hazard": 0.15})
     for d, v in sorted((pfc.get("days") or {}).items()):
         t = (v.get("text") or "").lower()
-        if d >= today and ("snow" in t or "flurr" in t) and "rain" not in t.split("snow")[0][-12:]:
+        if d < today:
+            continue
+        if v.get("snow_in") is not None:
+            # NWS's numeric grid: snow counts only when it puts some snow in the forecast for the point itself
+            if v["snow_in"] >= 0.05:
+                win.append({"start": d, "end": d, "hazard": min(0.6, max(0.15, (v.get("pop") or 0) / 100))})
+        elif ("snow" in t or "flurr" in t) and "rain" not in t.split("snow")[0][-12:]:
             win.append({"start": d, "end": d, "hazard": max(0.15, (v.get("pop") or 0) / 100 if "snow" in t else 0.15)})
     inp["windows"] = win
     return inp, cold_flags

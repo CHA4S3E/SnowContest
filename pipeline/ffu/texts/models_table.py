@@ -167,7 +167,9 @@ def nws_row(f, g, v):
     if sn == "state":
         call, wt = "Snow mentioned for State College (%s)" % ds, "Sets %s at the stated chance" % ds
     elif sn == "elev":
-        call, wt = "Snow mentioned for higher elevations only (%s)" % ds, "Cross-check"
+        det = a.get("detail") or {}
+        ft = (" above ~{:,} ft".format(det["elev_ft"])) if det.get("elev_ft") else ""
+        call, wt = "Snow mentioned for higher elevations only%s (%s)" % (ft, ds), "Cross-check"
     elif sn == "vague":
         call, wt = "Storm signal mentioned, no snow details yet (%s)" % ds, "Cross-check"
     else:

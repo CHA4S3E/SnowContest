@@ -165,6 +165,10 @@ for _t, _w in [("Snow showers likely across State College Saturday night.", "sta
                ("Snow showers possible Saturday night.", "vague"), ("It is not out of the question to see a slushy coating above 2100 ft MSL Saturday.", "elev")]:
     check("AFD: " + _t[:50], parse_afd(_hd + _t + "\n&&\n$$\n", "2026-11-06")["snow"] == _w)
 check("AFD: snow in the climate section is ignored", parse_afd(_hd + "Dry.\n\n.CLIMATE...\nSnow across State College record 1990.\n&&\n$$\n", "2026-11-06")["snow"] == "none")
+_d = parse_afd(open(_fx).read(), "2026-11-06")
+check("AFD detail: names the places and the 2,100 ft cutoff", _d["detail"]["elev_ft"] == 2100 and "the Laurel Highlands" in _d["detail"]["places"], _d["detail"])
+from ffu.inputs import _dur_hours
+check("grid durations", _dur_hours("PT6H") == 6 and _dur_hours("P1DT2H") == 26 and _dur_hours("P1D") == 24)
 check("CPC hazards: mountain-only heavy snow does not cover PA", not parse_hazards("\nSlight risk of heavy snow for the central Appalachians, Nov 15-16\n", "2026-11-06")["flags"][0]["covers_pa"])
 check("CPC hazards: heavy snow for Pennsylvania covers PA", parse_hazards("\nSlight risk of heavy snow for Pennsylvania, Nov 15-16\n", "2026-11-06")["flags"][0]["covers_pa"])
 

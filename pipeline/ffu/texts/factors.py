@@ -373,6 +373,16 @@ def nws(f, g, v):
         parts.append(sentence(say(v, "fn4", ["Snow is mentioned for the higher elevations only ({dates}), so it adds nothing for State College.",
                                              "The higher elevations get a snow mention ({dates}), but the valley doesn't, so the odds don't move.",
                                              "Snow shows up for the ridges ({dates}); it doesn't count for State College."], c2)))
+        det = a.get("detail") or {}
+        where = join(det.get("places") or [])
+        if where or det.get("elev_ft"):
+            c3 = {"where": where or "the higher terrain", "ft": "{:,}".format(det["elev_ft"]) if det.get("elev_ft") else "",
+                  "kind": "light snow" if det.get("strength") == "light" else "accumulating snow" if det.get("strength") == "accumulating" else "snow"}
+            if c3["ft"]:
+                parts.append(sentence(say(v, "fn4d", ["The discussion has {kind} for {where} above roughly {ft} ft.", "Forecasters put {kind} over {where}, above about {ft} ft.",
+                                                      "Their snow call is {kind} for {where}, mainly above {ft} ft."], c3)))
+            else:
+                parts.append(sentence(say(v, "fn4e", ["The discussion has {kind} for {where}.", "Forecasters put {kind} over {where}.", "Their snow call is {kind} for {where}."], c3)))
     elif sn == "vague":
         parts.append(sentence(say(v, "fn5", ["Forecasters are watching a possible storm around {dates}. No snow details yet, so it doesn't change the odds.",
                                              "A storm signal appears for {dates}, but there are no snow details for State College, so it isn't counted yet.",
