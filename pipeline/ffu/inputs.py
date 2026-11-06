@@ -16,6 +16,7 @@ UA = "FirstFlakesPool/1.0 (+https://github.com/CHA4S3E/SnowContest)"
 LAT, LON = 40.7934, -77.8600  # State College
 STATION = "KUNV"
 HEALTH = {}
+DEBUG = {}  # raw text of pages the parsers read, saved to data/debug/ so a failed parse can be fixed from the real page
 
 
 def note(name, ok, why=""):
@@ -38,7 +39,10 @@ def get(url, tries=3, timeout=45, headers=None, nocache=False):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "*/*", **(headers or {})})
             with urllib.request.urlopen(req, timeout=timeout) as r:
-                return r.read().decode("utf-8", "replace")
+                body = r.read().decode("utf-8", "replace")
+            if any(k in url for k in ("cpc.ncep", "wpc.ncep")):
+                DEBUG[url.split("?")[0]] = body[:90000]
+            return body
         except Exception as e:  # noqa
             last = e
             time.sleep(2 + 3 * i)

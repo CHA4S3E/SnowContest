@@ -132,6 +132,13 @@ def main():
         health = {"fixtures": {"ok": True, "why": a.fixtures}}
     else:
         raw, health = inputs.gather(today)
+        try:
+            import re as _re
+            os.makedirs(os.path.join(D_, "debug"), exist_ok=True)
+            for _u, _t in inputs.DEBUG.items():
+                open(os.path.join(D_, "debug", _re.sub(r"[^A-Za-z0-9]+", "_", _u.split("//")[1])[-80:] + ".txt"), "w", encoding="utf-8").write(_t)
+        except Exception:
+            pass
     flakes_possible = bool(watch and watch.get("reported"))
     inp, cold_flags = F.build_inputs(today, raw, prev_doc, flakes_possible)
     if not inp["nbm"] and not inp["gfs"] and not inp.get("ecmwf"):
