@@ -3198,6 +3198,32 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
         (movers.length ? movers.map((x) => '<span class="wmv ' + (x[2] > 0 ? "up" : "down") + '">' + esc(x[0]) + ' ' + (x[2] > 0 ? "▲" : "▼") + Math.abs(x[2]).toFixed(1) + '</span>').join("") : '<span class="wmv">No big moves since the last update</span>') +
         '<a href="#st-odds">Full board</a></div>';
     }
+    {   // The Storm Needle: the expected storm total on a dial in NWS snowfall colors, with the likely range shaded
+      const st0 = watch.storm || {}, ex = st0.expected != null ? st0.expected : 0, lo = st0.low != null ? st0.low : ex, hi = st0.high != null ? st0.high : ex;
+      const scale = hi > 24 ? 48 : hi > 12 ? 24 : 12;
+      const cx = 230, cy = 230, R = 150, frac = (x) => Math.max(0, Math.min(1, x / scale));
+      const pt = (f, r) => { const a = Math.PI * (1 - f); return [cx + r * Math.cos(a), cy - r * Math.sin(a)]; };
+      const arc = (f0, f1) => { const a = pt(f0, R), b = pt(f1, R); return "M" + a[0].toFixed(1) + " " + a[1].toFixed(1) + " A" + R + " " + R + " 0 0 1 " + b[0].toFixed(1) + " " + b[1].toFixed(1); };
+      const edges = [0].concat(SM_BINS.filter((b) => b < scale), [scale]);
+      const bands = edges.slice(0, -1).map((e, i) => { const col = e < 0.1 ? "rgba(255,255,255,.18)" : SM_COLS[SM_BINS.indexOf(e)]; return '<path d="' + arc(frac(e), frac(edges[i + 1])) + '" fill="none" stroke="' + col + '" stroke-width="44"/>'; }).join("");
+      const tickVals = scale === 12 ? [0, 3, 6, 9, 12] : scale === 24 ? [0, 6, 12, 18, 24] : [0, 12, 24, 36, 48];
+      const tks = tickVals.map((v) => { const q = pt(frac(v), R + 38); return '<text x="' + q[0].toFixed(0) + '" y="' + (q[1] + 4).toFixed(0) + '" text-anchor="middle" font-size="13" fill="currentColor" opacity=".8" font-family="IBM Plex Mono, monospace">' + v + '</text>'; }).join("");
+      const nl = watch.needleLog || [], mxv = Math.max(2, hi, ...nl.map((x) => x.v));
+      const W = 560, Hh = 44;
+      const sp = nl.map((x, i) => (i ? "L" : "M") + (nl.length > 1 ? i / (nl.length - 1) * W : 0).toFixed(1) + " " + (Hh - 3 - x.v / mxv * (Hh - 8)).toFixed(1)).join(" ");
+      const d0 = nl.length > 1 ? ex - nl[0].v : 0;
+      const ang = (x) => -90 + 180 * frac(x);
+      html += '<div class="wneed"><div class="wbox wneedle"><h3 style="justify-self:start">The Storm Needle · expected storm total</h3>' +
+        '<svg class="g" viewBox="0 0 460 262" role="img" aria-label="About ' + stFmt(ex) + ' inches expected from this storm">' + bands +
+        '<path d="' + arc(frac(lo), frac(hi)) + '" fill="none" stroke="#0b1a2c" stroke-opacity=".3" stroke-width="58"/>' + tks +
+        '<text x="40" y="258" font-size="12" fill="currentColor" opacity=".85" font-family="IBM Plex Mono, monospace">INCHES</text><text x="420" y="258" text-anchor="end" font-size="12" fill="currentColor" opacity=".85" font-family="IBM Plex Mono, monospace">' + (scale === 12 ? "STORM TOTAL" : "BIG STORM") + '</text>' +
+        '<g class="ng" id="stormNeedle" style="transform:rotate(' + ang(ex) + 'deg)"><path d="M225 230 L230 66 L235 230 Z" fill="#fff"/></g><circle cx="230" cy="230" r="13" fill="#fff"/><circle cx="230" cy="230" r="4.5" fill="var(--wc)"/></svg>' +
+        '<div style="display:flex;gap:12px;align-items:baseline"><span class="big">' + stFmt(ex) + ' in</span>' + (nl.length > 1 ? '<span class="dl">' + (d0 >= 0.05 ? "▲ " : d0 <= -0.05 ? "▼ " : "") + (Math.abs(d0) < 0.05 ? "steady" : stFmt(Math.abs(d0)) + " in") + ' since the watch began</span>' : "") + '</div>' +
+        '<div class="note">Shaded: the likely range for this storm (' + stFmt(lo) + ' to ' + stFmt(hi) + ' in). The needle drifts inside it between checks.</div>' +
+        (nl.length > 1 ? '<svg class="sp" viewBox="0 0 560 44" preserveAspectRatio="none" aria-hidden="true"><path d="' + sp + '" fill="none" stroke="#fff" stroke-width="2.5"/></svg><div class="spx"><span>' + hourLabel(new Date(nl[0].t)) + '</span><span>now</span></div>' : "") + '</div></div>';
+      clearInterval(window.__needleT);
+      window.__needleT = setInterval(() => { const n = document.getElementById("stormNeedle"); if (!n || matchMedia("(prefers-reduced-motion: reduce)").matches) return; const v = Math.max(lo, Math.min(hi, ex + (Math.random() - .5) * Math.min(scale / 4, hi - lo))); n.style.transform = "rotate(" + ang(v) + "deg)"; }, 1500);
+    }
     html += radarHtml() + snowmapHtml();
     // snow by the hour
     const now = Date.now() - 30 * 60000;
