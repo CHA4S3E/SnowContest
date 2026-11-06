@@ -1,0 +1,40 @@
+name: Declare first snow
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "declare = it snowed today, undo = take it back"
+        type: choice
+        options: [declare, undo]
+        default: declare
+      half:
+        description: "Did it start before noon (am) or noon or later (pm)? Only for declare."
+        type: choice
+        options: [auto, am, pm]
+        default: auto
+concurrency: { group: data, cancel-in-progress: false }
+permissions: { contents: write }
+jobs:
+  declare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash pipeline/ci/data_checkout.sh
+      - name: Write config
+        env: { ACTION: "${{ inputs.action }}", HALF: "${{ inputs.half }}" }
+        run: |
+          python3 - <<'P'
+          import json, os, datetime as dt
+          from zoneinfo import ZoneInfo
+          now = dt.datetime.now(ZoneInfo("America/New_York"))
+          c = json.load(open("data/config.json"))
+          if os.environ["ACTION"] == "declare":
+              h = os.environ["HALF"]
+              c["firstSnow"] = str(now.date())
+              c["firstSnowHalf"] = ("am" if now.hour < 12 else "pm") if h == "auto" else h
+          else:
+              c["firstSnow"] = None
+              c["firstSnowHalf"] = None
+          json.dump(c, open("data/config.json", "w"), ensure_ascii=False, separators=(",", ":"))
+          P
+      - run: bash pipeline/ci/data_commit.sh "First snow: ${{ inputs.action }}"
