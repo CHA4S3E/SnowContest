@@ -2,7 +2,7 @@
 
 First Flakes Nov 5: Patrick leads Meteo at 15.1%; Anna leads Ritner Floor 2 at 26.8%. Median Nov. 20.
 
-Headline (new): The models find a snow chance for next Saturday, topping out around 11%. The median edges a day earlier to Nov. 20.
+Headline (new): The first real flake chance of the season is on the board for next Saturday, near 11% at its best. The median nudges a day earlier, to Nov. 20.
 
 ## Input health
 
