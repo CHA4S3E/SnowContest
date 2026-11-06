@@ -1,8 +1,8 @@
 # 2026-11-06
 
-First Flakes Nov 6: Patrick leads Meteo at 15.7%; Anna leads Ritner Floor 2 at 27.8%. Median Nov. 20.
+First Flakes Nov 6: Patrick leads Meteo at 17.2%; Anna leads Ritner Floor 2 at 30.5%. Median Nov. 21.
 
-Headline (new): A cold shot brings a 7% chance of flakes Nov. 12-14. The median doesn't budge from Nov. 20.
+Headline (new): The first flake threat of the season takes shape around Nov. 12-14, topping out near 8%. On the curve, the median slips a day later to Nov. 21.
 
 ## Input health
 
