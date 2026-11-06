@@ -55,22 +55,35 @@ def make(f, g, v, prev_fs, limit=5):
         for k, label in (("gfs", "The GFS"), ("ecmwf", "The European")):
             a, b = (p.get("src_peak") or {}).get(k), cur["src_peak"].get(k)
             if a and b and abs(a[1] - b[1]) >= 2:
-                lines.append((6, "%s %s its peak flake chance from %s to %s." % (label, "raised" if b[1] > a[1] else "cut", pct(a[1]), pct(b[1]))))
+                up = b[1] > a[1]
+                lines.append((6, say(v, "ch_src" + k, [
+                    "{L} " + ("raised" if up else "cut") + " its peak flake chance from {a} to {b}.",
+                    "{L}'s peak flake chance " + ("climbed" if up else "dropped") + " from {a} to {b}.",
+                    "{L} " + ("bumped up" if up else "trimmed") + " its best flake day, from {a} to {b}.",
+                    "On {L}, the top flake chance went from {a} to {b}."], {"L": label, "a": pct(a[1]), "b": pct(b[1])})))
             elif (a is None) != (b is None) and (a or b):
-                lines.append((4, "%s %s." % (label, "returned to the forecast" if b else "dropped out of today's forecast")))
+                lines.append((4, say(v, "ch_srcx" + k, ["{L} " + ("returned to the forecast" if b else "dropped out of today's forecast") + ".",
+                                                         ("{L} is back in the mix." if b else "{L} is missing from today's runs.")], {"L": label})))
         # CPC
         for k, name in (("t610", "CPC's 6-10 day temperature outlook"), ("t814", "CPC's 8-14 day temperature outlook")):
             a, b = p.get(k), cur.get(k)
             if a and b and a != b:
                 lines.append((7, say(v, "ch_c" + k, ["%s flipped from %s to %s for Pennsylvania." % (name, CAT_WORD[a], CAT_WORD[b]),
-                                                      "%s moved from %s to %s." % (name, CAT_WORD[a], CAT_WORD[b])], {})))
+                                                      "%s moved from %s to %s." % (name, CAT_WORD[a], CAT_WORD[b]),
+                                                      "%s went from %s to %s for Pennsylvania." % (name, CAT_WORD[a], CAT_WORD[b]),
+                                                      "For Pennsylvania, %s switched its call, from %s to %s." % (name, CAT_WORD[a], CAT_WORD[b]),
+                                                      "%s now leans %s instead of %s." % (name, CAT_WORD[b], CAT_WORD[a])], {})))
         for k, name in (("p610", "CPC's 6-10 day precipitation outlook"), ("p814", "CPC's 8-14 day precipitation outlook")):
             a, b = p.get(k), cur.get(k)
             if a and b and a != b:
-                lines.append((4, "%s moved from %s to %s." % (name, CAT_WORD[a], CAT_WORD[b])))
+                lines.append((4, say(v, "ch_p" + k, ["%s moved from %s to %s." % (name, CAT_WORD[a], CAT_WORD[b]),
+                                                      "%s went from %s to %s." % (name, CAT_WORD[a], CAT_WORD[b]),
+                                                      "%s shifted from %s to %s for Pennsylvania." % (name, CAT_WORD[a], CAT_WORD[b])], {})))
         a, b = p.get("wk34"), cur.get("wk34")
         if a and b and a != b:
-            lines.append((3, "CPC's week 3-4 outlook moved from %s to %s." % (CAT_WORD[a], CAT_WORD[b])))
+            lines.append((3, say(v, "ch_wk34", ["CPC's week 3-4 outlook moved from %s to %s." % (CAT_WORD[a], CAT_WORD[b]),
+                                                 "CPC's week 3-4 outlook went from %s to %s." % (CAT_WORD[a], CAT_WORD[b]),
+                                                 "The week 3-4 outlook from CPC shifted from %s to %s." % (CAT_WORD[a], CAT_WORD[b])], {})))
         # hazards
         for k, on_t, off_t in (("haz_cold", "CPC's hazards outlook flags a cold risk for Pennsylvania.", "The cold risk CPC flagged before is no longer on the hazards outlook."),
                                ("wpc_cold", "WPC's day 3-7 outlook puts much below-normal temperatures over State College.", "WPC dropped the cold flag it had over State College."),
@@ -79,31 +92,38 @@ def make(f, g, v, prev_fs, limit=5):
             if cur.get(k) and not p.get(k):
                 lines.append((9, on_t))
             elif p.get(k) and not cur.get(k):
-                lines.append((8, off_t))
+                lines.append((8, say(v, "ch_hz" + k, [off_t, "The %s flag from earlier is gone." % {"haz_cold": "CPC cold", "wpc_cold": "WPC cold", "haz_snow": "CPC snow", "wpc_snow": "WPC snow"}[k]], {})))
         # NWS
         if cur["afd_snow"] != p.get("afd_snow"):
             lbl = {"none": "no snow mention", "state": "a snow mention for State College", "elev": "a snow mention for the higher elevations only", "vague": "a vague storm signal"}
-            lines.append((7, "The NWS discussion went from %s to %s." % (lbl.get(p.get("afd_snow"), "no snow mention"), lbl.get(cur["afd_snow"], "no snow mention"))))
+            a_, b_ = lbl.get(p.get("afd_snow"), "no snow mention"), lbl.get(cur["afd_snow"], "no snow mention")
+            lines.append((7, say(v, "ch_afd", ["The NWS discussion went from %s to %s." % (a_, b_), "The NWS forecast discussion moved from %s to %s." % (a_, b_),
+                                                 "In its discussion, the NWS shifted from %s to %s." % (a_, b_)], {})))
         # temperatures
         if cur["freeze_n"] and not p.get("freeze_n"):
             lines.append((6, say(v, "ch_fz", ["A freezing low (%s) entered the point forecast for %s." % (deg(cur["min_lo"][0]), dow(cur["first_freeze"])),
                                               "The point forecast shows a low of %s on %s." % (deg(cur["min_lo"][0]), dow(cur["first_freeze"]))], {})))
         elif p.get("freeze_n") and not cur["freeze_n"]:
-            lines.append((5, "The freezing lows dropped out of the point forecast."))
+            lines.append((5, say(v, "ch_fz0", ["The freezing lows dropped out of the point forecast.", "The point forecast no longer shows freezing lows.", "Freezing temperatures are gone from the point forecast."], {})))
         a, b = p.get("max_hi"), cur.get("max_hi")
         if a and b and abs(a[0] - b[0]) >= 6:
-            lines.append((4, "The warmest day in the point forecast %s from %s to %s." % ("heated up" if b[0] > a[0] else "cooled off", deg(a[0]), deg(b[0]))))
+            lines.append((4, say(v, "ch_hi", ["The warmest day in the point forecast %s from %s to %s." % ("heated up" if b[0] > a[0] else "cooled off", deg(a[0]), deg(b[0])),
+                                               "The point forecast's warmest high %s, from %s to %s." % ("rose" if b[0] > a[0] else "fell", deg(a[0]), deg(b[0])),
+                                               "Peak highs in the forecast went from %s to %s." % (deg(a[0]), deg(b[0]))], {})))
         a, b = p.get("min_lo"), cur.get("min_lo")
         if a and b and abs(a[0] - b[0]) >= 5 and not (cur["freeze_n"] and not p.get("freeze_n")):
-            lines.append((4, "The coldest night in the point forecast %s from %s to %s." % ("warmed" if b[0] > a[0] else "cooled", deg(a[0]), deg(b[0]))))
+            lines.append((4, say(v, "ch_lo", ["The coldest night in the point forecast %s from %s to %s." % ("warmed" if b[0] > a[0] else "cooled", deg(a[0]), deg(b[0])),
+                                               "The coldest low in the forecast went from %s to %s." % (deg(a[0]), deg(b[0])),
+                                               "The chilliest night %s, from %s to %s." % ("eased" if b[0] > a[0] else "got colder", deg(a[0]), deg(b[0]))], {})))
         if p.get("nbm_through") and cur.get("nbm_through") and cur["nbm_through"] != p["nbm_through"] and abs(days_between(p["nbm_through"], cur["nbm_through"])) >= 1:
             lines.append((2, "The blend's last full day moved from %s to %s." % (dm(p["nbm_through"]), dm(cur["nbm_through"]))))
         if p.get("dry_days") and not cur.get("dry_days") and p["dry_days"] >= 7:
-            lines.append((3, "Rain broke a %s dry spell." % ("%d-day" % p["dry_days"])))
+            lines.append((3, say(v, "ch_dry", ["Rain broke a %d-day dry spell." % p["dry_days"], "The %d-day dry streak ended with rain." % p["dry_days"],
+                                                 "A %d-day stretch without rain came to an end." % p["dry_days"]], {})))
         if cur["watch"] and not p.get("watch"):
-            lines.append((10, "The live snow watch switched on."))
+            lines.append((10, say(v, "ch_won", ["The live snow watch switched on.", "The live snow watch is now on.", "A live snow watch started."], {})))
         if p.get("watch") and not cur["watch"]:
-            lines.append((5, "The live snow watch switched off."))
+            lines.append((5, say(v, "ch_woff", ["The live snow watch switched off.", "The live snow watch is over.", "The live snow watch shut off."], {})))
         if cur.get("enso") and p.get("enso") and cur["enso"] != p["enso"]:
             lines.append((2, "CPC's ENSO status moved to %s." % cur["enso"]))
     # --- curve-level lines
@@ -116,7 +136,10 @@ def make(f, g, v, prev_fs, limit=5):
                 bits.append("the late end moved %s %s to %s" % (days_phrase(g["hi_shift"]), "later" if g["hi_shift"] > 0 else "earlier", dm(g["hi"])))
             lines.append((3, "In the 80%% range, %s." % join(bits)))
         if abs(g["pOct_delta"]) >= 1 and not g["oct_over"]:
-            lines.append((3, "The chance of flakes in October %s from %s to %s." % ("rose" if g["pOct_delta"] > 0 else "fell", pct(g["pOct_prev"]), pct(g["pOct"]))))
+            up_ = g["pOct_delta"] > 0
+            lines.append((3, say(v, "ch_oct", ["The chance of flakes in October %s from %s to %s." % ("rose" if up_ else "fell", pct(g["pOct_prev"]), pct(g["pOct"])),
+                                                "The October chance of flakes went from %s to %s." % (pct(g["pOct_prev"]), pct(g["pOct"])),
+                                                "Odds of flakes before November %s, from %s to %s." % ("climbed" if up_ else "slipped", pct(g["pOct_prev"]), pct(g["pOct"]))], {})))
     lines.sort(key=lambda x: -x[0])
     out = []
     for _, t_ in lines:
@@ -126,7 +149,9 @@ def make(f, g, v, prev_fs, limit=5):
     out = out[:limit]
     # lead line: tie the median move to the strongest signal
     if ctx and out:
-        lead = say(v, "ch_med", ["The median moved {n} {dir}, to {med}.", "The median shifted {n} {dir}, to {med}.", "Net result: the median is {n} {dir}, at {med}."], ctx)
+        lead = say(v, "ch_med", ["The median moved {n} {dir}, to {med}.", "The median shifted {n} {dir}, to {med}.", "Net result: the median is {n} {dir}, at {med}.",
+                                  "Overall, the median is now {n} {dir}, on {med}.", "The curve's median ends up {n} {dir}, at {med}.", "All told, the median slid {n} {dir} to {med}.",
+                                  "Put together, the median lands {n} {dir}, at {med}."], ctx)
         out.insert(0, sentence(lead))
     elif ctx:
         out.append(sentence(say(v, "ch_med2", ["The median moved {n} {dir}, to {med}, from small shifts across the longer-range outlooks.",
@@ -134,5 +159,7 @@ def make(f, g, v, prev_fs, limit=5):
     if not out:
         out.append(say(v, "ch_none", ["Nothing material moved; the curve shifted only slightly as the calendar advanced.",
                                        "No signal moved enough to matter since the last update.",
-                                       "The forecast signals held steady, so the odds barely moved."], {}))
+                                       "The forecast signals held steady, so the odds barely moved.",
+                                       "Nothing of note changed since the last update.", "The signals held, and the odds stayed nearly where they were.",
+                                       "A quiet update: the forecast ingredients barely moved.", "No signal moved enough to change the picture."], {}))
     return out[: limit + 1], cur

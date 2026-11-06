@@ -10,6 +10,8 @@ CAT_WORD = {"A": "above normal", "B": "below normal", "N": "near normal", "EC": 
 CAT_LEAN = {"A": "warm", "B": "cold", "N": "neutral", "EC": "neutral"}
 PRECIP_LEAN = {"A": "wet", "B": "dry", "N": "neutral", "EC": "neutral"}
 
+from .factors_more import EXTRA as _EXTRA  # noqa: E402
+
 
 class SD(dict):
     def __missing__(self, k):
@@ -17,7 +19,7 @@ class SD(dict):
 
 
 def say(v, key, options, ctx):
-    options = list(options)
+    options = list(options) + list(_EXTRA.get(key.split(":")[0], []))
     i = v.idx(key, len(options))
     for k in range(len(options)):
         try:

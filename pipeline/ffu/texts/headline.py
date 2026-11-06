@@ -254,7 +254,7 @@ S1 = {
     "cold_cpc": [
         "CPC leans cold for Pennsylvania in its newest outlooks, which raises the odds of flakes past the blend's reach.",
         "The outlooks tilt below normal for Pennsylvania, a cold lean that lifts the flake chance in the second week.",
-        "CPC now has Pennsylvania running colder than normal, so the flake chance climbs a little after the blend ends.",
+        "CPC shows Pennsylvania running colder than normal, so the flake chance climbs a little after the blend ends.",
     ],
     "rain": [
         "A soaking rain moves in {rain_first}, {pop} likely, and it's far too warm for flakes.",
@@ -367,6 +367,10 @@ S2 = {
         "The 80% range stays {lo} to {hi}.",
     ],
 }
+
+
+from .headline_more import extend as _extend  # noqa: E402
+_extend(S1, S2)
 
 
 def _s2_ctx(c, g):

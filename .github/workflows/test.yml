@@ -13,3 +13,4 @@ jobs:
         with: { python-version: "3.12" }
       - run: pip install numpy
       - run: python sandbox/run.py
+      - run: python sandbox/headlines.py 1500
