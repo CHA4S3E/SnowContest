@@ -562,7 +562,8 @@ def cpc_wk34(today):
         return None
     d0 = dt.datetime.strptime("%s %s %s" % (m.group(1), m.group(2), m.group(3)), "%d %b %Y").date()
     d1 = dt.datetime.strptime("%s %s %s" % (m.group(4), m.group(5), m.group(6)), "%d %b %Y").date()
-    i = txt.find("Temperature Outlook")
+    mt = re.search(r"weeks? 3-4 temperature outlook", txt, re.I) or re.search(r"temperature outlook (indicates|favors)", txt, re.I)
+    i = mt.start() if mt else -1
     r = prose_category(txt[max(0, i - 200):i + 1500], "temperature") if i >= 0 else None
     cat, _ = r if r else ("EC", True)
     u = re.search(r"Updated:\s*(\d{1,2}) ([A-Za-z]{3}) (\d{4})", txt)
@@ -595,7 +596,9 @@ PA_REG = re.compile(r"(pennsylvania|mid-atlantic|appalachian|ohio valley|upper m
 
 def parse_hazards(text, today):
     """CPC Day 8-14 hazards: returns {'issued', 'start', 'end', 'flags': [...]}"""
-    plain = re.sub(r"<[^>]+>", " ", text)
+    flat = re.sub(r"\s*\n\s*", " ", text)            # the page wraps a hazard across lines mid-sentence
+    flat = re.sub(r"</?li>|</ul>", "\n", flat, flags=re.I)  # one hazard per list item
+    plain = re.sub(r"<[^>]+>", " ", flat)
     plain = re.sub(r"[ \t]+", " ", plain)
     issued = today
     m = re.search(r"(?:Issued|ISSUED)[:\s]+(?:[A-Za-z]+,\s*)?(\w+ \d{1,2}, \d{4})", plain)
@@ -607,7 +610,7 @@ def parse_hazards(text, today):
     flags = []
     year = int(today[:4])
     for line in re.split(r"\n|\.\s+(?=(?:Slight|Moderate|High) risk)", plain):
-        mm = re.search(r"(Slight|Moderate|High) risk of ([^\n]*?) for ([^\n]*?),?\s+((?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*-)?((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.? ?\d{1,2}(?:-(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.? ?)?\d{1,2})?)", line, re.I)
+        mm = re.search(r"(Slight|Moderate|High) risk of ([^\n]*?) (?:for|across|over|in) ([^\n]*?),?\s+((?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*(?:-(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*)?,?\s+)?((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.? ?\d{1,2}(?:-(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.? ?)?\d{1,2})?)", line, re.I)
         if not mm:
             continue
         lvl, what, region, _, dates = mm.groups()
@@ -622,6 +625,8 @@ def parse_hazards(text, today):
         except Exception:
             continue
         covers = bool(PA_REG.search(region)) and not re.fullmatch(r".*(northeast|new england)\W*", region.strip(), re.I) or bool(re.search(r"pennsylvania|mid-atlantic|appalachians", region, re.I))
+        if re.search(r"coastal plain", region, re.I) and not re.search(r"pennsylvania|appalachian", region, re.I):
+            covers = False      # the Mid-Atlantic Coastal Plain is the Atlantic edge, not Pennsylvania
         if kind == "snow" and HAZ_HIGH.search(what + " " + region):
             covers = False      # snow for the high elevations or the mountain ranges is not snow in State College
         flags.append({"kind": kind, "level": lvl.lower(), "start": str(d1), "end": str(d2), "region": region.strip(), "label": what.strip(), "covers_pa": covers})

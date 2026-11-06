@@ -122,6 +122,9 @@ def build_inputs(today, raw, prev_doc, flakes_possible):
             # NWS's numeric grid: snow counts only when it puts some snow in the forecast for the point itself
             if v["snow_in"] >= 0.05:
                 win.append({"start": d, "end": d, "hazard": min(0.6, max(0.15, (v.get("pop") or 0) / 100))})
+            elif "snow" in t or "flurr" in t:
+                # the grid shows no accumulation, but NWS names snow showers or a rain-snow mix for the point itself
+                win.append({"start": d, "end": d, "hazard": max(0.15, min(0.3, (v.get("pop") or 0) / 100))})
         elif ("snow" in t or "flurr" in t) and "rain" not in t.split("snow")[0][-12:]:
             win.append({"start": d, "end": d, "hazard": max(0.15, (v.get("pop") or 0) / 100 if "snow" in t else 0.15)})
     inp["windows"] = win
