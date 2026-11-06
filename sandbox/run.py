@@ -198,8 +198,14 @@ _ai = {"afd_snow": "town", "afd_snow_dates": ["2026-11-13", "2025-01-01", "junk"
                    {"kind": "cold", "level": "slight", "start": "2031-01-01", "end": "2031-01-02", "covers_pa": True}]}
 _d = ai_read.merge(_raw, _ai, "2026-11-06")
 check("second reader: fills the afd snow gap, drops bad dates", _raw["afd"]["snow"] == "state" and _raw["afd"]["snow_dates"] == ["2026-11-13"])
-check("second reader: fills only equal-chances outlooks, keeps parser answers", _raw["cpc"]["t610"]["cat"] == "N" and _raw["cpc"]["p610"]["cat"] == "B" and _raw["cpc"]["p814"]["cat"] == "B" and _raw["cpc"]["p814"]["conf"] == 1 and _raw["wk34"]["cat"] == "A")
-check("second reader: adds one valid hazard, rejects bad level and far dates", len(_raw["haz"]["flags"]) == 1 and _raw["haz"]["flags"][0]["covers_pa"] is False)
+check("second reader: its outlook categories take priority over the parser", _raw["cpc"]["t610"]["cat"] == "N" and _raw["cpc"]["p610"]["cat"] == "A" and _raw["cpc"]["p814"]["cat"] == "B" and _raw["cpc"]["p814"]["conf"] == 1 and _raw["wk34"]["cat"] == "A")
+check("second reader: one valid hazard kept, bad level and far dates rejected", len(_raw["haz"]["flags"]) == 1 and _raw["haz"]["flags"][0]["covers_pa"] is False)
+_r3 = {"afd": {"snow": "state", "snow_dates": ["2026-11-12"]}, "haz": {"flags": [{"kind": "cold", "level": "slight", "start": "2026-11-12", "end": "2026-11-13", "covers_pa": True}, {"kind": "wind", "level": "slight", "start": "2026-11-12", "end": "2026-11-13", "covers_pa": True}]}}
+ai_read.merge(_r3, {"afd_snow": "elevation_only", "afd_snow_dates": [], "hazards": []}, "2026-11-06")
+check("second reader: it can also take snow and cold back out, other hazard kinds stay", _r3["afd"]["snow"] == "elev" and [f["kind"] for f in _r3["haz"]["flags"]] == ["wind"])
+_r4 = {"afd": {"snow": "none", "snow_dates": []}}
+ai_read.merge(_r4, {"afd_snow": "town", "afd_snow_dates": []}, "2026-11-06")
+check("second reader: town snow with no usable date is ignored", _r4["afd"]["snow"] == "none")
 check("second reader: disagreements are logged", any(x["what"] == "p610" for x in _d))
 check("second reader: a non-dict answer changes nothing", ai_read.merge({"afd": {"snow": "none"}}, "junk", "2026-11-06") == [])
 _calls = []
