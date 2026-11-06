@@ -9,7 +9,7 @@ from zoneinfo import ZoneInfo
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from ffu import inputs, lint  # noqa: E402
-from ffu.lib import Voice  # noqa: E402
+from ffu.lib import Voice, dm  # noqa: E402
 from ffu.texts import season as T  # noqa: E402
 
 ET = ZoneInfo("America/New_York")
@@ -108,6 +108,12 @@ def main():
     tot = fc["total"]
     wk = sum(d["inches"] for d in fc["week"])
     ctx = {"so_far": tot["soFar"], "p50": tot["q"]["p50"], "p10": tot["q"]["p10"], "p90": tot["q"]["p90"], "week": wk}
+    sd = {d: x for d, x in (season.get("days") or {}).items() if isinstance(x, (int, float))}
+    snowy = sorted(d for d, x in sd.items() if x >= 0.05)
+    if snowy:   # what has actually happened, so the headline can say it
+        last = snowy[-1]
+        ctx.update(last_dm=dm(last), days_since=(dt.date.fromisoformat(today) - dt.date.fromisoformat(last)).days, snow_days=len(snowy), big=max(sd[d] for d in snowy))
+    ctx["yday"] = sd.get(str(dt.date.fromisoformat(today) - dt.timedelta(1)), 0) or 0
     hl = T.headline(v, ctx)
     names = sorted(set(cfg.get("totals") or {}))
     probs = lint.check(hl, names=names)

@@ -14,4 +14,5 @@ jobs:
       - run: pip install numpy
       - run: python sandbox/run.py
       - run: python sandbox/headlines.py 1500
+      - run: python sandbox/season_headlines.py 1500
       - run: python sandbox/consistency.py 800

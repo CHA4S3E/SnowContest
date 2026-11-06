@@ -15,20 +15,57 @@ def inches(x):
 
 
 def headline(v, c):
-    """c: so_far, p50, p10, p90, week (inches over 7 days), storm (inches or 0)"""
-    c = dict(c, soFarT=inches(c["so_far"]), p50T=inches(round(c["p50"])), weekT=inches(c["week"]))
+    """c: so_far, p50, p10, p90, week (inches over 7 days), storm (inches or 0); optional yday (inches that fell yesterday),
+    last_dm (date of the last measurable snow), days_since (days since it), snow_days (count), big (biggest day, inches)"""
+    c = dict(c, soFarT=inches(c["so_far"]), p50T=inches(round(c["p50"])), weekT=inches(c["week"]), p10T=inches(round(c["p10"])), p90T=inches(round(c["p90"])))
+    if c.get("yday"):
+        c["ydayT"] = inches(c["yday"])
+    if c.get("big"):
+        c["bigT"] = inches(c["big"])
     parts = []
+    ds = c.get("days_since")
     if c["so_far"] < 0.05:
-        parts.append(say(v, "sh_a0", ["No measurable snow has fallen yet this season.", "The season total is still zero.", "Not a flake has been counted so far this season.", "The official season total sits at zero."], c))
+        parts.append(say(v, "sh_a0", ["No measurable snow has fallen yet this season.", "The season total is still zero.", "Not a flake has been counted so far this season.", "The official season total sits at zero.",
+                                      "Nothing measurable has landed yet, so the season total reads zero.", "The snow ledger is still empty this season.", "State College has yet to record a measurable snowfall this season.",
+                                      "The season count is stuck at zero for now.", "Zero inches on the books so far this season.", "No official snowfall has been logged yet this season."], c))
+    elif c.get("yday", 0) >= 0.5:
+        parts.append(say(v, "sh_y", ["{ydayT} fell yesterday, putting the season total at {soFarT}.", "Yesterday added {ydayT}, and the season count now stands at {soFarT}.",
+                                     "A fresh {ydayT} was measured yesterday; the season total is {soFarT}.", "{ydayT} of new snow was counted yesterday, bringing the season to {soFarT}.",
+                                     "The season total climbs to {soFarT} after {ydayT} yesterday.", "Yesterday brought {ydayT}, and State College sits at {soFarT} for the season."], c))
+    elif ds is not None and ds <= 7 and c.get("last_dm"):
+        parts.append(say(v, "sh_r", ["The season total is {soFarT}, with the last measurable snow on {last_dm}.", "{soFarT} so far this season; snow last counted on {last_dm}.",
+                                     "State College has {soFarT} on the season, most recently on {last_dm}.", "The count is {soFarT}, and the latest snow was {last_dm}.",
+                                     "{soFarT} has been measured this season, the latest on {last_dm}."], c))
+    elif ds is not None and ds >= 14 and c.get("last_dm"):
+        parts.append(say(v, "sh_d", ["It has been {days_since} days since the last measurable snow, and the season total is {soFarT}.", "The season total holds at {soFarT}, with no new snow in {days_since} days.",
+                                     "{soFarT} so far this season, and the last measurable snow was {days_since} days ago.", "A quiet {days_since} days since the last snow leaves the season at {soFarT}.",
+                                     "The count is stuck at {soFarT}; the last snow came {last_dm}.", "No snow has been measured since {last_dm}, so the season total stays {soFarT}."], c))
     else:
-        parts.append(say(v, "sh_a", ["The season total stands at {soFarT}.", "State College has measured {soFarT} so far this season.", "{soFarT} has been officially measured this season.", "The official count is {soFarT} so far."], c))
+        parts.append(say(v, "sh_a", ["The season total stands at {soFarT}.", "State College has measured {soFarT} so far this season.", "{soFarT} has been officially measured this season.", "The official count is {soFarT} so far.",
+                                     "The season sits at {soFarT} to date.", "So far this season, {soFarT} has been recorded.", "State College is at {soFarT} for the season.", "The snow total for the season reads {soFarT}.",
+                                     "{soFarT} is on the books for the season so far.", "The running total is {soFarT}."], c))
     if c.get("storm", 0) >= 0.5:
-        parts.append(say(v, "sh_s", ["A storm could add about {st} inches.", "The next storm points to roughly {st} inches.", "A snowmaker could bring around {st} inches."], dict(c, st=f1(round(c["storm"], 1)))))
+        parts.append(say(v, "sh_s", ["A storm could add about {st} inches.", "The next storm points to roughly {st} inches.", "A snowmaker could bring around {st} inches.",
+                                     "The next system looks good for about {st} inches.", "One storm stands out, with around {st} inches possible.", "Models see a storm worth roughly {st} inches.",
+                                     "The best chance is a storm bringing near {st} inches."], dict(c, st=f1(round(c["storm"], 1)))))
     elif c["week"] < 0.1:
-        parts.append(say(v, "sh_w0", ["The next seven days look dry for snow.", "No measurable snow shows up in the week ahead.", "The week ahead stays quiet.", "Nothing measurable is lined up for the next week."], c))
+        parts.append(say(v, "sh_w0", ["The next seven days look dry for snow.", "No measurable snow shows up in the week ahead.", "The week ahead stays quiet.", "Nothing measurable is lined up for the next week.",
+                                      "The forecast has no measurable snow for a full week.", "A dry week for snow is on the way.", "Nothing is expected to stick to the ledger over the next seven days.",
+                                      "The next week is a quiet one."], c))
+    elif c["week"] >= 3:
+        parts.append(say(v, "sh_wb", ["A big week is ahead, with about {weekT} expected.", "The next seven days could add {weekT}, a serious bump.", "The week ahead points to about {weekT}, a real addition.",
+                                      "About {weekT} is on the way over the next seven days.", "A snowy week lies ahead, around {weekT} in total."], c))
     else:
-        parts.append(say(v, "sh_w", ["The week ahead adds about {weekT}.", "About {weekT} is expected over the next seven days.", "The next week brings roughly {weekT}."], c))
-    parts.append(say(v, "sh_f", ["The most likely finish is near {p50T}.", "The season is on track for about {p50T}.", "The middle of the forecast range lands near {p50T}.", "Most paths end the season around {p50T}."], c))
+        parts.append(say(v, "sh_w", ["The week ahead adds about {weekT}.", "About {weekT} is expected over the next seven days.", "The next week brings roughly {weekT}.",
+                                     "The coming week could add around {weekT}.", "Expect about {weekT} over the next seven days.", "The next seven days add up to roughly {weekT}.",
+                                     "A little snow is lined up, about {weekT} over the week."], c))
+    if v.idx("sh_fsel", 2) and c["p90"] - c["p10"] >= 1:
+        parts.append(say(v, "sh_fr", ["Most paths end the season between {p10T} and {p90T}.", "The likely finish runs from about {p10T} to {p90T}.", "The season should land somewhere from {p10T} to {p90T}.",
+                                      "The forecast range for the final total is {p10T} to {p90T}.", "Final totals mostly fall between {p10T} and {p90T}."], c))
+    else:
+        parts.append(say(v, "sh_f", ["The most likely finish is near {p50T}.", "The season is on track for about {p50T}.", "The middle of the forecast range lands near {p50T}.", "Most paths end the season around {p50T}.",
+                                     "The best guess for the final total is {p50T}.", "The season is heading toward roughly {p50T}.", "The median finish sits near {p50T}.",
+                                     "Expect the season to wrap up around {p50T}.", "The projected season total is about {p50T}.", "The middle of the road finish is about {p50T}."], c))
     return clean(" ".join(sentence(p) for p in parts))
 
 
