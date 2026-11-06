@@ -71,7 +71,7 @@ def iso(t):
     return str(BASE + dt.timedelta(int(t)))
 
 
-def prior_pdf(season=2026):
+def prior_pdf(season=1997):
     grid = np.arange(N)
     p = np.zeros(N)
     for y, md in FIRST_TRACE.items():
