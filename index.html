@@ -3218,7 +3218,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
         (movers.length ? movers.map((m) => '<span class="wmv ' + (m[2] > 0 ? "up" : "down") + '">' + esc(m[0]) + ' ' + (m[2] > 0 ? "▲" : "▼") + Math.abs(m[2]).toFixed(1) + '</span>').join("") : '<span class="wmv">No big moves since this morning</span>') +
         '<a href="#sec-board">Full board</a></div>';
     }
-    html += radarHtml();
+    html += radarHtml() + (watch.test ? snowmapHtml() : "");
     html += '<div class="wgrid"><div class="wbox"><h3>Next ' + (hours.length > 24 ? "48" : "24") + ' hours</h3>' + strip + '</div>';
 
     // Picks on the line

@@ -24,7 +24,7 @@ jobs:
               w = json.load(open("data/watch.json"))
               c = json.load(open("data/config.json"))
               total = bool(w.get("active")) and w.get("mode") == "total"
-              on = bool(w.get("active")) or (bool(c.get("firstSnow")) and w.get("stage") not in (None, "ended"))
+              on = (bool(w.get("active")) or (bool(c.get("firstSnow")) and w.get("stage") not in (None, "ended"))) and not w.get("test")
           except Exception:
               on = total = False
           print("run=" + ("true" if on else "false"))

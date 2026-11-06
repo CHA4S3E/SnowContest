@@ -1,0 +1,29 @@
+name: Radar and snow map test
+on:
+  workflow_dispatch:
+    inputs:
+      minutes: { description: "How long to run (minutes)", default: "60" }
+concurrency: { group: radartest, cancel-in-progress: false }
+permissions: { contents: write }
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r pipeline/requirements.txt
+      - run: bash pipeline/ci/data_checkout.sh
+      - name: Run the radar and snow map every 8 minutes, then put the real watch back
+        run: |
+          END=$((SECONDS + ${{ inputs.minutes }} * 60))
+          trap 'python pipeline/test_watch.py stop data; bash pipeline/ci/data_commit.sh "Radar test over" || true' EXIT
+          python pipeline/test_watch.py start data
+          while [ $SECONDS -lt $END ]; do
+            python pipeline/test_watch.py tick data
+            timeout 400 python pipeline/radar.py data/radar.json 2>&1 | tail -3 || echo "radar failed"
+            timeout 240 python pipeline/snowmap.py data/snowmap.json data/watch.json 2>&1 | tail -3 || echo "snow map failed"
+            bash pipeline/ci/data_commit.sh "Radar test $(date -u +%H:%MZ)" || true
+            sleep 480
+          done

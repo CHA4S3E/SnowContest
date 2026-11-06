@@ -51,6 +51,9 @@ def main():
     a = ap.parse_args()
     D_ = a.datadir
     cfg, prev = load(os.path.join(D_, "config.json"), {}), load(os.path.join(D_, "watch.json"))
+    if prev and prev.get("test"):
+        print("radar test running; watch job skipped")
+        return 0
     if cfg.get("firstSnow") and prev and prev.get("mode") == "total":
         import storm_job
         return storm_job.run(D_)
