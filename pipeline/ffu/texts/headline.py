@@ -364,6 +364,8 @@ S2 = {
 
 from .headline_more import extend as _extend  # noqa: E402
 _extend(S1, S2)
+from .headline_more2 import extend as _extend2  # noqa: E402
+_extend2(S1, S2)
 
 
 def _s2_ctx(c, g):

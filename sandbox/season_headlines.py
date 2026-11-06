@@ -15,6 +15,9 @@ for seed in range(N):
     so = 0.0 if r.random() < .25 else round(r.choice([0.1, 0.4, 1.0, 2.5, 6, 14, 30, 55]) * r.uniform(.8, 1.3), 1)
     c = {"so_far": so, "p50": so + r.uniform(0, 30), "week": r.choice([0, 0, 0.05, 0.6, 1.4, 3.2, 8]), "storm": r.choice([0, 0, 0, 0.6, 2.4, 7])}
     c["p10"], c["p90"] = c["p50"] * r.uniform(.4, .9), c["p50"] * r.uniform(1.1, 2.2)
+    c["month"] = r.choice([11, 12, 1, 2, 3, 4, None])
+    if c["month"] is None:
+        del c["month"]
     if so > 0:
         ds = r.choice([1, 2, 5, 9, 14, 30, 90])
         c.update(last_dm=dm("2026-12-%02d" % r.randint(1, 28)), days_since=ds, snow_days=r.randint(1, 20), big=round(r.uniform(.1, 12), 1))

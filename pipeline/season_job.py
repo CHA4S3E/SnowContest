@@ -107,7 +107,7 @@ def main():
     v = Voice(uid + str(sorted(cfg.get("totals") or {})[:3]))
     tot = fc["total"]
     wk = sum(d["inches"] for d in fc["week"])
-    ctx = {"so_far": tot["soFar"], "p50": tot["q"]["p50"], "p10": tot["q"]["p10"], "p90": tot["q"]["p90"], "week": wk}
+    ctx = {"so_far": tot["soFar"], "p50": tot["q"]["p50"], "p10": tot["q"]["p10"], "p90": tot["q"]["p90"], "week": wk, "month": dt.date.fromisoformat(today).month}
     sd = {d: x for d, x in (season.get("days") or {}).items() if isinstance(x, (int, float))}
     snowy = sorted(d for d, x in sd.items() if x >= 0.05)
     if snowy:   # what has actually happened, so the headline can say it
