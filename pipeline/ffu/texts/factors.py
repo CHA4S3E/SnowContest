@@ -19,7 +19,9 @@ class SD(dict):
 
 
 def say(v, key, options, ctx):
-    options = list(options) + list(_EXTRA.get(key.split(":")[0], []))
+    head = key.split(":")[0]
+    # the scouting report slots mean different things per pick (leader or not, before or after the median, helps or hurts), so no shared extras
+    options = list(options) + ([] if head in ("hh", "p1", "p2", "p3") else list(_EXTRA.get(head, [])))
     i = v.idx(key, len(options))
     for k in range(len(options)):
         try:

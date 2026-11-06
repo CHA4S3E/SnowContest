@@ -169,6 +169,13 @@ _d = parse_afd(open(_fx).read(), "2026-11-06")
 check("AFD detail: names the places and the 2,100 ft cutoff", _d["detail"]["elev_ft"] == 2100 and "the Laurel Highlands" in _d["detail"]["places"], _d["detail"])
 from ffu.inputs import _dur_hours
 check("grid durations", _dur_hours("PT6H") == 6 and _dur_hours("P1DT2H") == 26 and _dur_hours("P1D") == 24)
+from ffu.texts.power import hh_candidates, windows as _wins
+_g = {"today": "2026-11-06", "med": "2026-11-20", "lo": "2026-11-13", "hi": "2026-11-25", "snow_days": ["2026-11-12", "2026-11-13", "2026-11-14"], "cold_flag_pa": [], "wpc_cold": [],
+      "t610": None, "t814": None, "mild_until": None, "dry_week": False, "any_hazard_cold": False}
+_w = _wins({"a": "2026-11-13", "b": "2026-11-20", "c": "2026-11-27"}, "2026-09-25", "2026-12-31")
+_txt = lambda pick, side: " | ".join(t[0] for _, _, t, _ in hh_candidates(None, _g, pick, side, _w[pick]))
+check("scouting: snow Nov 12-14 helps a Nov 13 pick", "snow_span" in _txt("2026-11-13", "helps") and "snow_span" not in _txt("2026-11-13", "hurts"))
+check("scouting: snow Nov 12-14 hurts a Nov 20 pick, not helps", "snow_span" in _txt("2026-11-20", "hurts") and "snow_span" not in _txt("2026-11-20", "helps"))
 check("CPC hazards: mountain-only heavy snow does not cover PA", not parse_hazards("\nSlight risk of heavy snow for the central Appalachians, Nov 15-16\n", "2026-11-06")["flags"][0]["covers_pa"])
 check("CPC hazards: heavy snow for Pennsylvania covers PA", parse_hazards("\nSlight risk of heavy snow for Pennsylvania, Nov 15-16\n", "2026-11-06")["flags"][0]["covers_pa"])
 

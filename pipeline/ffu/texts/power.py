@@ -74,90 +74,101 @@ def latest_end(ws):
     return max(ends) if ends else None
 
 
-def hh_candidates(f, g, pick, side):
-    """Return [(score, size, [templates], ctx)] for 'helps' or 'hurts' for a pick of this date."""
-    t = g["today"]
-    med, lo, hi = g["med"], g["lo"], g["hi"]
-    early = D(pick) < D(med) - dt.timedelta(3)
-    late = D(pick) > D(med) + dt.timedelta(3)
-    mid = not early and not late
-    cpc_a = [w for w in (g["t610"], g["t814"]) if w and w.get("cat") == "A"]
-    cpc_b = [w for w in (g["t610"], g["t814"]) if w and w.get("cat") == "B"]
-    warm_end = latest_end(cpc_a)
-    cold_end = latest_end(cpc_b)
-    c = {"pick": dm(pick), "med": dm(med), "lo": dm(lo), "hi": dm(hi)}
-    if warm_end:
-        c["warm_end"] = dm(warm_end)
-    if cold_end:
-        c["cold_end"] = dm(cold_end)
-    if g["mild_until"]:
-        c["mild_until"] = dow(g["mild_until"])
-    if g["cold_flag_pa"]:
-        x = g["cold_flag_pa"][0]
-        c["cold_hz"] = rng(x["start"], x["end"])
-    elif g["wpc_cold"]:
-        c["cold_hz"] = rng(g["wpc_cold"][0]["start"], g["wpc_cold"][0]["end"])
+def win_dates(w, pick):
+    """First and last calendar day of the pick's winning window (the pick day when there is none)."""
+    if not w:
+        return D(pick), D(pick)
+    return D(w["start"][0]), D(w["end"][0])
+
+
+def signals(g, today):
+    """Every weather signal that has dates: {kind: (start, end, ctx)} with kind in snow, hz, cold, warm."""
+    out = {}
+    t = D(today)
     if g["snow_days"]:
-        c["snow_span"] = rng(g["snow_days"][0], g["snow_days"][-1])
-    if g["peak_day"]:
-        c["peak_dm"] = dm(g["peak_day"])
-    c["pick_wk"] = "week of %s" % dm(pick)
+        out["snow"] = (D(g["snow_days"][0]), D(g["snow_days"][-1]), {"snow_span": rng(g["snow_days"][0], g["snow_days"][-1])})
+    x = (g["cold_flag_pa"] or [None])[0] or (g["wpc_cold"] or [None])[0]
+    if x:
+        out["hz"] = (D(x["start"]), D(x["end"]), {"cold_hz": rng(x["start"], x["end"])})
+    cb = [w for w in (g["t610"], g["t814"]) if w and w.get("cat") == "B"]
+    if cb:
+        out["cold"] = (min(D(w["start"]) for w in cb), max(D(w["end"]) for w in cb), {"cold_end": dm(max(w["end"] for w in cb))})
+    ca = [w for w in (g["t610"], g["t814"]) if w and w.get("cat") == "A"]
+    if ca:
+        out["warm"] = (min(t, min(D(w["start"]) for w in ca)), max(D(w["end"]) for w in ca), {"warm_end": dm(max(w["end"] for w in ca))})
+    if g["mild_until"] and "warm" not in out:
+        out["warm"] = (t, D(g["mild_until"]), {"warm_end": dm(g["mild_until"])})
+    if g["mild_until"]:
+        out.setdefault("warm", (t, D(g["mild_until"]), {}))[2]["mild_until"] = dow(g["mild_until"])
+    return out
+
+
+def relation(span, ws, we):
+    """Where a dated signal sits against the pick's window: before it, within it (any overlap) or after it."""
+    s, e = span[0], span[1]
+    if e < ws:
+        return "before"
+    if s > we:
+        return "after"
+    return "within"
+
+
+def hh_candidates(f, g, pick, side, w=None):
+    """Return [(score, size, [templates], ctx)] for 'helps' or 'hurts' for a pick, judged against ITS winning window.
+    The pick wins when the first flakes land inside its window, so: cold or snow inside the window helps; cold or snow
+    before it hurts (someone earlier wins); warmth lasting through the window hurts; warmth that ends just before it helps."""
+    t = g["today"]
+    ws, we = win_dates(w, pick)
+    c = {"pick": dm(pick), "med": dm(g["med"]), "lo": dm(g["lo"]), "hi": dm(g["hi"]), "pick_wk": "week of %s" % dm(pick), "win_start": dm(str(ws))}
+    sig = signals(g, t)
+    rel = {k: relation(v, ws, we) for k, v in sig.items()}
+    for v_ in sig.values():
+        c.update(v_[2])
     cand = []
-    pk_early_for_season = D(pick) < D(t) + dt.timedelta(10)
-    warm_signal = bool(cpc_a or g["mild_until"])
-    cold_signal = bool(cpc_b or g["any_hazard_cold"] or g["snow_days"])
-    near = days_between(t, pick)
+    if we < D(t):
+        return cand
+    def add_(score, size, temps, key):
+        if key in sig:
+            cand.append((score, size, temps, c))
     if side == "helps":
-        if early or (pk_early_for_season and not late):
-            cand += [
-                (9 if g["snow_days"] else 3, 3, ["A cold, showery turn {snow_span}", "Flakes arriving {snow_span}", "The {snow_span} snow chance coming through"], c),
-                (8 if g["any_hazard_cold"] else 2, 3, ["The cold risk around {cold_hz} verifying", "Cold arriving around {cold_hz}", "The hazards cold shot around {cold_hz}"], c),
-                (6 if cpc_b else 3, 2, ["CPC's cold lean holding up", "Cold air arriving earlier than CPC expects", "A colder pattern than the outlooks show"], c),
-                (4, 2, ["A chilly, showery stretch near {pick}", "Cold, damp weather around {pick}", "An early cold shot before {med}"], c),
-                (3, 1, ["The warm lean fading early", "Models trending colder", "A negative AO opening the door to cold"], c),
-            ]
-        if late:
-            cand += [
-                (8 if warm_signal else 3, 3, ["CPC's warm lean lasting through {warm_end}", "Mild weather lasting through {mild_until}", "The warm stretch extending past {med}"], c),
-                (5, 2, ["A quiet, mild stretch into the {pick_wk}", "Flake-free weather through {med}", "Dry weather staying in place past {med}"], c),
-                (4, 2, ["A cold, showery turn around {pick}", "Cold air waiting until near {pick}", "A cold snap holding off until {pick}"], c),
-                (3, 1, ["Week 3-4 warmth fading late", "Models staying dry through mid-month", "A positive AO keeping cold bottled up"], c),
-            ]
-        if mid:
-            cand += [
-                (6, 3, ["Flakes arriving close to {med}", "A cold turn right around {pick}", "Cold air landing near the {med} median"], c),
-                (5 if warm_signal else 3, 2, ["Warmth lasting until about {pick}", "A mild stretch through {mild_until}", "CPC's warm lean ending before {pick}"], c),
-                (4 if cold_signal else 2, 2, ["A cold shot arriving near {pick}", "The cold risk timing up near {pick}", "A modest cold shot in the {pick_wk}"], c),
-                (3, 1, ["A normal, up-and-down November", "Near-normal temperatures", "Neither an early shot nor a long warm spell"], c),
-            ]
+        if rel.get("snow") == "within":
+            add_(9, 3, ["A cold, showery turn {snow_span}", "Flakes arriving {snow_span}", "The {snow_span} snow chance coming through"], "snow")
+        if rel.get("hz") == "within":
+            add_(8, 3, ["The cold risk around {cold_hz} verifying", "Cold arriving around {cold_hz}", "The hazards cold shot around {cold_hz}"], "hz")
+        if rel.get("cold") == "within":
+            add_(6, 2, ["CPC's cold lean holding up", "Cold air arriving as CPC expects", "A colder pattern than normal"], "cold")
+        if rel.get("warm") == "before":
+            add_(7, 3, ["CPC's warm lean lasting through {warm_end}", "Warmth holding until {warm_end}", "Flake-free weather until {warm_end}"], "warm")
+        if g["dry_week"] and ws > D(t) + dt.timedelta(5):
+            cand.append((4, 2, ["A dry week keeping early flakes away", "Nothing falling before this window opens"], c))
+        if abs(days_between(g["med"], pick)) <= 4:
+            cand.append((3, 2, ["A normal, up-and-down November", "Near-normal timing for the first flakes", "Cold arriving around the {med} median"], c))
+        cand.append((2, 1, ["Cold air showing up in time", "A chilly shot inside the window"], c))
     else:
-        if early:
-            cand += [
-                (9 if warm_signal else 3, 3, ["CPC's warm lean lasting through {warm_end}", "Mild weather lasting through {mild_until}", "Warmth continuing past {pick}"], c),
-                (6 if g["dry_week"] else 3, 2, ["A dry stretch with nothing falling", "Dry weather through {mild_until}", "Quiet, rain-free weather near {pick}"], c),
-                (5, 2, ["Models staying flake-free past {pick}", "No snow showing up before {med}", "The cold shot arriving after {pick}"], c),
-                (3, 1, ["A positive AO bottling up the cold", "Week 3-4 warmth", "Another week of mild air"], c),
-            ]
-        if late:
-            cand += [
-                (8 if g["snow_days"] else 3, 3, ["Flakes arriving {snow_span}", "The {snow_span} snow chance verifying", "An early cold shot before {pick}"], c),
-                (7 if g["any_hazard_cold"] else 2, 3, ["The cold risk around {cold_hz} verifying", "Cold arriving around {cold_hz}", "The hazards cold shot around {cold_hz}"], c),
-                (5 if cpc_b else 3, 2, ["CPC's cold lean holding up", "A colder pattern than the outlooks show", "Cold air arriving well before {pick}"], c),
-                (3, 1, ["A negative AO opening the door to cold", "Models trending colder", "A chilly, showery November"], c),
-            ]
-        if mid:
-            cand += [
-                (7 if g["snow_days"] else 3, 3, ["An early cold shot {snow_span}", "Flakes arriving before {med}", "The {snow_span} snow chance verifying"], c),
-                (6 if warm_signal else 3, 3, ["A long warm spell past {pick}", "CPC's warm lean lasting through {warm_end}", "Mild weather lasting through {mild_until}"], c),
-                (5 if cold_signal else 2, 2, ["An early cold snap around {cold_hz}", "Cold arriving well before {pick}", "A cold turn before the {med} median"], c),
-                (4, 2, ["A stretch of dry weather", "Flake-free weather through {med}", "Quiet weather lasting past {pick}"], c),
-                (3, 1, ["A late-season warm spell", "Cold holding off until December", "A sharp swing either way"], c),
-            ]
+        if rel.get("snow") == "before":
+            add_(9, 3, ["Flakes arriving {snow_span}", "The {snow_span} snow chance verifying", "An early cold shot before {win_start}"], "snow")
+        if rel.get("hz") == "before":
+            add_(8, 3, ["The cold risk around {cold_hz} verifying", "Cold arriving around {cold_hz}", "Cold arriving well before {win_start}"], "hz")
+        if rel.get("cold") == "before":
+            add_(6, 2, ["CPC's cold lean holding up", "Cold arriving before {win_start}", "A colder pattern than normal, too early"], "cold")
+        if rel.get("warm") == "within":
+            add_(9, 3, ["CPC's warm lean lasting through {warm_end}", "Mild weather lasting through {mild_until}", "Warmth continuing past {win_start}"], "warm")
+        if rel.get("snow") == "after":
+            add_(5, 2, ["Flakes holding off until {snow_span}", "The {snow_span} snow chance arriving too late"], "snow")
+        if rel.get("hz") == "after":
+            add_(5, 2, ["Cold not arriving until {cold_hz}"], "hz")
+        if g["dry_week"] and ws <= D(t) + dt.timedelta(10):
+            cand.append((6, 2, ["A dry stretch with nothing falling", "Quiet, rain-free weather near {pick}", "No flakes showing up yet"], c))
+        if D(pick) < D(g["med"]) - dt.timedelta(10):
+            cand.append((3, 1, ["Needing an early surprise", "A cold shot arriving far earlier than normal"], c))
+        elif D(pick) > D(g["med"]) + dt.timedelta(10):
+            cand.append((3, 1, ["Needing a long wait", "Flakes arriving long before this window"], c))
+        cand.append((2, 1, ["A sharp swing either way", "Flakes landing just outside the window"], c))
     return cand
 
 
-def pick_hh(f, g, pick, side, v, key):
-    cands = hh_candidates(f, g, pick, side)
+def pick_hh(f, g, pick, side, v, key, w=None):
+    cands = hh_candidates(f, g, pick, side, w)
     used = set()
     out = []
     for score, size, temps, c in sorted(cands, key=lambda x: -x[0]):
@@ -241,30 +252,32 @@ def build_pool(f, g, v, picks, odds, pool_id):
         s2_txt = say(v, "p2:" + key, s2, c)
         # sentence 3: weather hook tied to today's signals
         hooks = []
-        early = dmed < -3
-        late = dmed > 3
-        cpc_a = [w for w in (g["t610"], g["t814"]) if w and w.get("cat") == "A"]
-        cpc_b = [w for w in (g["t610"], g["t814"]) if w and w.get("cat") == "B"]
-        if g["snow_days"]:
-            c["snow_span"] = rng(g["snow_days"][0], g["snow_days"][-1])
-            if D(p) <= D(g["snow_days"][-1]) + dt.timedelta(7):
-                hooks.append((9, ["The {snow_span} snow chance is the big swing factor here.", "Flakes in the {snow_span} stretch would be the best news this pick could get."]))
-            else:
-                hooks.append((6, ["A {snow_span} snow chance could close the door on this pick if it verifies.", "Snow showing up {snow_span} would pull the action earlier than this pick wants."]))
-        if g["any_hazard_cold"]:
-            x = (g["cold_flag_pa"] or [None])[0] or (g["wpc_cold"] or [None])[0]
-            if x:
-                c["cold_hz"] = rng(x["start"], x["end"])
-                hooks.append((8, (["The cold risk around {cold_hz} is worth watching for this pick.", "A cold shot around {cold_hz} would pull the first flakes earlier."] if not early else
-                                  ["The cold risk around {cold_hz} would help this pick if it delivers.", "A cold shot around {cold_hz} is exactly what this pick wants."])))
-        if cpc_a:
-            c["warm_end"] = dm(max(w["end"] for w in cpc_a))
-            hooks.append((7, (["CPC's warmth through {warm_end} pushes the action toward this window, as long as the cold shows up in time.", "CPC's warm lean through {warm_end} is a tailwind for this pick."] if late or dmed >= 0 else
-                              ["CPC's warm lean through {warm_end} works against this pick.", "Warmth through {warm_end} leaves this pick waiting."])))
-        if cpc_b:
-            c["cold_end"] = dm(max(w["end"] for w in cpc_b))
-            hooks.append((7, (["CPC's cold lean through {cold_end} is a tailwind for this pick.", "A colder-than-normal lean through {cold_end} helps this pick."] if early or dmed <= 0 else
-                              ["CPC's cold lean through {cold_end} pulls the action earlier than this pick would like.", "Cold through {cold_end} works against this pick."])))
+        ws_, we_ = win_dates(w, p)
+        sig = signals(g, t)
+        rel = {k: relation(vv, ws_, we_) for k, vv in sig.items()}
+        for vv in sig.values():
+            c.update(vv[2])
+        c["win_start"] = dm(str(ws_))
+        if rel.get("snow") == "within":
+            hooks.append((9, ["The {snow_span} snow chance lands inside this window, so it is the big swing factor here.", "Flakes in the {snow_span} stretch would be the best news this pick could get."]))
+        elif rel.get("snow") == "before":
+            hooks.append((9, ["A {snow_span} snow chance could close the door on this pick if it verifies.", "Snow showing up {snow_span} would pull the action earlier than this pick wants."]))
+        elif rel.get("snow") == "after":
+            hooks.append((6, ["The {snow_span} snow chance falls after this window, so this pick needs flakes to come sooner.", "Snow holding off until {snow_span} would leave this pick short."]))
+        if rel.get("hz") == "within":
+            hooks.append((8, ["The cold risk around {cold_hz} would help this pick if it delivers.", "A cold shot around {cold_hz} is exactly what this pick wants."]))
+        elif rel.get("hz") == "before":
+            hooks.append((8, ["The cold risk around {cold_hz} is worth watching: it would pull the first flakes earlier than this pick wants.", "A cold shot around {cold_hz} would bring the first flakes before this window opens."]))
+        elif rel.get("hz") == "after":
+            hooks.append((6, ["The cold risk around {cold_hz} comes after this window opens, so it would arrive too late for this pick."]))
+        if rel.get("warm") == "within":
+            hooks.append((7, ["CPC's warm lean through {warm_end} works against this pick.", "Warmth through {warm_end} leaves this pick waiting."]))
+        elif rel.get("warm") == "before":
+            hooks.append((7, ["CPC's warm lean through {warm_end} is a tailwind for this pick, since it keeps earlier flakes away.", "Warmth through {warm_end} clears the way for this window."]))
+        if rel.get("cold") == "within":
+            hooks.append((7, ["CPC's cold lean through {cold_end} is a tailwind for this pick.", "A colder-than-normal lean through {cold_end} helps this pick."]))
+        elif rel.get("cold") == "before":
+            hooks.append((7, ["CPC's cold lean through {cold_end} pulls the action earlier than this pick would like.", "Cold through {cold_end} works against this pick."]))
         if g["dry_week"] and g["month"] >= 11:
             hooks.append((4, ["A dry week ahead keeps the first flakes on hold, which helps later picks more than early ones.", "Nothing is falling this week, so the clock keeps ticking toward later dates."]))
         if g["rain_days"] and not g["snow_days"]:
@@ -280,7 +293,7 @@ def build_pool(f, g, v, picks, odds, pool_id):
             except KeyError:
                 continue
         blurb = " ".join(x for x in [sentence(s1_txt), sentence(s2_txt), sentence(s3_txt)] if x)
-        reports.append({"name": name, "blurb": blurb, "helps": pick_hh(f, g, p, "helps", v, key), "hurts": pick_hh(f, g, p, "hurts", v, key)})
+        reports.append({"name": name, "blurb": blurb, "helps": pick_hh(f, g, p, "helps", v, key, w), "hurts": pick_hh(f, g, p, "hurts", v, key, w)})
     return reports
 
 
