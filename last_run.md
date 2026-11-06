@@ -1,8 +1,8 @@
 # 2026-11-05-pm
 
-First Flakes Nov 5: Kiera leads Meteo at 20.0%; Will leads Ritner Floor 2 at 30.9%. Median Nov. 18.
+First Flakes Nov 5: Patrick leads Meteo at 15.1%; Anna leads Ritner Floor 2 at 26.8%. Median Nov. 20.
 
-Headline (new): The first real flake chance of the season is on the board for next Saturday, near 11% at its best. The median nudges three days earlier, to Nov. 18.
+Headline (new): The models find a snow chance for next Saturday, topping out around 11%. The median edges a day earlier to Nov. 20.
 
 ## Input health
 
@@ -14,11 +14,11 @@ Headline (new): The first real flake chance of the season is on the board for ne
 - OK   NWS point forecast
 - OK   NWS alerts
 - OK   NWS forecast discussion
-- FAIL CPC 6-10 / 8-14 (no data)
-- FAIL CPC week 3-4 (no data)
+- OK   CPC 6-10 / 8-14
+- OK   CPC week 3-4
 - OK   CPC hazards 8-14
-- FAIL WPC hazards 3-7 (ParseError('unbound prefix: line 2, column 0'))
-- FAIL CPC ENSO (no data)
+- OK   WPC hazards 3-7
+- OK   CPC ENSO
 - OK   Fall warmth (ACIS)
-- FAIL AO / NAO / PNA (no data)
+- OK   AO / NAO / PNA
 - OK   Dry streak (ACIS)
