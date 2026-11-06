@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
  xsi:schemaLocation="http://www.opengis.net/kml/2.2 http://schemas.opengis.net/kml/2.2.0/ogckml22.xsd http://www.google.com/kml/ext/2.2 http://code.google.com/apis/kml/schema/kml22gx.xsd">
-<Document id="3-7 Day Temperature Hazards Created: 11-05-2026 Valid: 11-08-2026 - 11-12-2026">
-  <name>3-7 Day Temperature Hazards Created: 11-05-2026 Valid: 11-08-2026 - 11-12-2026</name>
+<Document id="3-7 Day Temperature Hazards Created: 11-06-2026 Valid: 11-09-2026 - 11-13-2026">
+  <name>3-7 Day Temperature Hazards Created: 11-06-2026 Valid: 11-09-2026 - 11-13-2026</name>
   <snippet></snippet>
   <Folder id="FeatureLayer0">
-    <name>3-7 Day Temperature Hazards Created: 11-05-2026 Valid: 11-08-2026 - 11-12-2026</name>
+    <name>3-7 Day Temperature Hazards Created: 11-06-2026 Valid: 11-09-2026 - 11-13-2026</name>
     <snippet></snippet>
     <Placemark id="ID_00000">
       <name>High Winds</name>
@@ -22,7 +22,7 @@
     <Placemark id="ID_00001">
       <name>Frost/Freeze</name>
       <snippet></snippet>
-      <description><![CDATA[<div style="font-family: 'Segoe UI', Arial, sans-serif; min-width: 250px; background-color: #ffffff; border: 1px solid #dcdcdc; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1);"><div style="background-color: #1976d2; color: #ffffff; padding: 12px; font-size: 16px; font-weight: bold; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">Frost/Freeze</div><div style="padding: 10px 15px;"><table style="width: 100%; border-collapse: collapse; font-size: 13px;"><tr style="border-bottom: 1px solid #eeeeee;"><td style="padding: 8px 0; color: #555555; font-weight: bold;">Start Date</td><td style="padding: 8px 0; text-align: right; color: #222222;">11/8/2026</td></tr><tr style="border-bottom: 1px solid #eeeeee;"><td style="padding: 8px 0; color: #555555; font-weight: bold;">End Date</td><td style="padding: 8px 0; text-align: right; color: #222222;">11/9/2026</td></tr></table></div></div>]]></description>
+      <description><![CDATA[<div style="font-family: 'Segoe UI', Arial, sans-serif; min-width: 250px; background-color: #ffffff; border: 1px solid #dcdcdc; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1);"><div style="background-color: #1976d2; color: #ffffff; padding: 12px; font-size: 16px; font-weight: bold; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">Frost/Freeze</div><div style="padding: 10px 15px;"><table style="width: 100%; border-collapse: collapse; font-size: 13px;"><tr style="border-bottom: 1px solid #eeeeee;"><td style="padding: 8px 0; color: #555555; font-weight: bold;">Start Date</td><td style="padding: 8px 0; text-align: right; color: #222222;">11/9/2026</td></tr><tr style="border-bottom: 1px solid #eeeeee;"><td style="padding: 8px 0; color: #555555; font-weight: bold;">End Date</td><td style="padding: 8px 0; text-align: right; color: #222222;">11/9/2026</td></tr></table></div></div>]]></description>
       <styleUrl>#PolyStyle01</styleUrl>
       <MultiGeometry>
         <Polygon>

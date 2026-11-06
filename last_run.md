@@ -1,8 +1,8 @@
-# 2026-11-06
+# 2026-11-06-pm
 
-First Flakes Nov 6: Patrick leads Meteo at 17.2%; Anna leads Ritner Floor 2 at 30.5%. Median Nov. 21.
+First Flakes Nov 6: Aidan leads Meteo at 20.8%; Anna leads Ritner Floor 2 at 38.6%. Median Nov. 22.
 
-Headline (new): A cold shot brings an 8% chance of flakes Nov. 12-14. The median slides a day later to Nov. 21.
+Headline (new): Snow shows up in the long-range blend for next Friday, with the best day near 8%. Meanwhile the median moves a day later, to Nov. 22.
 
 ## Input health
 
