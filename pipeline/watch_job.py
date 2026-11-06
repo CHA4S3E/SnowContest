@@ -1,0 +1,137 @@
+"""Hourly live snow watch (GitHub Actions). usage: python3 watch_job.py DATADIR [--fixtures DIR]
+
+Skips quickly when no watch is active. Otherwise: fetch LAMP, National Blend, airport reports, HRRR/RRFS, alerts;
+run watch.py (the same deterministic logic as before); write a new breaking headline only when watch.py reports news.
+"""
+import argparse, csv, datetime as dt, io, json, os, subprocess, sys, tempfile
+from zoneinfo import ZoneInfo
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+from ffu import inputs  # noqa: E402
+from ffu.lib import Voice  # noqa: E402
+from ffu.texts import watch_live  # noqa: E402
+
+ET = ZoneInfo("America/New_York")
+
+
+def load(p, d=None):
+    try:
+        return json.load(open(p, encoding="utf-8"))
+    except Exception:
+        return d
+
+
+def save(p, o):
+    json.dump(o, open(p, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+
+
+def mos(model, fields):
+    j = inputs.get_json("https://mesonet.agron.iastate.edu/api/1/mos.json?station=KUNV&model=%s" % model, nocache=True)
+    return [[inputs.norm_ft(r.get("ftime"))] + [r.get(k) for k in fields] for r in (j.get("data") or [])]
+
+
+def metars():
+    txt = inputs.get("https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py?station=UNV&data=metar&tz=Etc/UTC&format=comma&hours=3", nocache=True)
+    out = []
+    for line in txt.splitlines():
+        if line.startswith(("#", "station")) or not line.strip():
+            continue
+        p = line.split(",", 2)
+        if len(p) == 3 and p[1][:2] == "20":
+            out.append("UNV,%s,%s" % (p[1], p[2].strip()))
+    return out
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("datadir")
+    ap.add_argument("--fixtures")
+    ap.add_argument("--now")
+    a = ap.parse_args()
+    D_ = a.datadir
+    cfg, prev = load(os.path.join(D_, "config.json"), {}), load(os.path.join(D_, "watch.json"))
+    if cfg.get("firstSnow") and prev and (prev.get("active") or prev.get("stage") == "ondeck"):
+        prev.update({"active": False, "stage": "ended", "endedAt": dt.datetime.now(ET).isoformat(timespec="minutes")})
+        save(os.path.join(D_, "watch.json"), prev)
+        print("first snow declared; watch closed")
+        return 0
+    if not prev or not prev.get("active"):
+        print("no active watch")
+        return 0
+    now = dt.datetime.now(dt.timezone.utc) if not a.now else dt.datetime.strptime(a.now, "%Y-%m-%dT%H:%MZ").replace(tzinfo=dt.timezone.utc)
+    now_s = now.strftime("%Y-%m-%dT%H:%MZ")
+    td = tempfile.mkdtemp()
+    P = lambda n: os.path.join(td, n)  # noqa: E731
+    health = {}
+    if a.fixtures:
+        for n in ("lamp.json", "nbs.json", "metars.txt"):
+            open(P(n), "w").write(open(os.path.join(a.fixtures, n)).read())
+        alerts = load(os.path.join(a.fixtures, "alerts.json"), [])
+        cams = []
+    else:
+        for name, fn, fields in (("lamp", "lamp.json", ["tmp", "p01", "pos", "typ"]), ("nbs", "nbs.json", ["tmp", "p06", "psn"])):
+            try:
+                rows = mos("LAV" if name == "lamp" else "NBS", fields)
+                health[name] = len(rows)
+            except Exception as e:  # noqa
+                rows, health[name] = [], repr(e)[:120]
+            save(P(fn), rows)
+        try:
+            ml = metars()
+        except Exception as e:  # noqa
+            ml, health["metar"] = [], repr(e)[:120]
+        open(P("metars.txt"), "w").write("\n".join(ml))
+        try:
+            alerts = inputs.alerts()
+        except Exception as e:  # noqa
+            alerts, health["alerts"] = prev.get("alerts") or [], repr(e)[:120]
+        cams = []
+        for m in ("hrrr", "rrfs"):
+            try:
+                r = subprocess.run([sys.executable, os.path.join(HERE, "cam_point.py"), m, P(m + ".json"), "--hourly"], capture_output=True, text=True, timeout=240)
+                if r.returncode == 0 and os.path.exists(P(m + ".json")):
+                    cams.append(P(m + ".json"))
+                else:
+                    health[m] = (r.stderr or r.stdout)[-160:]
+            except Exception as e:  # noqa
+                health[m] = repr(e)[:120]
+    save(P("prev.json"), prev)
+    cmd = [sys.executable, os.path.join(HERE, "watch.py"), now_s, P("lamp.json"), P("nbs.json"), P("metars.txt"), P("prev.json"), P("out.json")]
+    radar = load(os.path.join(D_, "radar.json"))
+    if radar and not radar.get("error"):
+        save(P("radar.json"), {"summary": radar.get("summary")})
+        cmd += ["--radar", P("radar.json")]
+    if cams:
+        cmd += ["--cam"] + cams
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if r.returncode != 0:
+        print(r.stderr)
+        return 1
+    summ = json.loads(r.stdout.strip().splitlines()[-1])
+    out = load(P("out.json"))
+    out["alerts"] = alerts
+    old_sq = any(x.get("event") == "Snow Squall Warning" for x in prev.get("alerts") or [])
+    new_sq = any(x.get("event") == "Snow Squall Warning" for x in alerts) and not old_sq
+    news = list(summ["news"]) + (["snow squall warning"] if new_sq else [])
+    now_et = now.astimezone(ET).isoformat(timespec="minutes")
+    ended = summ["action"] == "end"
+    if news or ended:
+        hrs = [h for h in out.get("hours", [])[:24]]
+        pk = max(hrs, key=lambda h: h["snow"]) if hrs and max(h["snow"] for h in hrs) >= 3 else None
+        w = dict(out, _peak=pk)
+        v = Voice(now_et)
+        t, head, lt, lx = watch_live.write(out["status"], w, now_et, news, alerts, v, ended=ended, first=bool(summ.get("wentLive") and not prev.get("headline")))
+        out.update({"title": t, "headline": head, "headlineAt": now_et})
+        log = (out.get("log") or []) + [{"t": now_et, "title": lt, "text": lx}]
+        out["log"] = log[-12:]
+    save(os.path.join(D_, "watch.json"), out)
+    h = load(os.path.join(D_, "health_watch.json"), {}) or {}
+    h.update({"at": now_et, "inputs": health})
+    save(os.path.join(D_, "health_watch.json"), h)
+    print(json.dumps({k: summ[k] for k in ("action", "status", "needle", "newHeadline", "news")}), health)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

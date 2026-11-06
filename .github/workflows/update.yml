@@ -1,0 +1,28 @@
+name: Twice-daily update
+on:
+  schedule:
+    - cron: "40 10 * * *"   # about 5:40 AM ET
+    - cron: "40 22 * * *"   # about 5:40 PM ET
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Re-run even if this edition already exists"
+        type: boolean
+        default: false
+concurrency: { group: data, cancel-in-progress: false }
+permissions: { contents: write }
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r pipeline/requirements.txt
+      - name: Check out the data branch
+        run: bash pipeline/ci/data_checkout.sh
+      - name: Run the update
+        run: python pipeline/update.py data ${{ inputs.force && '--force' || '' }}
+      - name: Commit the data
+        run: bash pipeline/ci/data_commit.sh "Update $(date -u +%FT%H:%MZ)"

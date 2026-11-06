@@ -1,0 +1,36 @@
+name: Hourly snow watch
+on:
+  schedule:
+    - cron: "8 * * * *"
+  workflow_dispatch:
+concurrency: { group: data, cancel-in-progress: false }
+permissions: { contents: write }
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Check out the data branch
+        run: bash pipeline/ci/data_checkout.sh
+      - name: Quick exit when no watch is active
+        id: gate
+        run: |
+          python - <<'P' >> "$GITHUB_OUTPUT"
+          import json
+          try:
+              w = json.load(open("data/watch.json"))
+              c = json.load(open("data/config.json"))
+              on = bool(w.get("active")) or (bool(c.get("firstSnow")) and w.get("stage") not in (None, "ended"))
+          except Exception:
+              on = False
+          print("run=" + ("true" if on else "false"))
+          P
+      - if: steps.gate.outputs.run == 'true'
+        run: pip install -r pipeline/requirements.txt
+      - if: steps.gate.outputs.run == 'true'
+        run: python pipeline/watch_job.py data
+      - if: steps.gate.outputs.run == 'true'
+        run: bash pipeline/ci/data_commit.sh "Watch $(date -u +%FT%H:%MZ)"
