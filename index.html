@@ -625,6 +625,12 @@ body.alarm.holding #ffalarm { --spd: .55s; }
 .wneedle .ng { transform-origin: 230px 230px; transition: transform 1.1s cubic-bezier(.3,1.35,.5,1); }
 .wneedle .big { font: 800 2.6rem/1 var(--display); }
 .wneedle .dl { font: 600 .8rem/1 var(--mono); }
+.uptoast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 16px; border-radius: 999px; background: #16222e; color: #fff; box-shadow: 0 8px 28px rgba(0,0,0,.35); font: 600 .92rem var(--body, system-ui); animation: upin .35s ease-out; width: max-content; max-width: calc(100vw - 24px); }
+.uptoast span { white-space: nowrap; }
+.uptoast .upgo { border: 0; border-radius: 999px; padding: 7px 14px; background: var(--pumpkin); color: #fff; font-weight: 700; font-size: .88rem; font-family: inherit; cursor: pointer; }
+.uptoast .upx { border: 0; background: none; color: rgba(255,255,255,.7); font-size: 1.2rem; cursor: pointer; padding: 0 4px; }
+@keyframes upin { from { opacity: 0; transform: translate(-50%, 14px); } }
+@media (prefers-reduced-motion: reduce) { .uptoast { animation: none; } }
 .wtrend { width: 100%; height: auto; display: block; }
 .wlib { margin: 0 0 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
 .wlib > summary { cursor: pointer; padding: 14px 16px; font: 700 1rem var(--display); list-style: none; display: flex; align-items: center; gap: 8px; }
@@ -4392,7 +4398,31 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   // Data lives as JSON files on the repo's data branch, refreshed by scheduled GitHub Actions jobs.
   const DATA_BASE = "https://raw.githubusercontent.com/CHA4S3E/SnowContest/data/";
   let dataAt = null;
-  const getJSON = (f) => fetch(DATA_BASE + f + "?t=" + Math.floor(Date.now() / 300000)).then((r) => r.ok ? r.json() : Promise.reject(r.status));
+  // Each data file is fingerprinted when it loads, so the page can tell later whether anything changed (the update pop-up).
+  const fp = (t) => { let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return t.length + ":" + h; };
+  let shownSig = {};
+  const getJSON = (f) => fetch(DATA_BASE + f + "?t=" + Math.floor(Date.now() / 300000)).then((r) => r.ok ? r.text() : Promise.reject(r.status)).then((t) => { shownSig[f] = fp(t); return JSON.parse(t); });
+  const WATCHED = ["updates.json", "watch.json", "radar.json", "config.json", "weather.json", "season.json", "snowmap.json"];
+  let toastUp = false, checking = false;
+  function showUpdateToast() {
+    if (toastUp) return;
+    toastUp = true;
+    const t = document.createElement("div");
+    t.className = "uptoast"; t.setAttribute("role", "status");
+    t.innerHTML = '<span>There has been an update!</span><button type="button" class="upgo">Refresh</button><button type="button" class="upx" aria-label="Dismiss">\u00d7</button>';
+    document.body.appendChild(t);
+    const done = () => { t.remove(); toastUp = false; };
+    t.querySelector(".upgo").onclick = () => { t.querySelector(".upgo").textContent = "Loading"; loadData().then(done, done); };
+    t.querySelector(".upx").onclick = () => { done(); dismissedAt = Date.now(); };
+  }
+  let dismissedAt = 0;
+  function checkForUpdate() {
+    if (checking || toastUp || document.hidden || Date.now() - dismissedAt < 600000) return;
+    checking = true;
+    Promise.all(WATCHED.map((f) => fetch(DATA_BASE + f + "?t=" + Math.floor(Date.now() / 60000)).then((r) => r.ok ? r.text() : null).then((t) => [f, t == null ? null : fp(t)]).catch(() => [f, null])))
+      .then((rows) => { if (rows.some(([f, h]) => h && shownSig[f] && h !== shownSig[f])) showUpdateToast(); })
+      .finally(() => { checking = false; });
+  }
   function loadData() {
     const tasks = [
       getJSON("config.json").then((c) => {
@@ -4422,7 +4452,8 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     });
   }
   loadData();
-  setInterval(loadData, 300000);
+  setInterval(checkForUpdate, 120000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) checkForUpdate(); });
 
   // Owner mode (GitHub Pages build): the password unlocks it. Edits are committed to the data branch.
   const GH_REPO = "CHA4S3E/SnowContest", GH_BRANCH = "data";
