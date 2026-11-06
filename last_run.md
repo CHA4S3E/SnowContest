@@ -1,8 +1,8 @@
-# 2026-11-05-pm
+# 2026-11-06
 
-First Flakes Nov 5: Patrick leads Meteo at 15.1%; Anna leads Ritner Floor 2 at 26.8%. Median Nov. 20.
+First Flakes Nov 6: Patrick leads Meteo at 15.7%; Anna leads Ritner Floor 2 at 27.8%. Median Nov. 20.
 
-Headline (new): The first real flake chance of the season is on the board for next Saturday, near 11% at its best. The median nudges a day earlier, to Nov. 20.
+Headline (new): A cold shot brings a 7% chance of flakes Nov. 12-14. The median doesn't budge from Nov. 20.
 
 ## Input health
 
@@ -11,6 +11,8 @@ Headline (new): The first real flake chance of the season is on the board for ne
 - FAIL NAM MOS (no data)
 - OK   LAMP
 - OK   European (Open-Meteo)
+- FAIL RRFS (NOAA) (RuntimeError('oint.py", line 36, in get\n    raise RuntimeError("failed: " + url)\nRuntimeError: failed: https://nomads.ncep.noaa.gov/pub/data/nccf/com/rrfs/prod/rrfs.20261106/06/rrfs.t06z.2dfld.3km.f)
+- OK   HRRR (NOAA)
 - OK   NWS point forecast
 - OK   NWS alerts
 - OK   NWS forecast discussion
