@@ -51,6 +51,9 @@ def main():
     a = ap.parse_args()
     D_ = a.datadir
     cfg, prev = load(os.path.join(D_, "config.json"), {}), load(os.path.join(D_, "watch.json"))
+    if cfg.get("firstSnow") and prev and prev.get("mode") == "total":
+        import storm_job
+        return storm_job.run(D_)
     if cfg.get("firstSnow") and prev and (prev.get("active") or prev.get("stage") == "ondeck"):
         prev.update({"active": False, "stage": "ended", "endedAt": dt.datetime.now(ET).isoformat(timespec="minutes")})
         save(os.path.join(D_, "watch.json"), prev)

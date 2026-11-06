@@ -8,7 +8,7 @@ permissions: { contents: write }
 jobs:
   watch:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -23,13 +23,23 @@ jobs:
           try:
               w = json.load(open("data/watch.json"))
               c = json.load(open("data/config.json"))
+              total = bool(w.get("active")) and w.get("mode") == "total"
               on = bool(w.get("active")) or (bool(c.get("firstSnow")) and w.get("stage") not in (None, "ended"))
           except Exception:
-              on = False
+              on = total = False
           print("run=" + ("true" if on else "false"))
+          print("total=" + ("true" if total else "false"))
           P
       - if: steps.gate.outputs.run == 'true'
         run: pip install -r pipeline/requirements.txt
+      - name: Radar loop
+        if: steps.gate.outputs.run == 'true'
+        continue-on-error: true
+        run: timeout 540 python pipeline/radar.py data/radar.json
+      - name: Snowfall map (season storms only)
+        if: steps.gate.outputs.total == 'true'
+        continue-on-error: true
+        run: timeout 300 python pipeline/snowmap.py data/snowmap.json data/watch.json
       - if: steps.gate.outputs.run == 'true'
         run: python pipeline/watch_job.py data
       - if: steps.gate.outputs.run == 'true'

@@ -112,8 +112,10 @@ def main():
     state = load(os.path.join(D_, "state.json"), {}) or {}
     log = []
     if cfg.get("firstSnow"):
-        print("Season's over: first flakes were declared on %s." % cfg["firstSnow"])
-        return 0
+        print("First flakes were declared on %s; running the season total update." % cfg["firstSnow"])
+        import season_job
+        sys.argv = [sys.argv[0], D_] + (["--force"] if a.force else []) + (["--edition", a.edition] if a.edition else [])
+        return season_job.main()
     if any(u.get("id") == doc_id for u in updates) and not a.force:
         print("update %s already exists; nothing to do" % doc_id)
         return 0
