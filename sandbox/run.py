@@ -189,6 +189,33 @@ check("watch library: a finished storm is saved once, not twice", watchlib.archi
 check("watch library: peak and final come from the trend", J(_td + "/watchlib.json")["entries"][0]["peak"]["v"] == 6.0 and J(_td + "/watchlib.json")["entries"][0]["kind"] == "storm")
 check("watch library: a watch that never ran live is not saved", not watchlib.archive(_td, {"startedAt": "x"}, "flakes"))
 
+from ffu import ai_read  # noqa: E402
+_raw = {"afd": {"snow": "none", "snow_dates": []}, "cpc": {"t610": {"cat": "EC", "conf": 1}, "p610": {"cat": "B", "conf": 3}, "t814": {"cat": "A", "conf": 3}, "p814": {"cat": "EC", "conf": 1}},
+        "wk34": {"cat": "EC", "conf": 2}, "haz": {"flags": [], "carried": []}}
+_ai = {"afd_snow": "town", "afd_snow_dates": ["2026-11-13", "2025-01-01", "junk"], "t610": {"cat": "N", "soft": False}, "p610": {"cat": "A", "soft": False}, "t814": {"cat": "A", "soft": False},
+       "p814": {"cat": "B", "soft": True}, "t34": {"cat": "A", "soft": False}, "p34": {"cat": "N", "soft": False},
+       "hazards": [{"kind": "cold", "level": "slight", "start": "2026-11-14", "end": "2026-11-15", "covers_pa": False}, {"kind": "snow", "level": "bogus", "start": "2026-11-14", "end": "2026-11-15", "covers_pa": True},
+                   {"kind": "cold", "level": "slight", "start": "2031-01-01", "end": "2031-01-02", "covers_pa": True}]}
+_d = ai_read.merge(_raw, _ai, "2026-11-06")
+check("second reader: fills the afd snow gap, drops bad dates", _raw["afd"]["snow"] == "state" and _raw["afd"]["snow_dates"] == ["2026-11-13"])
+check("second reader: fills only equal-chances outlooks, keeps parser answers", _raw["cpc"]["t610"]["cat"] == "N" and _raw["cpc"]["p610"]["cat"] == "B" and _raw["cpc"]["p814"]["cat"] == "B" and _raw["cpc"]["p814"]["conf"] == 1 and _raw["wk34"]["cat"] == "A")
+check("second reader: adds one valid hazard, rejects bad level and far dates", len(_raw["haz"]["flags"]) == 1 and _raw["haz"]["flags"][0]["covers_pa"] is False)
+check("second reader: disagreements are logged", any(x["what"] == "p610" for x in _d))
+check("second reader: a non-dict answer changes nothing", ai_read.merge({"afd": {"snow": "none"}}, "junk", "2026-11-06") == [])
+_calls = []
+def _fake(url, body, key):
+    _calls.append(url.split("models/")[1].split(":")[0])
+    if len(_calls) < 3:
+        raise RuntimeError("429")
+    return {"candidates": [{"content": {"parts": [{"text": json.dumps(_ai)}]}}]}
+_r, _m = ai_read.call("x", "k", models=["a", "b", "c"], post=_fake)
+check("second reader: falls through failing models to the next", _m == "c" and _r["t34"]["cat"] == "A" and _calls == ["a", "b", "c"])
+check("second reader: all models failing returns None, no crash", ai_read.call("x", "k", models=["a"], post=lambda *a: (_ for _ in ()).throw(RuntimeError("down")))[0] is None)
+os.environ.pop("GEMINI_API_KEY", None)
+_raw2 = {"afd": {"snow": "none"}}
+ai_read.run(_raw2, "text", "2026-11-06")
+check("second reader: no key means nothing happens", _raw2 == {"afd": {"snow": "none"}})
+
 print("\n%d failed" % len(FAILS) if FAILS else "\nALL PASSED")
 print("data dir:", D)
 sys.exit(1 if FAILS else 0)

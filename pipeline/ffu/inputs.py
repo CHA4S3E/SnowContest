@@ -818,7 +818,8 @@ def gather(today):
     raw["hrrr"] = try_("HRRR (NOAA)", cam, "hrrr")
     raw["pfc"] = try_("NWS point forecast", point_forecast)
     raw["alerts"] = try_("NWS alerts", alerts)
-    raw["afd"] = try_("NWS forecast discussion", lambda: parse_afd(afos("AFDCTP"), today))
+    afd_text = []
+    raw["afd"] = try_("NWS forecast discussion", lambda: parse_afd(afd_text.append(afos("AFDCTP")) or afd_text[0], today))
     raw["cpc"] = try_("CPC 6-10 / 8-14", cpc_windows, today)
     raw["wk34"] = try_("CPC week 3-4", cpc_wk34, today)
     raw["haz"] = try_("CPC hazards 8-14", cpc_hazards, today)
@@ -827,4 +828,9 @@ def gather(today):
     raw["warmth"] = try_("Fall warmth (ACIS)", warmth, today)
     raw["tele"] = try_("AO / NAO / PNA", tele, today)
     raw["dry"] = try_("Dry streak (ACIS)", dry_streak, today)
+    try:
+        from . import ai_read
+        ai_read.run(raw, afd_text[0] if afd_text else "", today)
+    except Exception as e:  # noqa
+        note("Second reader (Gemini)", False, repr(e)[:200])
     return raw, HEALTH
