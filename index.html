@@ -2858,7 +2858,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     tiles.push(leadTile);
     const mv = Object.keys(u.odds).map((n) => [n, u.odds[n] - (prev.odds[n] || 0)]).filter((x) => Math.abs(x[1]) >= 0.3).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 4);
     const EF = { earlier: "Pushes earlier", later: "Pushes later", neutral: "Baseline", base: "Baseline", more: "Adds snow", less: "Trims snow" };
-    const fmap = (l) => { const m = {}; (l || []).forEach((f) => { m[f.name] = f; }); return m; };
+    const fmap = (l) => { const m = {}; (l || []).forEach((f) => { m[String(f.name).replace(/\s*\([^)]*\)\s*$/, "")] = f; }); return m; };
     const f1 = fmap(u.factors), f0 = fmap(prev.factors);
     const shift = [], same = [];
     Object.keys(f1).forEach((n) => {

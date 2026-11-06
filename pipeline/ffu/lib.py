@@ -149,6 +149,7 @@ def degs(x):
 def clean(s):
     s = re.sub(r"\s+", " ", s).strip()
     s = re.sub(r"\s+([,.;:!?])", r"\1", s)
+    s = re.sub(r"\b([Aa]) (?=(?:8\d*|11|18)(?!\d))", lambda m: m.group(1) + "n ", s)     # "an 8% chance", "an 11-day", "an 18-day"
     return s
 
 

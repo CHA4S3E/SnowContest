@@ -4,7 +4,7 @@ import re
 BANNED = [r"\bupdated\b", r"\bnew model\b", r"\bchanged\b", r"recalibrat", r"\bimproved\b", r"\bnow (includes|uses|has|adds)\b",
           r"\bmodel change", r"\bupgrad", r"\bnewly (added|added)\b", r"\bwe (changed|updated)\b", r"\bTODO\b", r"\{|\}", r"\bNone\b",
           r"\bnan\b", r"\bn/a\b", r"\s{2,}", r"\.\.(?!\.)", r"\bthe the\b", r"\ba a\b", r"\ban an\b", r"\bof of\b", r"\bto to\b", r"\band and\b",
-          r"\bin in\b", r",,", r"\(\)", r"\bundefined\b"]
+          r"\bin in\b", r"\b[Aa] (8\d*|11|18)(?!\d)", r",,", r"\(\)", r"\bundefined\b"]
 YOU = re.compile(r"\b(you|your|you're|you'll|yours|you've)\b", re.I)
 
 
