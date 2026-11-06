@@ -1,7 +1,5 @@
 name: Hourly snow watch
 on:
-  schedule:
-    - cron: "8 * * * *"
   workflow_dispatch:
 concurrency: { group: data, cancel-in-progress: false }
 permissions: { contents: write }
