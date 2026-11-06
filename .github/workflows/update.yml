@@ -23,6 +23,6 @@ jobs:
       - name: Check out the data branch
         run: bash pipeline/ci/data_checkout.sh
       - name: Run the update
-        run: python pipeline/update.py data ${{ github.event_name == 'workflow_dispatch' && '--force' || '' }}
+        run: python pipeline/update.py data ${{ inputs.force && '--force' || '' }}
       - name: Commit the data
         run: bash pipeline/ci/data_commit.sh "Update $(date -u +%FT%H:%MZ)"
