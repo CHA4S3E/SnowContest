@@ -2559,6 +2559,8 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     };
     const ranks = ranksOf(odds), pranks = prev ? ranksOf(prev.odds) : null;
     const rc = (n) => { if (!pranks || pranks[n] == null) return '<i class="rc">–</i>'; const d = pranks[n] - ranks[n]; return d > 0 ? '<i class="rc up">▲' + d + '</i>' : d < 0 ? '<i class="rc down">▼' + (-d) + '</i>' : '<i class="rc">–</i>'; };
+    let stMover = null, stBest = 0.05;
+    if (prev && prev.odds) for (const [n, v] of sorted) { const d = v - (prev.odds[n] || 0); if (d > stBest) { stBest = d; stMover = n; } }
     const ordn = ["1st", "2nd", "3rd"], top3 = sorted.slice(0, 3);
     $("stPodium").innerHTML = [1, 0, 2].filter((i) => top3[i]).map((i) => {
       const [n, v] = top3[i];
@@ -2567,8 +2569,6 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     }).join("");
     $("stPodx").innerHTML = top3.map(([n]) => n).filter((n) => stOpen.has(n)).map((n) => stReport(n, u, prev, Z, odds, out, true)).join("");
     const max = sorted[0] ? sorted[0][1] || 1 : 1;
-    let stMover = null, stBest = 0.05;
-    if (prev && prev.odds) for (const [n, v] of sorted) { const d = v - (prev.odds[n] || 0); if (d > stBest) { stBest = d; stMover = n; } }
     $("stBoard").innerHTML = (sorted.length > 3 ? '<div class="listgap">The rest of the pool</div>' : "") + sorted.slice(3).map(([n, v]) => {
       let chg = "", cls = "chg";
       if (prev && prev.odds[n] != null) { const d = v - prev.odds[n]; if (Math.abs(d) >= 0.05) { chg = (d > 0 ? "▲ " : "▼ ") + Math.abs(d).toFixed(1); cls += d > 0 ? " up" : " down"; } else chg = "–"; }
