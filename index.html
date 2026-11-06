@@ -479,6 +479,9 @@ input[type=range] { width: 100%; accent-color: var(--ice); }
 .mday .tmp b { color: var(--ink); font-weight: 500; }
 .mday.coldday .tmp b:last-child { color: var(--ice); }
 .mday.best .dd { color: var(--pumpkin); }
+.mday.instorm .tube { border-color: var(--ice); }
+.stormbar { grid-row: 2; margin-top: 4px; text-align: center; font-family: var(--mono); font-size: 0.74rem; padding: 4px 6px; border-radius: 8px; background: var(--ice-soft); border: 1px solid var(--ice); color: var(--ink); white-space: nowrap; }
+.stormbar b { font-weight: 700; }
 .meterline { margin: 0; font-size: 0.92rem; }
 
 
@@ -1077,10 +1080,11 @@ body:not(.st) .ffk-hold{display:none}
   <section id="st-week" class="st-only">
     <div>
       <h2>Next 7 days</h2>
-      <p class="sub">Expected snow each day in State College (top), the chance of any snow (tube), and the forecast high and low.</p>
+      <p class="sub">Expected snow each day in State College (top and tube), the chance of any snow, and the forecast high and low. Snowy runs are totaled as a storm underneath, in the same NWS snowfall colors as the snow map.</p>
     </div>
     <div class="meter card" id="stMeter"></div>
     <p class="meterline" id="stMeterline"></p>
+    <div id="stLegend"></div>
   </section>
   <section id="sec-week" class="ff-only">
     <div>
@@ -2608,15 +2612,27 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     const wk = (u.week || []).filter((d) => d.date >= u.date).slice(0, 7);
     if (!wk.length) { $("stMeter").innerHTML = '<div class="empty">The 7-day forecast fills in with the next update.</div>'; $("stMeterline").textContent = ""; return; }
     const maxC = Math.max(...wk.map((d) => d.chance || 0));
+    // a storm is a run of days with measurable snow; the gauge fills with each day's inches and the run gets one storm total
+    const storms = []; let cur = null;
+    wk.forEach((d, i) => { const e = d.inches || 0; if (e >= 0.1) { if (cur && cur.end === i - 1) { cur.end = i; cur.sum += e; } else { cur = { start: i, end: i, sum: e }; storms.push(cur); } } });
+    const stormOf = (i) => storms.find((x) => i >= x.start && i <= x.end);
+    const gScale = Math.max(2, ...wk.map((d) => d.inches || 0));
+    // the same NWS snowfall colors as the snow map: the tube and each storm total take the color of their amount
+    const nwsIdx = (x) => { let k = -1; SM_BINS.forEach((b, i) => { if (x >= b) k = i; }); return k; };
+    const nwsCol = (x) => { const k = nwsIdx(x); return k < 0 ? "" : SM_COLS[k]; };
+    const nwsInk = (x) => { const k = nwsIdx(x); return k >= 3 && k <= 4 || k >= 8 ? "#fff" : "#16222e"; };
     $("stMeter").innerHTML = wk.map((d, i) => {
       const w = wx[d.date] || {}, hi = d.hi != null ? d.hi : w.hi, lo = d.lo != null ? d.lo : w.lo, c = d.chance || 0, e = d.inches || 0;
-      return '<div class="mday' + (lo != null && lo < COLD_F ? " coldday" : "") + (c > 0 && c === maxC ? " best" : "") + '"><span class="dn">' + (d.date === todayIso ? "Today" : DOW[parse(d.date).getDay()]) + '</span><span class="dd">' + parse(d.date).getDate() + '</span>' +
+      return '<div class="mday' + (lo != null && lo < COLD_F ? " coldday" : "") + (c > 0 && c === maxC ? " best" : "") + (stormOf(i) ? " instorm" : "") + '"><span class="dn">' + (d.date === todayIso ? "Today" : DOW[parse(d.date).getDay()]) + '</span><span class="dd">' + parse(d.date).getDate() + '</span>' +
         '<span class="amt">' + (e >= 0.05 ? stFmt(e) + '"' : c >= 10 ? "T" : '0"') + '</span>' +
-        '<span class="tube" role="img" aria-label="' + c.toFixed(0) + '% chance of snow"><i style="height:' + Math.min(100, c).toFixed(0) + '%"></i></span><span class="pc">' + c.toFixed(0) + '%</span>' +
+        '<span class="tube" role="img" aria-label="' + stFmt(e) + ' inches expected, ' + c.toFixed(0) + '% chance of snow"><i style="height:' + Math.min(100, e / gScale * 100).toFixed(0) + '%' + (nwsCol(e) ? ';background:' + nwsCol(e) : "") + '"></i></span><span class="pc">' + c.toFixed(0) + '%</span>' +
         '<span class="tmp">' + (hi != null ? '<b>' + hi + '°</b>' : "–") + ' / ' + (lo != null ? '<b>' + lo + '°</b>' : "–") + '</span></div>';
-    }).join("");
+    }).join("") + storms.map((x) => '<div class="stormbar" style="grid-column:' + (x.start + 1) + ' / span ' + (x.end - x.start + 1) + (nwsCol(x.sum) ? ';background:' + nwsCol(x.sum) + ';border-color:' + nwsCol(x.sum) + ';color:' + nwsInk(x.sum) : "") + '">' + (x.end === x.start ? "" : storms.length > 1 ? "Storm " + (storms.indexOf(x) + 1) + ": " : "Storm total: ") + '<b>' + stFmt(x.sum) + ' in</b></div>').join("");
     const sum = wk.reduce((a, d) => a + (d.inches || 0), 0);
-    $("stMeterline").textContent = u.weekline || (sum < 0.1 ? "No measurable snow expected this week." : "About " + stFmt(sum) + " inch" + (sum === 1 ? "" : "es") + " expected over the next 7 days.");
+    const bigS = storms.slice().sort((a, b) => b.sum - a.sum)[0];
+    const sName = (x) => x.start === x.end ? (wk[x.start].date === todayIso ? "today" : DOW[parse(wk[x.start].date).getDay()]) : (DOW[parse(wk[x.start].date).getDay()] + " to " + DOW[parse(wk[x.end].date).getDay()]);
+    $("stLegend").innerHTML = storms.length ? smLegend(SM_BINS, SM_COLS, (x) => x) + '<div class="rsub">Snowfall in inches, NWS colors.</div>' : "";
+    $("stMeterline").textContent = bigS ? ((storms.length > 1 ? "The biggest storm, " : "The storm ") + sName(bigS) + ", could total about " + stFmt(bigS.sum) + " inch" + (stFmt(bigS.sum) === "1" ? "" : "es") + ". " + (sum - bigS.sum >= 0.1 ? "The full week adds up to about " + stFmt(sum) + "." : "")).trim() : u.weekline || (sum < 0.1 ? "No measurable snow expected this week." : "About " + stFmt(sum) + " inch" + (sum === 1 ? "" : "es") + " expected over the next 7 days.");
   }
   function stRace(u, out) {
     const tot = (config && config.totals) || {};
