@@ -3244,7 +3244,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     }
     html += '</div>';
     box.innerHTML = html;
-    wireRadar();
+    wireRadar(); wireSnowmap();
   }
   // Map overlay shared by the radar (and later the snowfall map): state and county lines, towns and a scale bar,
   // drawn on the page so they stay sharp and follow light/dark mode. Same frame as the radar images.
