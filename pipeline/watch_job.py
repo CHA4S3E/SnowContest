@@ -150,6 +150,12 @@ def main():
         log = (out.get("log") or []) + [{"t": now_et, "title": lt, "text": lx}]
         out["log"] = log[-12:]
     save(os.path.join(D_, "watch.json"), out)
+    if out.get("stage") == "ended":
+        try:
+            import watchlib
+            watchlib.archive(D_, out, "flakes")
+        except Exception as e:  # noqa: the library is a nice-to-have; never fail the watch over it
+            print("watch library skipped:", repr(e))
     h = load(os.path.join(D_, "health_watch.json"), {}) or {}
     h.update({"at": now_et, "inputs": health})
     save(os.path.join(D_, "health_watch.json"), h)

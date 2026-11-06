@@ -64,6 +64,12 @@ def run(D):
         w["title"], w["headline"] = "The storm is over", "The watch is over until the next storm."
     w["health"] = health
     save(os.path.join(D, "watch.json"), w)
+    if prev.get("active") and not w.get("active"):
+        try:
+            import watchlib
+            watchlib.archive(D, w, "storm")
+        except Exception as e:  # noqa
+            print("watch library skipped:", repr(e))
     return 0
 
 

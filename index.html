@@ -626,6 +626,26 @@ body.alarm.holding #ffalarm { --spd: .55s; }
 .wneedle .big { font: 800 2.6rem/1 var(--display); }
 .wneedle .dl { font: 600 .8rem/1 var(--mono); }
 .wtrend { width: 100%; height: auto; display: block; }
+.wlib { margin: 0 0 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.wlib > summary { cursor: pointer; padding: 14px 16px; font: 700 1rem var(--display); list-style: none; display: flex; align-items: center; gap: 8px; }
+.wlib > summary::-webkit-details-marker { display: none; }
+.wlib > summary::after { content: "+"; margin-left: auto; font: 700 1.2rem var(--mono); color: var(--muted); }
+.wlib[open] > summary::after { content: "\2212"; }
+.wlibn { font: 500 .75rem var(--mono); color: var(--muted); }
+.wlibbody { display: grid; gap: 8px; padding: 0 12px 12px; }
+.lcard { border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+.lcard > summary { cursor: pointer; padding: 10px 12px; list-style: none; display: grid; gap: 4px; }
+.lcard > summary::-webkit-details-marker { display: none; }
+.lcard .lk { font: 700 .68rem var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ice); }
+.lcard .lk.storm { color: var(--pumpkin); }
+.lcard .lt { font-weight: 700; }
+.lcard .ls { font-size: .85rem; color: var(--muted); }
+.lcard .lbody { padding: 0 12px 12px; display: grid; gap: 10px; }
+.lcard .lchart { background: linear-gradient(160deg, #1d3b78, #3a6fc0); color: #fff; border-radius: 10px; padding: 10px; }
+.lcard .lchart .wlegend { color: rgba(255,255,255,.85); font-size: .75rem; }
+.lcard .lnum { display: flex; flex-wrap: wrap; gap: 6px 14px; font: 600 .82rem var(--mono); }
+.lcard ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: .88rem; }
+.lcard ol time { font: 600 .72rem var(--mono); color: var(--muted); margin-right: 6px; }
 .walerts { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 4px; font-size: .9rem; }
 .wneedle .note { font-size: .78rem; opacity: .85; text-align: center; max-width: 42ch; }
 .wneedle svg.sp { width: 100%; height: 44px; }
@@ -1344,6 +1364,9 @@ body:not(.st) .ffk-hold{display:none}
     </div>
   </section>
 
+  <section id="sec-library" aria-label="Past watches">
+    <details class="wlib" id="wlibBox"><summary>Past watches <span class="wlibn" id="wlibCount"></span></summary><div id="wlib" class="wlibbody"></div></details>
+  </section>
   <footer class="foot">
     <div id="rule"></div>
     <div id="sources"></div>
@@ -2934,7 +2957,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     updates.forEach((x, i) => { const g = groups[groups.length - 1]; if (g && g.k === x.date) g.rows.push([x, i]); else groups.push({ k: x.date, rows: [[x, i]] }); });
     $("log").innerHTML = groups.reverse().map((g) => '<div class="lday">' + g.rows.slice().reverse().map(([x, i]) => logRow(x, i)).join("") + '</div>').join("");
     renderAlerts();
-    renderWatch();
+    renderWatch(); renderLibrary();
   }
   document.addEventListener("click", (e) => {
     const b = e.target.closest("[data-st]");
@@ -3036,7 +3059,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     renderFinal();
     renderCountdown();
     renderMeter();
-    renderWatch();
+    renderWatch(); renderLibrary();
     renderCase();
     renderCalendar(u, out);
     renderTrend(u);
@@ -3179,6 +3202,32 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   function wireSnowmap() {
     const t = $("smTabs"); if (t) t.onclick = (e) => { const b = e.target.closest("button"); if (b) { smView = b.dataset.v; renderWatch(); } };
     const h = $("smThs"); if (h) h.onclick = (e) => { const b = e.target.closest("button"); if (b) { smTh = +b.dataset.t; renderWatch(); } };
+  }
+  // Past watches: a collapsed drawer with every finished live watch (first flakes and season storms)
+  let watchlib = null, libKey = "";
+  function renderLibrary() {
+    const box = $("wlib"); if (!box) return;
+    const rows = (watchlib && watchlib.entries) || [];
+    const key = rows.map((x) => x.id + ":" + (x.end || "")).join("|");
+    if (key === libKey && box.innerHTML) return;
+    libKey = key;
+    $("wlibCount").textContent = rows.length ? "(" + rows.length + ")" : "";
+    if (!rows.length) { box.innerHTML = '<p class="wlegend" style="margin:4px 4px 0">No finished watches yet. Each live watch is saved here when it ends, with how the forecast moved and what happened.</p>'; return; }
+    const stamp = (t) => short(iso(new Date(t))) + ", " + clock(new Date(t));
+    box.innerHTML = rows.map((x) => {
+      const storm = x.kind === "storm", unit = storm ? " in" : "%", f = (v) => (storm ? stFmt(v) : Math.round(v)) + unit;
+      const outcome = storm ? "Final forecast storm total " + f(x.final.v) + (x.final.lo != null ? " (range " + stFmt(x.final.lo) + " to " + stFmt(x.final.hi) + " in)" : "")
+        : x.reported ? "Snow reported at the airport" + (x.reported.time ? " at " + clock(new Date(x.reported.time)) : "") : "No flakes fell; the window passed";
+      const nums = '<span>Peak ' + (storm ? "expected total " : "chance ") + f(x.peak.v) + ", " + esc(clock(new Date(x.peak.t))) + '</span><span>' + (storm ? "Final " : "Final chance ") + f(x.final.v) + '</span>' + (storm && x.maxHourly ? '<span>Heaviest hour ' + stFmt(x.maxHourly) + ' in</span>' : "") + '<span>' + x.checks + ' checks</span>';
+      const chart = watchTrend(x.trend, { ymax: storm ? (m) => Math.max(2, Math.ceil(m / 2) * 2) : (m) => Math.max(20, Math.ceil(m / 10) * 10), fmt: storm ? (v) => stFmt(v) + '"' : (v) => Math.round(v) + "%",
+        label: (storm ? "Expected storm total" : "Chance of first flakes") + " over that watch", empty: "Too few checks to chart.", legend: "Line: " + (storm ? "expected storm total" : "chance of first flakes") + " at each check. Shaded: the likely range." });
+      const log = (x.log || []).filter((e) => e.text || e.title);
+      const al = x.alerts || [];
+      return '<details class="lcard"><summary><span class="lk ' + (storm ? "storm" : "") + '">' + (storm ? "Storm watch" : "First flakes watch") + '</span><span class="lt">' + esc(stamp(x.start)) + (x.end ? " to " + esc(stamp(x.end)) : "") + '</span><span class="ls">' + esc(outcome) + '</span></summary>' +
+        '<div class="lbody"><div class="lchart">' + chart + '</div><div class="lnum">' + nums + '</div>' +
+        (log.length ? '<ol>' + log.slice().reverse().map((e) => '<li>' + (e.t ? '<time>' + esc(clock(new Date(e.t))) + '</time>' : "") + '<b>' + esc(e.title || "") + '</b> ' + esc(e.text || "") + '</li>').join("") + '</ol>' : "") +
+        (al.length ? '<ol>' + al.map((e) => '<li><time>' + esc(clock(new Date(e.t))) + '</time><b>' + esc(e.event) + '</b> ' + esc(e.what) + '</li>').join("") + '</ol>' : "") + '</div></details>';
+    }).join("");
   }
   // Small chart helpers for the watches. Times run left to right, the likely range is shaded, the line is the best estimate.
   function watchTrend(pts, o) {
@@ -4356,6 +4405,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       getJSON("watch.json").then((x) => { watch = x; }),
       getJSON("season.json").then((x) => { season = x; }),
       getJSON("snowmap.json").then((x) => { snowmap = x; }),
+      getJSON("watchlib.json").then((x) => { watchlib = x; }),
       getJSON("seasonfc.json").then((x) => { seasonfc = x; }),
       getJSON("radar.json").then((x) => { radar = x; radarIdx = -1; }),
       getJSON("updates.json").then((x) => { rawUpdates = (x || []).slice().sort(byOrd); })

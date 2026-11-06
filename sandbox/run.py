@@ -181,6 +181,14 @@ check("night names: the low filed under Nov. 7 belongs to tonight (Fri Nov. 6); 
 check("CPC hazards: mountain-only heavy snow does not cover PA", not parse_hazards("\nSlight risk of heavy snow for the central Appalachians, Nov 15-16\n", "2026-11-06")["flags"][0]["covers_pa"])
 check("CPC hazards: heavy snow for Pennsylvania covers PA", parse_hazards("\nSlight risk of heavy snow for Pennsylvania, Nov 15-16\n", "2026-11-06")["flags"][0]["covers_pa"])
 
+import watchlib  # noqa: E402
+_td = tempfile.mkdtemp()
+_nl = [{"t": "2026-12-10T08:00-05:00", "v": 3.0, "lo": 1, "hi": 6}, {"t": "2026-12-10T12:00-05:00", "v": 6.0, "lo": 3, "hi": 10}]
+_w = {"startedAt": "2026-12-10T08:00-05:00", "endedAt": "2026-12-11T06:00-05:00", "needleLog": _nl, "alertLog": [], "hours": [{"inches": 0.6}], "title": "t", "headline": "h"}
+check("watch library: a finished storm is saved once, not twice", watchlib.archive(_td, _w, "storm") and watchlib.archive(_td, _w, "storm") and len(J(_td + "/watchlib.json")["entries"]) == 1)
+check("watch library: peak and final come from the trend", J(_td + "/watchlib.json")["entries"][0]["peak"]["v"] == 6.0 and J(_td + "/watchlib.json")["entries"][0]["kind"] == "storm")
+check("watch library: a watch that never ran live is not saved", not watchlib.archive(_td, {"startedAt": "x"}, "flakes"))
+
 print("\n%d failed" % len(FAILS) if FAILS else "\nALL PASSED")
 print("data dir:", D)
 sys.exit(1 if FAILS else 0)
