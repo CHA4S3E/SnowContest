@@ -5,6 +5,7 @@ forecast, so the color under State College IS the forecast: category and probabi
 Every map shares one basemap (3300x2550), so one pixel does for all of them. A color that matches no legend entry
 returns None and the other readers stand."""
 import io
+import re
 import time
 import urllib.request
 
@@ -107,90 +108,127 @@ def apply(raw, maps):
     return diffs
 
 
-HAZ_MAPS = {"cold": "threats/temp_probhazards_d8_14_contours.png", "snow": "threats/snow_probhazards_d8_14_contours.png"}
-HAZ_PX = (3846, 1343)  # State College on the hazards basemap (4583x3542), checked inside Pennsylvania
-MI_PER_PX = 0.8
+SC = (-77.86, 40.79)  # State College, lon/lat
+HAZ_KML = {"cold": "threats/temp_prob_D8_14.kml", "snow": "threats/snow_prob_D8_14.kml"}
+LEVELS = {"slight": "slight", "moderate": "moderate", "high": "high"}
 
 
-def contour_mask(rgb):
-    """Pixels that are colored contour lines: saturated, low green, not near-black text."""
-    import numpy as np
-    a = rgb.astype(int)
-    sat = a.max(2) - a.min(2)
-    # blue, purple and pink contours all have green well below the ocean cyan (g about 222), whose blended coast edges must not count
-    r, g, b = a[:, :, 0], a[:, :, 1], a[:, :, 2]
-    return (sat > 55) & (g < 205) & (a.max(2) > 60) & ((g - r) < 0.6 * (b - r))  # the last test drops cyan water edges
+def _ring(txt):
+    pts = []
+    for tok in txt.split():
+        v = tok.split(",")
+        if len(v) >= 2:
+            pts.append((float(v[0]), float(v[1])))
+    return pts
 
 
-def hazard_position(im):
-    """(inside, miles_to_nearest_contour) for State College on a hazards contour map. Dotted lines are joined first."""
-    import numpy as np
-    from scipy import ndimage as ndi
-    mask = contour_mask(np.array(im))
-    x, y = HAZ_PX
-    r = 400
-    ys, xs = np.nonzero(mask[max(0, y - r):y + r, max(0, x - r):x + r])
-    miles = None
-    if len(ys):
-        miles = float(np.min(np.hypot(xs + max(0, x - r) - x, ys + max(0, y - r) - y))) * MI_PER_PX
-    closed = ndi.binary_dilation(mask, iterations=9)
-    lab, _ = ndi.label(~closed)
-    l = lab[y, x]
-    if l == 0:
-        return True, 0.0
-    edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]])))
-    return (l not in edge), miles
+def _inside(pt, ring):
+    x, y = pt
+    c = False
+    for i in range(len(ring)):
+        x1, y1 = ring[i]
+        x2, y2 = ring[(i + 1) % len(ring)]
+        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1:
+            c = not c
+    return c
 
 
-def apply_hazards(raw, pos):
-    """Keep each cold/snow flag only if its map puts State College inside (full strength) or within 150 miles (half strength)."""
+def _miles(pt, ring):
+    """Distance in miles from pt to the nearest edge of the ring (flat-earth, fine at this scale)."""
+    import math
+    k = math.cos(math.radians(pt[1])) * 69.17
+    best = 1e9
+    for i in range(len(ring)):
+        ax, ay = (ring[i][0] - pt[0]) * k, (ring[i][1] - pt[1]) * 69.17
+        bx, by = (ring[(i + 1) % len(ring)][0] - pt[0]) * k, (ring[(i + 1) % len(ring)][1] - pt[1]) * 69.17
+        dx, dy = bx - ax, by - ay
+        t = 0 if dx == dy == 0 else max(0, min(1, -(ax * dx + ay * dy) / (dx * dx + dy * dy)))
+        best = min(best, math.hypot(ax + t * dx, ay + t * dy))
+    return best
+
+
+def parse_hazard_kml(txt, kind, today=None):
+    """Flags from one CPC Days 8-14 hazard KML: {kind, level, start, end, inside, miles}. Geometry decides where; labels give level and dates."""
+    out = []
+    for pm in re.findall(r"<Placemark.*?</Placemark>", txt, re.S):
+        name = re.search(r"<name>(.*?)</name>", pm, re.S)
+        name = (name.group(1) if name else "").strip()
+        m = re.match(r"(Slight|Moderate|High) Risk of (.*)", name, re.I)
+        if not m:
+            continue
+        what = m.group(2).lower()
+        if (kind == "cold" and "much below" not in what) or (kind == "snow" and "heavy snow" not in what):
+            continue
+        dm = re.search(r"Start_Date\s*(\d+)/(\d+)/(\d{4})\s*End_Date\s*(\d+)/(\d+)/(\d{4})", re.sub(r"<[^>]+>", " ", pm))
+        if not dm:
+            continue
+        g = [int(x) for x in dm.groups()]
+        start, end = "%d-%02d-%02d" % (g[2], g[0], g[1]), "%d-%02d-%02d" % (g[5], g[3], g[4])
+        inside, miles = False, 1e9
+        for poly in re.findall(r"<Polygon.*?</Polygon>", pm, re.S):
+            outer = re.search(r"<outerBoundaryIs>.*?<coordinates>(.*?)</coordinates>", poly, re.S)
+            if not outer:
+                continue
+            o = _ring(outer.group(1))
+            holes = [_ring(h) for h in re.findall(r"<innerBoundaryIs>.*?<coordinates>(.*?)</coordinates>", poly, re.S)]
+            if o and _inside(SC, o) and not any(_inside(SC, h) for h in holes):
+                inside = True
+            for r in [o] + holes:
+                if r:
+                    miles = min(miles, _miles(SC, r))
+        out.append({"kind": kind, "level": LEVELS[m.group(1).lower()], "start": start, "end": end, "inside": inside, "miles": round(miles) if miles < 1e8 else None})
+    return out
+
+
+def apply_hazards(raw, flags):
+    """CPC's own hazard polygons replace every cold and snow flag the text readers found: inside the polygon is full
+    strength, within 150 miles is half strength, farther is dropped. Returns the changes made."""
     haz = raw.get("haz")
-    diffs = []
-    if not haz:
-        return diffs
-    keep = []
-    for f in haz["flags"]:
-        p = pos.get(f["kind"])
-        if p is None:
-            keep.append(f)
+    if haz is None:
+        return []
+    old = {(f["kind"], f["start"], f["end"]): f for f in haz["flags"] if f["kind"] in ("cold", "snow")}
+    keep, diffs = [], []
+    for f in flags:
+        if not (f["inside"] or (f["miles"] is not None and f["miles"] <= 150)):
+            diffs.append({"what": "hazard dropped", "kind": f["kind"], "start": f["start"], "miles": f["miles"]})
             continue
-        inside, miles = p
-        near = inside or (miles is not None and miles <= 150)
-        if not near:
-            diffs.append({"what": "hazard dropped", "kind": f["kind"], "miles": miles})
-            continue
-        if f.get("covers_pa") != inside:
-            diffs.append({"what": "hazard coverage", "kind": f["kind"], "was": f.get("covers_pa"), "now": inside, "miles": miles})
-        f["covers_pa"] = bool(inside)
-        f["map"] = {"inside": bool(inside), "miles": None if miles is None else round(miles)}
-        keep.append(f)
-    haz["flags"] = keep
+        prev = old.get((f["kind"], f["start"], f["end"]))
+        region = (prev or {}).get("region") or ("an area including State College" if f["inside"] else "an area about %d miles from State College" % f["miles"])
+        keep.append({"kind": f["kind"], "level": f["level"], "start": f["start"], "end": f["end"], "region": region,
+                     "label": "much below normal temperatures" if f["kind"] == "cold" else "heavy snow", "covers_pa": bool(f["inside"]),
+                     "polygon": {"inside": f["inside"], "miles": f["miles"]}})
+    if sorted((k["kind"], k["start"], k["end"], k["covers_pa"]) for k in keep) != sorted((k[0], k[1], k[2], v.get("covers_pa")) for k, v in old.items()):
+        diffs.append({"what": "hazards", "text_readers": sorted(map(str, old)), "polygons": [(k["kind"], k["start"], k["end"], k["covers_pa"]) for k in keep]})
+    haz["flags"] = [f for f in haz["flags"] if f["kind"] not in ("cold", "snow")] + keep
     return diffs
 
 
 def run(raw):
-    name = "CPC outlook maps"
+    import json
+    diffs, maps = [], {}
     try:
         maps = read_all()
-        if not maps:
-            I.note(name, False, "no map could be read")
-            return
-        diffs = apply(raw, maps)
-        try:
-            from PIL import Image
-            pos = {}
-            for k, path in HAZ_MAPS.items():
-                try:
-                    im = Image.open(io.BytesIO(fetch(path))).convert("RGB")
-                    if im.size == (4583, 3542):
-                        pos[k] = hazard_position(im)
-                except Exception as e:  # noqa
-                    I.note("CPC hazard map " + k, False, repr(e)[:100])
-            diffs += apply_hazards(raw, pos)
-        except Exception as e:  # noqa
-            I.note("CPC hazard maps", False, repr(e)[:100])
-        I.note(name, True, "%d of 6 maps read, %d change(s)" % (len(maps), len(diffs)))
-        import json
-        I.DEBUG["https://local/cpc_maps.json"] = json.dumps({"maps": {k: [v[0], None if v[1] is None else BINS[v[1]]] for k, v in maps.items()}, "changes": diffs}, indent=1)
+        if maps:
+            diffs += apply(raw, maps)
+            I.note("CPC outlook maps", True, "%d of 6 maps read" % len(maps))
+        else:
+            I.note("CPC outlook maps", False, "no map could be read")
     except Exception as e:  # noqa
-        I.note(name, False, repr(e)[:200])
+        I.note("CPC outlook maps", False, repr(e)[:200])
+    try:
+        flags, ok = [], True
+        for k, path in HAZ_KML.items():
+            txt = I.get(BASE + path, nocache=True)
+            if "<kml" not in txt:
+                ok = False
+                continue
+            flags += parse_hazard_kml(txt, k)
+        if ok:
+            d = apply_hazards(raw, flags)
+            diffs += d
+            I.note("CPC hazard polygons", True, "%d polygon(s), %d change(s)" % (len(flags), len(d)))
+        else:
+            I.note("CPC hazard polygons", False, "not a KML file")
+    except Exception as e:  # noqa
+        I.note("CPC hazard polygons", False, repr(e)[:100])
+    I.DEBUG["https://local/cpc_maps.json"] = json.dumps({"maps": {k: [v[0], None if v[1] is None else BINS[v[1]]] for k, v in maps.items()}, "changes": diffs}, indent=1, default=str)

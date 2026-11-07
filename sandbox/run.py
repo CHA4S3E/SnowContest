@@ -239,20 +239,18 @@ _rc = {"cpc": {"t610": {"cat": "B", "conf": 3}, "p610": {"cat": "B", "conf": 3},
 cpc_maps.apply(_rc, {"t610": ("N", None), "p610": ("B", 0), "p814": ("B", 1), "t34": ("A", 2)})
 check("CPC maps: the map overrides the prose readers, CPC's own N-out-of-5 confidence is kept", _rc["cpc"]["t610"]["cat"] == "N" and _rc["cpc"]["p610"]["conf"] == 3 and _rc["cpc"]["p814"]["cat"] == "B" and _rc["cpc"]["p814"]["conf"] == 1 and _rc["cpc"]["t814"]["cat"] == "A" and _rc["wk34"]["cat"] == "A")
 
-import math as _math
-from PIL import ImageDraw as _ID
-_im = Image.new("RGB", (4583, 3542), (255, 255, 255)); _dr = _ID.Draw(_im)
-for _i in range(0, 360, 3):
-    _x, _y = 3846 + 250 * _math.cos(_math.radians(_i)), 1343 + 250 * _math.sin(_math.radians(_i)); _dr.ellipse([_x - 6, _y - 6, _x + 6, _y + 6], fill=(116, 177, 255))
-check("hazard map: State College inside a dotted contour is inside", cpc_maps.hazard_position(_im)[0] is True)
-_im2 = Image.new("RGB", (4583, 3542), (255, 255, 255)); _d2 = _ID.Draw(_im2)
-for _i in range(0, 360, 3):
-    _x, _y = 3346 + 250 * _math.cos(_math.radians(_i)), 1343 + 250 * _math.sin(_math.radians(_i)); _d2.ellipse([_x - 6, _y - 6, _x + 6, _y + 6], fill=(116, 177, 255))
-_o = cpc_maps.hazard_position(_im2)
-check("hazard map: a contour 500 px away is outside, with a distance", _o[0] is False and _o[1] is not None and 100 < _o[1] < 300)
-_rh = {"haz": {"flags": [{"kind": "cold", "level": "slight", "start": "a", "end": "b", "covers_pa": True}, {"kind": "snow", "level": "moderate", "start": "a", "end": "b", "covers_pa": True}]}}
-cpc_maps.apply_hazards(_rh, {"cold": (False, 53.0), "snow": (False, 900.0)})
-check("hazard map: nearby but outside is half strength, far away is dropped", [(f["kind"], f["covers_pa"]) for f in _rh["haz"]["flags"]] == [("cold", False)])
+_k = """<kml><Placemark><name>Slight Risk of Much Below Normal Temperatures</name><description>Start_Date 11/14/2026 End_Date 11/15/2026</description><Polygon><outerBoundaryIs><LinearRing><coordinates>-79,40 -76,40 -76,42 -79,42 -79,40</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>
+<Placemark><name>Slight Risk of Much Above Normal Temperatures</name><description>Start_Date 11/14/2026 End_Date 11/15/2026</description><Polygon><outerBoundaryIs><LinearRing><coordinates>-79,40 -76,40 -76,42 -79,42 -79,40</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>
+<Placemark><name>Moderate Risk of Heavy Snow</name><description>Start_Date 11/14/2026 End_Date 11/15/2026</description><Polygon><outerBoundaryIs><LinearRing><coordinates>-124,36 -120,36 -120,42 -124,42 -124,36</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark>
+<Placemark><name>Slight Risk of Much Below Normal Temperatures</name><description>Start_Date 11/16/2026 End_Date 11/17/2026</description><Polygon><outerBoundaryIs><LinearRing><coordinates>-76.5,39 -73,39 -73,41 -76.5,41 -76.5,39</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark></kml>"""
+_fc = cpc_maps.parse_hazard_kml(_k, "cold")
+check("hazard kml: only much-below-normal placemarks count as cold, with dates and inside/near", len(_fc) == 2 and _fc[0]["inside"] is True and _fc[0]["start"] == "2026-11-14" and _fc[1]["inside"] is False and 60 < _fc[1]["miles"] < 80)
+_fs = cpc_maps.parse_hazard_kml(_k, "snow")
+_rh = {"haz": {"flags": [{"kind": "cold", "level": "slight", "start": "2026-11-14", "end": "2026-11-15", "covers_pa": False, "region": "the Ohio Valley"}, {"kind": "wind", "level": "slight", "start": "a", "end": "b", "covers_pa": True}]}}
+cpc_maps.apply_hazards(_rh, _fc + _fs)
+_f = _rh["haz"]["flags"]
+check("hazard kml: polygons replace the text readers, far snow dropped, other kinds stay, quoted region kept",
+      [(x["kind"], x["covers_pa"]) for x in _f] == [("wind", True), ("cold", True), ("cold", False)] and _f[1]["region"] == "the Ohio Valley")
 
 print("\n%d failed" % len(FAILS) if FAILS else "\nALL PASSED")
 print("data dir:", D)
