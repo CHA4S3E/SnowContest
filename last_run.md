@@ -1,8 +1,8 @@
-# 2026-11-07
+# 2026-11-07-pm
 
-First Flakes Nov 7: Braeden leads Meteo at 18.3%; Layla leads Ritner Floor 2 at 34.2%. Median Nov. 20.
+First Flakes Nov 7: Braeden leads Meteo at 28.8%; Layla leads Ritner Floor 2 at 48.5%. Median Nov. 14.
 
-Headline (new): Flakes are back in the forecast for Nov. 13-14; the models agree, and the best day reaches 13%. The median stays put at Nov. 20.
+Headline (new): The first flake threat of the season takes shape around Nov. 12-14, topping out near 25%. The median edges six days earlier to Nov. 14.
 
 ## Input health
 
@@ -11,7 +11,7 @@ Headline (new): Flakes are back in the forecast for Nov. 13-14; the models agree
 - FAIL NAM MOS (no data)
 - OK   LAMP
 - OK   European (Open-Meteo)
-- FAIL RRFS (NOAA) (RuntimeError('oint.py", line 36, in get\n    raise RuntimeError("failed: " + url)\nRuntimeError: failed: https://nomads.ncep.noaa.gov/pub/data/nccf/com/rrfs/prod/rrfs.20261107/06/rrfs.t06z.2dfld.3km.f)
+- OK   RRFS (NOAA)
 - OK   HRRR (NOAA)
 - OK   NWS point forecast
 - OK   NWS alerts
