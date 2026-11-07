@@ -107,6 +107,67 @@ def apply(raw, maps):
     return diffs
 
 
+HAZ_MAPS = {"cold": "threats/temp_probhazards_d8_14_contours.png", "snow": "threats/snow_probhazards_d8_14_contours.png"}
+HAZ_PX = (3846, 1343)  # State College on the hazards basemap (4583x3542), checked inside Pennsylvania
+MI_PER_PX = 0.8
+
+
+def contour_mask(rgb):
+    """Pixels that are colored contour lines: saturated, low green, not near-black text."""
+    import numpy as np
+    a = rgb.astype(int)
+    sat = a.max(2) - a.min(2)
+    # blue, purple and pink contours all have green well below the ocean cyan (g about 222), whose blended coast edges must not count
+    r, g, b = a[:, :, 0], a[:, :, 1], a[:, :, 2]
+    return (sat > 55) & (g < 205) & (a.max(2) > 60) & ((g - r) < 0.6 * (b - r))  # the last test drops cyan water edges
+
+
+def hazard_position(im):
+    """(inside, miles_to_nearest_contour) for State College on a hazards contour map. Dotted lines are joined first."""
+    import numpy as np
+    from scipy import ndimage as ndi
+    mask = contour_mask(np.array(im))
+    x, y = HAZ_PX
+    r = 400
+    ys, xs = np.nonzero(mask[max(0, y - r):y + r, max(0, x - r):x + r])
+    miles = None
+    if len(ys):
+        miles = float(np.min(np.hypot(xs + max(0, x - r) - x, ys + max(0, y - r) - y))) * MI_PER_PX
+    closed = ndi.binary_dilation(mask, iterations=9)
+    lab, _ = ndi.label(~closed)
+    l = lab[y, x]
+    if l == 0:
+        return True, 0.0
+    edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]])))
+    return (l not in edge), miles
+
+
+def apply_hazards(raw, pos):
+    """Keep each cold/snow flag only if its map puts State College inside (full strength) or within 150 miles (half strength)."""
+    haz = raw.get("haz")
+    diffs = []
+    if not haz:
+        return diffs
+    keep = []
+    for f in haz["flags"]:
+        p = pos.get(f["kind"])
+        if p is None:
+            keep.append(f)
+            continue
+        inside, miles = p
+        near = inside or (miles is not None and miles <= 150)
+        if not near:
+            diffs.append({"what": "hazard dropped", "kind": f["kind"], "miles": miles})
+            continue
+        if f.get("covers_pa") != inside:
+            diffs.append({"what": "hazard coverage", "kind": f["kind"], "was": f.get("covers_pa"), "now": inside, "miles": miles})
+        f["covers_pa"] = bool(inside)
+        f["map"] = {"inside": bool(inside), "miles": None if miles is None else round(miles)}
+        keep.append(f)
+    haz["flags"] = keep
+    return diffs
+
+
 def run(raw):
     name = "CPC outlook maps"
     try:
@@ -115,6 +176,19 @@ def run(raw):
             I.note(name, False, "no map could be read")
             return
         diffs = apply(raw, maps)
+        try:
+            from PIL import Image
+            pos = {}
+            for k, path in HAZ_MAPS.items():
+                try:
+                    im = Image.open(io.BytesIO(fetch(path))).convert("RGB")
+                    if im.size == (4583, 3542):
+                        pos[k] = hazard_position(im)
+                except Exception as e:  # noqa
+                    I.note("CPC hazard map " + k, False, repr(e)[:100])
+            diffs += apply_hazards(raw, pos)
+        except Exception as e:  # noqa
+            I.note("CPC hazard maps", False, repr(e)[:100])
         I.note(name, True, "%d of 6 maps read, %d change(s)" % (len(maps), len(diffs)))
         import json
         I.DEBUG["https://local/cpc_maps.json"] = json.dumps({"maps": {k: [v[0], None if v[1] is None else BINS[v[1]]] for k, v in maps.items()}, "changes": diffs}, indent=1)

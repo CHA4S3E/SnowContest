@@ -239,6 +239,21 @@ _rc = {"cpc": {"t610": {"cat": "B", "conf": 3}, "p610": {"cat": "B", "conf": 3},
 cpc_maps.apply(_rc, {"t610": ("N", None), "p610": ("B", 0), "p814": ("B", 1), "t34": ("A", 2)})
 check("CPC maps: the map overrides the prose readers, CPC's own N-out-of-5 confidence is kept", _rc["cpc"]["t610"]["cat"] == "N" and _rc["cpc"]["p610"]["conf"] == 3 and _rc["cpc"]["p814"]["cat"] == "B" and _rc["cpc"]["p814"]["conf"] == 1 and _rc["cpc"]["t814"]["cat"] == "A" and _rc["wk34"]["cat"] == "A")
 
+import math as _math
+from PIL import ImageDraw as _ID
+_im = Image.new("RGB", (4583, 3542), (255, 255, 255)); _dr = _ID.Draw(_im)
+for _i in range(0, 360, 3):
+    _x, _y = 3846 + 250 * _math.cos(_math.radians(_i)), 1343 + 250 * _math.sin(_math.radians(_i)); _dr.ellipse([_x - 6, _y - 6, _x + 6, _y + 6], fill=(116, 177, 255))
+check("hazard map: State College inside a dotted contour is inside", cpc_maps.hazard_position(_im)[0] is True)
+_im2 = Image.new("RGB", (4583, 3542), (255, 255, 255)); _d2 = _ID.Draw(_im2)
+for _i in range(0, 360, 3):
+    _x, _y = 3346 + 250 * _math.cos(_math.radians(_i)), 1343 + 250 * _math.sin(_math.radians(_i)); _d2.ellipse([_x - 6, _y - 6, _x + 6, _y + 6], fill=(116, 177, 255))
+_o = cpc_maps.hazard_position(_im2)
+check("hazard map: a contour 500 px away is outside, with a distance", _o[0] is False and _o[1] is not None and 100 < _o[1] < 300)
+_rh = {"haz": {"flags": [{"kind": "cold", "level": "slight", "start": "a", "end": "b", "covers_pa": True}, {"kind": "snow", "level": "moderate", "start": "a", "end": "b", "covers_pa": True}]}}
+cpc_maps.apply_hazards(_rh, {"cold": (False, 53.0), "snow": (False, 900.0)})
+check("hazard map: nearby but outside is half strength, far away is dropped", [(f["kind"], f["covers_pa"]) for f in _rh["haz"]["flags"]] == [("cold", False)])
+
 print("\n%d failed" % len(FAILS) if FAILS else "\nALL PASSED")
 print("data dir:", D)
 sys.exit(1 if FAILS else 0)
