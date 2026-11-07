@@ -194,7 +194,7 @@ _raw = {"afd": {"snow": "none", "snow_dates": []}, "cpc": {"t610": {"cat": "EC",
         "wk34": {"cat": "EC", "conf": 2}, "haz": {"flags": [], "carried": []}}
 _ai = {"afd_snow": "town", "afd_snow_dates": ["2026-11-13", "2025-01-01", "junk"], "t610": {"cat": "N", "soft": False}, "p610": {"cat": "A", "soft": False}, "t814": {"cat": "A", "soft": False},
        "p814": {"cat": "B", "soft": True}, "t34": {"cat": "A", "soft": False}, "p34": {"cat": "N", "soft": False},
-       "hazards": [{"kind": "cold", "level": "slight", "start": "2026-11-14", "end": "2026-11-15", "covers_pa": False}, {"kind": "snow", "level": "bogus", "start": "2026-11-14", "end": "2026-11-15", "covers_pa": True},
+       "hazards": [{"kind": "cold", "level": "slight", "start": "2026-11-14", "end": "2026-11-15", "covers_pa": False}, {"kind": "snow", "level": "moderate", "start": "2026-11-14", "end": "2026-11-15", "covers_pa": False}, {"kind": "snow", "level": "bogus", "start": "2026-11-14", "end": "2026-11-15", "covers_pa": True},
                    {"kind": "cold", "level": "slight", "start": "2031-01-01", "end": "2031-01-02", "covers_pa": True}]}
 _d = ai_read.merge(_raw, _ai, "2026-11-06")
 check("second reader: fills the afd snow gap, drops bad dates", _raw["afd"]["snow"] == "state" and _raw["afd"]["snow_dates"] == ["2026-11-13"])

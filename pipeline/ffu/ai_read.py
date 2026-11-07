@@ -152,9 +152,11 @@ def merge(raw, ai, today):
             s_, e_ = _date(h.get("start"), today, 0, 21), _date(h.get("end"), today, 0, 21)
             if not s_ or not e_ or e_ < s_ or h.get("kind") not in ("cold", "snow") or h.get("level") not in ("slight", "moderate", "high"):
                 continue
+            if h["kind"] == "snow" and not h.get("covers_pa"):
+                continue  # heavy snow somewhere else is not a hazard for this pool
             good.append({"kind": h["kind"], "level": h["level"], "start": s_, "end": e_, "region": str(h.get("region") or "").strip()[:140] or "the area CPC names",
                          "label": "much below normal temperatures" if h["kind"] == "cold" else "heavy snow", "covers_pa": bool(h.get("covers_pa"))})
-        old = [f for f in haz["flags"] if f["kind"] in ("cold", "snow")]
+        old = [f for f in haz["flags"] if f["kind"] in ("cold", "snow") and (f["kind"] == "cold" or f["covers_pa"])]
         key = lambda f: (f["kind"], f["start"], f["end"], f["covers_pa"])
         if sorted(map(key, old)) != sorted(map(key, good)):
             diffs.append({"what": "hazards", "parser": [key(f) for f in old], "ai": [key(f) for f in good]})
