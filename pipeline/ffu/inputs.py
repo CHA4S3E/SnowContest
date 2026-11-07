@@ -831,6 +831,8 @@ def gather(today):
     try:
         from . import ai_read
         ai_read.run(raw, afd_text[0] if afd_text else "", today)
+        from . import cpc_maps  # the maps are CPC's own forecast, so they outrank both readers of the prose
+        cpc_maps.run(raw)
     except Exception as e:  # noqa
         note("Second reader (Gemini)", False, repr(e)[:200])
     return raw, HEALTH
