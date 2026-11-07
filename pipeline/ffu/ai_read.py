@@ -12,7 +12,7 @@ import urllib.request
 
 from . import inputs as I
 
-MODELS = [m.strip() for m in os.environ.get("GEMINI_MODELS", "gemini-3.5-flash,gemini-2.5-flash,gemini-2.5-flash-lite").split(",") if m.strip()]
+MODELS = [m.strip() for m in os.environ.get("GEMINI_MODELS", "gemini-3.5-flash,gemini-3.6-flash,gemini-3.5-flash-lite").split(",") if m.strip()]
 CATS = ["A", "N", "B", "EC"]
 _CAT = {"type": "OBJECT", "properties": {"cat": {"type": "STRING", "enum": CATS}, "soft": {"type": "BOOLEAN"}}, "required": ["cat", "soft"]}
 SCHEMA = {"type": "OBJECT", "properties": {
@@ -99,7 +99,7 @@ def call(prompt, key, models=None, post=None):
 
 def _post(url, body, key):
     req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"Content-Type": "application/json", "x-goog-api-key": key, "User-Agent": I.UA})
-    with urllib.request.urlopen(req, timeout=90) as r:
+    with urllib.request.urlopen(req, timeout=60) as r:
         return json.loads(r.read().decode())
 
 
