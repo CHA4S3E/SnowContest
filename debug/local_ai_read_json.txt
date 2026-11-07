@@ -1,0 +1,83 @@
+{
+ "model": "gemini-3.5-flash-lite",
+ "answer": {
+  "afd_snow": "elevation_only",
+  "afd_snow_dates": [],
+  "t610": {
+   "cat": "N",
+   "soft": true
+  },
+  "p610": {
+   "cat": "B",
+   "soft": true
+  },
+  "t814": {
+   "cat": "N",
+   "soft": false
+  },
+  "p814": {
+   "cat": "B",
+   "soft": false
+  },
+  "t34": {
+   "cat": "A",
+   "soft": false
+  },
+  "p34": {
+   "cat": "A",
+   "soft": false
+  },
+  "hazards": [
+   {
+    "kind": "cold",
+    "level": "slight",
+    "start": "2026-11-14",
+    "end": "2026-11-15",
+    "covers_pa": true,
+    "region": "portions of the Ohio and Tennessee Valleys, Southeast, and along the Mid-Atlantic Coastal Plain"
+   }
+  ]
+ },
+ "changes": [
+  {
+   "what": "afd snow",
+   "parser": [
+    "none",
+    []
+   ],
+   "ai": [
+    "elev",
+    []
+   ]
+  },
+  {
+   "what": "t610",
+   "parser": "B",
+   "ai": "N"
+  },
+  {
+   "what": "t814",
+   "parser": "A",
+   "ai": "N"
+  },
+  {
+   "what": "hazards",
+   "parser": [
+    [
+     "cold",
+     "2026-11-14",
+     "2026-11-15",
+     false
+    ]
+   ],
+   "ai": [
+    [
+     "cold",
+     "2026-11-14",
+     "2026-11-15",
+     true
+    ]
+   ]
+  }
+ ]
+}

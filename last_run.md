@@ -1,8 +1,8 @@
 # 2026-11-06-pm
 
-First Flakes Nov 6: Aidan leads Meteo at 20.8%; Anna leads Ritner Floor 2 at 38.6%. Median Nov. 22.
+First Flakes Nov 6: Braeden leads Meteo at 15.3%; Layla leads Ritner Floor 2 at 27.2%. Median Nov. 20.
 
-Headline (new): Snow shows up in the long-range blend for next Friday, with the best day near 8%. Meanwhile the median moves a day later, to Nov. 22.
+Headline (new): Snow appears in the forecast for the first time, around next Friday, with a peak near 11%. Overall the median moves a day earlier, settling on Nov. 20.
 
 ## Input health
 
@@ -24,3 +24,9 @@ Headline (new): Snow shows up in the long-range blend for next Friday, with the 
 - OK   Fall warmth (ACIS)
 - OK   AO / NAO / PNA
 - OK   Dry streak (ACIS)
+- OK   Second reader (Gemini)
+- OK   CPC outlook maps
+
+## Notes
+
+- factor NWS forecasters lint ['banned:\\(\\)']
