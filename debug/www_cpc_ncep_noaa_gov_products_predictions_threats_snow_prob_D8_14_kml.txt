@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.opengis.net/kml/2.2 http://schemas.opengis.net/kml/2.2.0/ogckml22.xsd http://www.google.com/kml/ext/2.2 http://code.google.com/apis/kml/schema/kml22gx.xsd">
+<Document id="O:\production\hazards\haf\ops\library\layer_files\probabilistic\Snow_KMZ.lyrx">
+  <name>O:\production\hazards\haf\ops\library\layer_files\probabilistic\Snow_KMZ.lyrx</name>
+  <snippet></snippet>
+  <description><![CDATA[O:\production\hazards\haf\ops\library\layer_files\probabilistic\Snow_KMZ.lyrx]]></description>
+  <Folder id="GroupLayer0">
+    <name>O:\production\hazards\haf\ops\library\layer_files\probabilistic\Snow_KMZ.lyrx</name>
+    <snippet></snippet>
+    <description><![CDATA[O:\production\hazards\haf\ops\library\layer_files\probabilistic\Snow_KMZ.lyrx]]></description>
+  <Folder id="FeatureLayer1">
+    <name>Snow</name>
+    <snippet></snippet>
+    <description><![CDATA[Snow_KMZ_Generation]]></description>
+    <Placemark id="ID_10000">
+      <name>Moderate Risk of Heavy Snow</name>
+      <snippet></snippet>
+      <description><![CDATA[<html xmlns:fo="http://www.w3.org/1999/XSL/Format" xmlns:msxsl="urn:schemas-microsoft-com:xslt">
+<head>
+<META http-equiv="Content-Type" content="text/html">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+</head>
+<body style="margin:0px 0px 0px 0px;overflow:auto;background:#FFFFFF;">
+<table style="font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-collapse:collapse;padding:3px 3px 3px 3px">
+<tr style="text-align:center;font-weight:bold;background:#9CBCE2">
+<td>Moderate Risk of Heavy Snow</td>
+</tr>
+<tr>
+<td>
+<table style="font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px">
+<tr>
+<td>FID</td>
+<td>0</td>
+</tr>
+<tr bgcolor="#D4E4F3">
+<td>Label</td>
+<td>Moderate Risk of Heavy Snow</td>
+</tr>
+<tr>
+<td>Start_Date</td>
+<td>11/14/2026</td>
+</tr>
+<tr bgcolor="#D4E4F3">
+<td>End_Date</td>
+<td>11/15/2026</td>
+</tr>
+<tr>
+<td>Start_Dt2</td>
+<td>&lt;Null&gt;</td>
+</tr>
+<tr bgcolor="#D4E4F3">
+<td>End_Dt2</td>
+<td>&lt;Null&gt;</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body><script type="text/javascript">
+				function changeImage(attElement, nameElement) {
+				document.getElementById('imageAttachment').src = attElement;
+				document.getElementById('imageName').innerHTML = nameElement;}
+			</script></html>
+]]></description>
+      <styleUrl>#PolyStyle10</styleUrl>
+      <MultiGeometry>
+        <Polygon>
+          <extrude>0</extrude><altitudeMode>clampToGround</altitudeMode>
+          <outerBoundaryIs><LinearRing><coordinates> -121.1482192694781,41.59555051350118,0 -121.342418451058,41.79026352387229,0 -121.5513857578007,41.96484282868622,0 -121.960469159169,42.09481090214342,0 -122.3447060503881,42.25529841280241,0 -122.7198131307924,42.18258357217752,0 -122.9821934520167,41.96999005294638,0 -123.2337175293252,41.74288254949841,0 -123.3842141838709,41.44251411587542,0 -123.4671353510595,41.18908267561242,0 -123.4705105271226,40.85145999851352,0 -123.4073675131041,40.59943325202902,0 -123.3107835793786,40.22513207125888,0 -123.1982866563726,39.96449715675231,0 -122.7655160130808,40.02267038162435,0 -122.7783043901736,40.24361058934593,0 -122.8282745991624,40.55835204519776,0 -122.7237038627524,40.83711830142276,0 -122.4261284425767,41.00824455007755,0 -122.0971378444219,41.00109352160318,0 -121.8853534144274,40.87621668536154,0 -121.6981796877109,40.52810208660792,0 -121.5636445643623,40.20178162941655,0 -120.7704787250752,39.21397888088383,0 -120.2223879667748,38.44381555904473,0 -119.6138247823325,37.65329277572789,0 -119.0707497236117,36.72082194832687,0 -118.9292778429245,36.55742860544588,0 -118.5471039887576,36.45800677402725,0 -118.3028991840203,36.73188035683281,0 -118.471985914199,37.1710235595168,0 -118.6931313733523,37.62841277338937,0 -119.1450775810115,38.31843267740577,0 -119.6035530326961,38.8514562853533,0 -120.2075498797555,39.98499259772915,0 -120.9050085846419,41.10158961282188,0 -121.1482192694781,41.59555051350118,0</coordinates></LinearRing></outerBoundaryIs>
+        </Polygon>
+      </MultiGeometry>
+    </Placemark>
+    <Placemark id="ID_10001">
+      <name>Slight Risk of Heavy Snow</name>
+      <snippet></snippet>
+      <description><![CDATA[<html xmlns:fo="http://www.w3.org/1999/XSL/Format" xmlns:msxsl="urn:schemas-microsoft-com:xslt">
+<head>
+<META http-equiv="Content-Type" content="text/html">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+</head>
+<body style="margin:0px 0px 0px 0px;overflow:auto;background:#FFFFFF;">
+<table style="font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-collapse:collapse;padding:3px 3px 3px 3px">
+<tr style="text-align:center;font-weight:bold;background:#9CBCE2">
+<td>Slight Risk of Heavy Snow</td>
+</tr>
+<tr>
+<td>
+<table style="font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px">
+<tr>
+<td>FID</td>
+<td>1</td>
+</tr>
+<tr bgcolor="#D4E4F3">
+<td>Label</td>
+<td>Slight Risk of Heavy Snow</td>
+</tr>
+<tr>
+<td>Start_Date</td>
+<td>11/14/2026</td>
+</tr>
+<tr bgcolor="#D4E4F3">
+<td>End_Date</td>
+<td>11/17/2026</td>
+</tr>
+<tr>
+<td>Start_Dt2</td>
+<td>&lt;Null&gt;</td>
+</tr>
+<tr bgcolor="#D4E4F3">
+<td>End_Dt2</td>
+<td>&lt;Null&gt;</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body><script type="text/javascript">
+				function changeImage(attElement, nameElement) {
+				document.getElementById('imageAttachment').src = attElement;
+				document.getElementById('imageName').innerHTML = nameElement;}
+			</script></html>
+]]></description>
+      <styleUrl>#PolyStyle11</styleUrl>
+      <MultiGeometry>
+        <Polygon>
+          <extrude>0</extrude><altitudeMode>clampToGround</altitudeMode>
+          <outerBoundaryIs><LinearRing><coordinates> -121.186347602748,43.18538201918126,0 -120.9278095284414,45.68541995868313,0 -119.7600482155552,48.16815092173689,0 -119.399770778324,49.00250139079214,0 -120.2177224647756,49.00273043905813,0 -120.8559645014896,48.99940294190703,0 -121.2178462816821,49.00150088129053,0 -121.6500034982155,49.00271159593635,0 -121.6467871010463,48.94429622895664,0 -121.6410915714181,48.26948237417929,0 -121.8292182094096,47.6701545072531,0 -121.9978542541226,47.0478809705108,0 -122.2744790937202,45.98314424291388,0 -122.3516108107418,44.93992599646499,0 -122.4942417189477,44.03092998326677,0 -122.6313757335941,43.07138936141004,0 -122.7309883140915,42.5709885814172,0 -122.8810515462221,42.31525840310106,0 -123.039966021463,42.15702794486251,0 -123.4084039730215,41.77772040433169,0 -123.6183903670821,41.23351924595372,0 -123.6016593614387,40.66251924493928,0 -123.3304703910301,39.98742962416316,0 -123.087947071008,39.79139305932382,0 -122.6607439593446,39.95569744883106,0 -122.6919044122841,40.28768429258727,0 -122.6991192272449,40.59981576907339,0 -122.6025388894344,40.77711563895467,0 -122.1844496140009,40.90143779773972,0 -121.9671964313974,40.80408245878277,0 -121.8452082047204,40.58048710348653,0 -121.7194630223486,40.30025173494283,0 -121.4976555730102,39.89257219038735,0 -121.0775658585135,39.36813417900301,0 -120.2846571357112,38.31405022950024,0 -119.8293092601779,37.71191647418991,0 -119.3206983796513,37.0381774610794,0 -118.9486772815024,36.30005523050546,0 -118.8497531103614,35.8745559548848,0 -118.7597633095566,35.57344513365006,0 -118.4738190897693,35.35807341704568,0 -118.2275812215535,35.3731324677259,0 -118.0075536411506,35.41629714912223,0 -117.8536670893259,35.64053463302724,0 -117.9892421834926,36.2669571314005,0 -118.3933797349391,37.27079275039635,0 -119.1033368932511,38.48577693514489,0 -119.5994097666637,39.19793126704774,0 -120.0381081927939,39.98368542418629,0 -120.395599139761,40.67691851621962,0 -120.8985012946967,41.72902708395347,0 -121.186347602748,43.18538201918126,0</coordinates></LinearRing></outerBoundaryIs>
+          <innerBoundaryIs><LinearRing><coordinates> -121.1482192694781,41.59555051350118,0 -120.9050085846419,41.10158961282188,0 -120.2075498797555,39.98499259772915,0 -119.6035530326961,38.8514562853533,0 -119.1450775810115,38.31843267740577,0 -118.6931313733523,37.62841277338937,0 -118.471985914199,37.1710235595168,0 -118.3028991840203,36.73188035683281,0 -118.5471039887576,36.45800677402725,0 -118.9292778429245,36.55742860544588,0 -119.0707497236117,36.72082194832687,0 -119.6138247823325,37.65329277572789,0 -120.2223879667748,38.44381555904473,0 -120.7704787250752,39.21397888088383,0 -121.5636445643623,40.20178162941655,0 -121.6981796877109,40.52810208660792,0 -121.8853534144274,40.87621668536154,0 -122.0971378444219,41.00109352160318,0 -122.4261284425767,41.00824455007755,0 -122.7237038627524,40.83711830142276,0 -122.8282745991624,40.55835204519776,0 -122.7783043901736,40.24361058934593,0 -122.7655160130808,40.02267038162435,0 -123.1982866563726,39.96449715675231,0 -123.3107835793786,40.22513207125888,0 -123.4073675131041,40.59943325202902,0 -123.4705105271226,40.85145999851352,0 -123.4671353510595,41.18908267561242,0 -123.3842141838709,41.44251411587542,0 -123.2337175293252,41.74288254949841,0 -122.9821934520167,41.96999005294638,0 -122.7198131307924,42.18258357217752,0 -122.3447060503881,42.25529841280241,0 -121.960469159169,42.09481090214342,0 -121.5513857578007,41.96484282868622,0 -121.342418451058,41.79026352387229,0 -121.1482192694781,41.59555051350118,0</coordinates></LinearRing></innerBoundaryIs>
+        </Polygon>
+      </MultiGeometry>
+    </Placemark>
+    <Placemark id="ID_10002">
+      <name>Slight Risk of Heavy Snow</name>
+      <snippet></snippet>
+      <description><![CDATA[<html xmlns:fo="http://www.w3.org/1999/XSL/Format" xmlns:msxsl="urn:schemas-microsoft-com:xslt">
+<head>
+<META http-equiv="Content-Type" content="text/html">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+</head>
+<body style="margin:0px 0px 0px 0px;overflow:auto;background:#FFFFFF;">
+<table style="font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-collapse:collapse;padding:3px 3px 3px 3px">
+<tr style="text-align:center;font-weight:bold;background:#9CBCE2">
+<td>Slight Risk of Heavy Snow</td>
+</tr>
+<tr>
+<td>
+<table style="font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px">
+<tr>
+<td>FID</td>
+<td>2</td>
+</tr>
+<tr bgcolor="#D4E4F3">
+<td>Label</td>
+<td>Slight Risk of Heavy Snow</td>
+</tr>
+<tr>
+<td>Start_Date</td>
+<td>11/14/2026</td>
+</tr>
+<tr bgcolor="#D4E4F3">
+<td>End_Date</td>
+<td>11/17/2026</td>
+</tr>
+<tr>
+<td>Start_Dt2</td>
+<td>&lt;Null&gt;</td>
+</tr>
+<tr bgcolor="#D4E4F3">
+<td>End_Dt2</td>
+<td>&lt;Null&gt;</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body><script type="text/javascript">
+				function changeImage(attElement, nameElement) {
+				document.getElementById('imageAttachment').src = attElement;
+				document.getElementById('imageName').innerHTML = nameElement;}
+			</script></html>
+]]></description>
+      <styleUrl>#PolyStyle11</styleUrl>
+      <MultiGeometry>
+        <Polygon>
+          <extrude>0</extrude><altitudeMode>clampToGround</altitudeMode>
+          <outerBoundaryIs><LinearRing><coordinates> -108.2576067212383,45.19422692213044,0 -110.3540057570643,46.12253066633946,0 -111.335727411113,46.57094798713974,0 -112.4046447076645,47.48008443470113,0 -113.4856162497576,48.54602961381853,0 -113.921443066662,49.00041794357028,0 -114.0624624041894,48.99949536626194,0 -114.7283143690696,48.9994935567079,0 -115.364173926387,49.00116420957428,0 -116.0625008741214,48.99948410801807,0 -117.0310051518043,48.99947276760782,0 -117.158980865966,48.99960420424172,0 -116.8926763329641,48.44335935547591,0 -116.5624650591609,47.75820979669578,0 -116.4163668303035,47.04745614662027,0 -116.2673937544083,46.41994885266681,0 -116.2892783237518,45.64308018592762,0 -116.4527469639849,44.74049268852293,0 -116.3988968508328,44.01403467296731,0 -115.7683113511447,43.49425392559547,0 -115.1279804355718,43.12023313086081,0 -114.2504784333138,43.27564943559606,0 -113.4328423626802,43.58392754841441,0 -112.7934765252686,43.94914685833756,0 -112.0733999583099,44.23532095425874,0 -111.710855159937,44.26147907472747,0 -111.3742619044163,44.05735893517511,0 -111.1752970650976,43.76534830708289,0 -111.3388857755397,43.28970629762266,0 -111.8573183478808,42.7181337495494,0 -112.1114282109876,42.14929111609342,0 -111.9601891914421,41.22813245205845,0 -111.7864397899534,40.45534593418709,0 -111.8091457277807,39.55704375549985,0 -112.5291528932442,38.55742342082164,0 -112.8910314150447,37.97149049521511,0 -112.8135441866785,37.70999073459353,0 -112.2822472187115,37.25341874841286,0 -111.4303429114186,37.14324879076693,0 -110.1479970687295,37.07026116662982,0 -108.542198624345,37.05158725839257,0 -107.0513080257252,37.10463850428806,0 -106.1701988392871,37.3281702815168,0 -105.5098031817024,37.7593674124124,0 -105.0008446038819,38.22003336247253,0 -104.8359124144197,39.11634815462784,0 -104.8134346329564,40.50176966030455,0 -105.3461989812696,41.92221911308539,0 -106.3538219289804,43.5824759712219,0 -107.0715052732306,44.34470245380027,0 -108.2576067212383,45.19422692213044,0</coordinates></LinearRing></outerBoundaryIs>
+        </Polygon>
+      </MultiGeometry>
+    </Placemark>
+  </Folder>
+  </Folder>
+  <Style id="PolyStyle10">
+    <LabelStyle>
+      <color>00000000</color>
+      <scale>0.000000</scale>
+    </LabelStyle>
+    <LineStyle>
+      <color>b2000000</color>
+      <width>1.000000</width>
+    </LineStyle>
+    <PolyStyle>
+      <color>b2b665ff</color>
+      <outline>1</outline>
+    </PolyStyle>
+  </Style>
+  <Style id="PolyStyle11">
+    <LabelStyle>
+      <color>00000000</color>
+      <scale>0.000000</scale>
+    </LabelStyle>
+    <LineStyle>
+      <color>b2000000</color>
+      <width>1.000000</width>
+    </LineStyle>
+    <PolyStyle>
+      <color>b2f021a1</color>
+      <outline>1</outline>
+    </PolyStyle>
+  </Style>
+</Document>
+</kml>

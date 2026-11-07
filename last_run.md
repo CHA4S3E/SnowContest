@@ -1,8 +1,8 @@
-# 2026-11-06-pm
+# 2026-11-07
 
-First Flakes Nov 6: Braeden leads Meteo at 15.3%; Layla leads Ritner Floor 2 at 27.2%. Median Nov. 20.
+First Flakes Nov 7: Braeden leads Meteo at 18.3%; Layla leads Ritner Floor 2 at 34.2%. Median Nov. 20.
 
-Headline (new): Snow appears in the forecast for the first time, around next Friday, with a peak near 11%. Overall the median moves a day earlier, settling on Nov. 20.
+Headline (new): Flakes are back in the forecast for Nov. 13-14; the models agree, and the best day reaches 13%. The median stays put at Nov. 20.
 
 ## Input health
 
@@ -11,7 +11,7 @@ Headline (new): Snow appears in the forecast for the first time, around next Fri
 - FAIL NAM MOS (no data)
 - OK   LAMP
 - OK   European (Open-Meteo)
-- OK   RRFS (NOAA)
+- FAIL RRFS (NOAA) (RuntimeError('oint.py", line 36, in get\n    raise RuntimeError("failed: " + url)\nRuntimeError: failed: https://nomads.ncep.noaa.gov/pub/data/nccf/com/rrfs/prod/rrfs.20261107/06/rrfs.t06z.2dfld.3km.f)
 - OK   HRRR (NOAA)
 - OK   NWS point forecast
 - OK   NWS alerts
@@ -26,7 +26,4 @@ Headline (new): Snow appears in the forecast for the first time, around next Fri
 - OK   Dry streak (ACIS)
 - OK   Second reader (Gemini)
 - OK   CPC outlook maps
-
-## Notes
-
-- factor NWS forecasters lint ['banned:\\(\\)']
+- OK   CPC hazard polygons

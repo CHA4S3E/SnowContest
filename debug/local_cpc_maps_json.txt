@@ -27,9 +27,32 @@
  },
  "changes": [
   {
-   "what": "t814",
-   "before": "N",
-   "map": "A"
+   "what": "t610",
+   "before": "B",
+   "map": "N"
+  },
+  {
+   "what": "p814",
+   "before": "EC",
+   "map": "B"
+  },
+  {
+   "what": "hazard dropped",
+   "kind": "snow",
+   "start": "2026-11-14",
+   "miles": 2136
+  },
+  {
+   "what": "hazard dropped",
+   "kind": "snow",
+   "start": "2026-11-14",
+   "miles": 2124
+  },
+  {
+   "what": "hazard dropped",
+   "kind": "snow",
+   "start": "2026-11-14",
+   "miles": 1412
   }
  ]
 }
