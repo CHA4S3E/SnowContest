@@ -22,8 +22,8 @@ SCHEMA = {"type": "OBJECT", "properties": {
     "hazards": {"type": "ARRAY", "items": {"type": "OBJECT", "properties": {
         "kind": {"type": "STRING", "enum": ["cold", "snow"]},
         "level": {"type": "STRING", "enum": ["slight", "moderate", "high"]},
-        "start": {"type": "STRING"}, "end": {"type": "STRING"}, "covers_pa": {"type": "BOOLEAN"}},
-        "required": ["kind", "level", "start", "end", "covers_pa"]}}},
+        "start": {"type": "STRING"}, "end": {"type": "STRING"}, "covers_pa": {"type": "BOOLEAN"}, "region": {"type": "STRING"}},
+        "required": ["kind", "level", "start", "end", "covers_pa", "region"]}}},
     "required": ["afd_snow", "afd_snow_dates", "t610", "p610", "t814", "p814", "t34", "p34", "hazards"]}
 
 PROMPT = """You read National Weather Service text for State College, Pennsylvania (Centre County, central PA, ridge-and-valley terrain). Answer in the JSON format given, using ONLY the text below. Do not guess: if the text does not say, use "none", "EC" or an empty list. Today is %(weekday)s %(today)s (year %(year)s). Turn weekday names and "Saturday night" style phrases into calendar dates (YYYY-MM-DD) counted forward from today.
@@ -33,7 +33,7 @@ afd_snow: read the forecast discussion. "town" = it says snow, snow showers, flu
 t610, p610, t814, p814: the CPC 6-10 day and 8-14 day outlooks, temperature (t) and precipitation (p), for central Pennsylvania. A = above normal, B = below normal, N = near normal, EC = equal chances. Pick the category of the region that contains central PA (for example the Northeast, East, Mid-Atlantic, Great Lakes and Northeast, or "the eastern third of the CONUS"). If the text only describes other regions, answer EC. soft = true when the wording for PA is hedged, such as "near to below normal", "slightly favored" or "weak signal".
 t34, p34: the same for the week 3-4 outlook.
 
-hazards: from the CPC hazards outlook list, include only (a) kind "cold": risks of much below normal temperatures, and (b) kind "snow": heavy snow risks. Give level (slight, moderate or high), start and end dates (YYYY-MM-DD), and covers_pa: true only if Pennsylvania is inside the named region (it names Pennsylvania, the Northeast, the Mid-Atlantic as a whole, or the central or northern Appalachians). False if the region is only a coastal plain, the Southeast, the Tennessee Valley, the southern Ohio Valley, the West, or a mountain range far from PA. Leave out wind, rain, heat and everything else. If there are none, return [].
+hazards: from the CPC hazards outlook list, include only (a) kind "cold": risks of much below normal temperatures, and (b) kind "snow": heavy snow risks. Give level (slight, moderate or high), start and end dates (YYYY-MM-DD), and region: the area CPC names, copied in a few words (for example "the Ohio and Tennessee Valleys, Southeast and Mid-Atlantic Coastal Plain"); covers_pa: true only if Pennsylvania is inside the named region (it names Pennsylvania, the Northeast, the Mid-Atlantic as a whole, or the central or northern Appalachians). False if the region is only a coastal plain, the Southeast, the Tennessee Valley, the southern Ohio Valley, the West, or a mountain range far from PA. Leave out wind, rain, heat and everything else. If there are none, return [].
 
 === NWS STATE COLLEGE FORECAST DISCUSSION ===
 %(afd)s
@@ -135,8 +135,7 @@ def merge(raw, ai, today):
             return
         if d.get("cat") != a["cat"]:
             diffs.append({"what": key, "parser": d.get("cat"), "ai": a["cat"]})
-        d["cat"] = a["cat"]
-        d["conf"] = 1 if a.get("soft") and a["cat"] != "EC" else max(d.get("conf", 2), 2)
+        d["cat"] = a["cat"]  # the confidence stays CPC's own "N out of 5" for the period
     cpc = raw.get("cpc") or {}
     for k in ("t610", "p610", "t814", "p814"):
         fill(cpc.get(k), k, k)
@@ -153,7 +152,7 @@ def merge(raw, ai, today):
             s_, e_ = _date(h.get("start"), today, 0, 21), _date(h.get("end"), today, 0, 21)
             if not s_ or not e_ or e_ < s_ or h.get("kind") not in ("cold", "snow") or h.get("level") not in ("slight", "moderate", "high"):
                 continue
-            good.append({"kind": h["kind"], "level": h["level"], "start": s_, "end": e_, "region": "read by the second reader",
+            good.append({"kind": h["kind"], "level": h["level"], "start": s_, "end": e_, "region": str(h.get("region") or "").strip()[:140] or "the area CPC names",
                          "label": "much below normal temperatures" if h["kind"] == "cold" else "heavy snow", "covers_pa": bool(h.get("covers_pa"))})
         old = [f for f in haz["flags"] if f["kind"] in ("cold", "snow")]
         key = lambda f: (f["kind"], f["start"], f["end"], f["covers_pa"])

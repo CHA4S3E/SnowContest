@@ -233,7 +233,7 @@ check("CPC maps: white is equal chances, orange 50-60 is above", cpc_maps.classi
 check("CPC maps: a color in no legend gives no answer", cpc_maps.classify((10, 200, 220), "p") is None)
 _rc = {"cpc": {"t610": {"cat": "B", "conf": 3}, "p610": {"cat": "B", "conf": 3}, "t814": {"cat": "A", "conf": 3}, "p814": {"cat": "EC", "conf": 1}}, "wk34": {"cat": "EC", "conf": 2}}
 cpc_maps.apply(_rc, {"t610": ("N", None), "p610": ("B", 0), "p814": ("B", 1), "t34": ("A", 2)})
-check("CPC maps: the map overrides the prose readers, leaning bins are soft", _rc["cpc"]["t610"]["cat"] == "N" and _rc["cpc"]["p610"]["conf"] == 1 and _rc["cpc"]["p814"]["cat"] == "B" and _rc["cpc"]["p814"]["conf"] == 1 and _rc["cpc"]["t814"]["cat"] == "A" and _rc["wk34"]["cat"] == "A")
+check("CPC maps: the map overrides the prose readers, CPC's own N-out-of-5 confidence is kept", _rc["cpc"]["t610"]["cat"] == "N" and _rc["cpc"]["p610"]["conf"] == 3 and _rc["cpc"]["p814"]["cat"] == "B" and _rc["cpc"]["p814"]["conf"] == 1 and _rc["cpc"]["t814"]["cat"] == "A" and _rc["wk34"]["cat"] == "A")
 
 print("\n%d failed" % len(FAILS) if FAILS else "\nALL PASSED")
 print("data dir:", D)

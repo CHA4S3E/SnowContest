@@ -551,7 +551,7 @@ def cpc_windows(today):
         for name, word in (("t", "temperature"), ("p", "precipitation")):
             r = prose_category(sec, word)
             cat, soft = r if r else ("EC", True)
-            out[name + k] = {"start": dates[k][0], "end": dates[k][1], "issued": issued, "cat": cat, "conf": 1 if soft and cat != "EC" else conf}
+            out[name + k] = {"start": dates[k][0], "end": dates[k][1], "issued": issued, "cat": cat, "conf": conf}
     return out if len(out) == 4 else None
 
 

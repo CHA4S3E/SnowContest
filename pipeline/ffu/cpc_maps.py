@@ -86,7 +86,7 @@ def read_all(fetcher=fetch):
 
 
 def apply(raw, maps):
-    """The map's category wins. Leaning bins (33-50 percent) count as soft. Returns the changes made."""
+    """The map's category wins; the confidence stays CPC's own "N out of 5" for the period. Returns the changes made."""
     diffs = []
     cpc = raw.get("cpc") or {}
     for k in ("t610", "p610", "t814", "p814"):
@@ -97,7 +97,6 @@ def apply(raw, maps):
         if d.get("cat") != cat:
             diffs.append({"what": k, "before": d.get("cat"), "map": cat})
         d["cat"] = cat
-        d["conf"] = 1 if (b is not None and b <= 1 and cat != "EC") else max(d.get("conf", 2), 2)
         d["map"] = {"cat": cat, "bin": None if b is None else BINS[b]}
     wk, m = raw.get("wk34"), maps.get("t34")
     if wk and m:
