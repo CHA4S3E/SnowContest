@@ -383,6 +383,10 @@ def nws(f, g, v):
     if sn == "state":
         parts.append(sentence(say(v, "fn3", ["Forecasters mention snow at State College {dates}, which counts directly in the odds.",
                                              "Snow is mentioned for State College on {dates}, and the forecast chance goes straight into the model."], c2)))
+    elif sn == "elev" and not sd:
+        parts.append(sentence(say(v, "fn4n", ["Snow is mentioned only for the higher elevations, so it adds nothing for State College.",
+                                              "The ridges get a snow mention, but the valley doesn't, so the odds don't move.",
+                                              "Ridgetop snow shows up in the discussion; it doesn't count for State College."], c2)))
     elif sn == "elev":
         parts.append(sentence(say(v, "fn4", ["Snow is mentioned for the higher elevations only ({dates}), so it adds nothing for State College.",
                                              "The higher elevations get a snow mention ({dates}), but the valley doesn't, so the odds don't move.",

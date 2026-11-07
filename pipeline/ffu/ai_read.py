@@ -152,6 +152,10 @@ def merge(raw, ai, today):
             s_, e_ = _date(h.get("start"), today, 0, 21), _date(h.get("end"), today, 0, 21)
             if not s_ or not e_ or e_ < s_ or h.get("kind") not in ("cold", "snow") or h.get("level") not in ("slight", "moderate", "high"):
                 continue
+            reg = str(h.get("region") or "")
+            covers = bool(h.get("covers_pa")) and bool(re.search(r"pennsylvania|northeast|appalachian|mid-?atlantic", reg, re.I)) \
+                and not (re.search(r"coastal plain", reg, re.I) and not re.search(r"pennsylvania|appalachian", reg, re.I))
+            h = dict(h, covers_pa=covers)  # the model's yes must also pass a plain check of the region it quoted
             if h["kind"] == "snow" and not h.get("covers_pa"):
                 continue  # heavy snow somewhere else is not a hazard for this pool
             good.append({"kind": h["kind"], "level": h["level"], "start": s_, "end": e_, "region": str(h.get("region") or "").strip()[:140] or "the area CPC names",

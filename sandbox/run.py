@@ -203,6 +203,10 @@ check("second reader: one valid hazard kept, bad level and far dates rejected", 
 _r3 = {"afd": {"snow": "state", "snow_dates": ["2026-11-12"]}, "haz": {"flags": [{"kind": "cold", "level": "slight", "start": "2026-11-12", "end": "2026-11-13", "covers_pa": True}, {"kind": "wind", "level": "slight", "start": "2026-11-12", "end": "2026-11-13", "covers_pa": True}]}}
 ai_read.merge(_r3, {"afd_snow": "elevation_only", "afd_snow_dates": [], "hazards": []}, "2026-11-06")
 check("second reader: it can also take snow and cold back out, other hazard kinds stay", _r3["afd"]["snow"] == "elev" and [f["kind"] for f in _r3["haz"]["flags"]] == ["wind"])
+_r5 = {"haz": {"flags": []}}
+ai_read.merge(_r5, {"hazards": [{"kind": "cold", "level": "slight", "start": "2026-11-14", "end": "2026-11-15", "covers_pa": True, "region": "the Ohio and Tennessee Valleys, Southeast and Mid-Atlantic Coastal Plain"},
+                                {"kind": "cold", "level": "slight", "start": "2026-11-16", "end": "2026-11-17", "covers_pa": True, "region": "the Northeast"}]}, "2026-11-06")
+check("second reader: a yes on PA coverage must pass a check of the quoted region", [f["covers_pa"] for f in _r5["haz"]["flags"]] == [False, True])
 _r4 = {"afd": {"snow": "none", "snow_dates": []}}
 ai_read.merge(_r4, {"afd_snow": "town", "afd_snow_dates": []}, "2026-11-06")
 check("second reader: town snow with no usable date is ignored", _r4["afd"]["snow"] == "none")
