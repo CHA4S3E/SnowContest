@@ -1,8 +1,8 @@
-# 2026-11-08
+# 2026-11-08-pm
 
-First Flakes Nov 8: Maddie leads Meteo at 27.7%; Layla leads Ritner Floor 2 at 45.0%. Median Nov. 15.
+First Flakes Nov 8: Braeden leads Meteo at 33.6%; Layla leads Ritner Floor 2 at 44.4%. Median Nov. 14.
 
-Headline (new): Flakes show up in the model blend for Thursday through Saturday, peaking near 18%. The median now sits a day later, at Nov. 15.
+Headline (new): The National Blend, the GFS, and the European show flakes around Nov. 12-17; the best day sits near 25%. The curve's middle moves a day earlier, to Nov. 14.
 
 ## Input health
 
@@ -11,7 +11,7 @@ Headline (new): Flakes show up in the model blend for Thursday through Saturday,
 - FAIL NAM MOS (no data)
 - OK   LAMP
 - OK   European (Open-Meteo)
-- FAIL RRFS (NOAA) (RuntimeError('oint.py", line 36, in get\n    raise RuntimeError("failed: " + url)\nRuntimeError: failed: https://nomads.ncep.noaa.gov/pub/data/nccf/com/rrfs/prod/rrfs.20261108/06/rrfs.t06z.2dfld.3km.f)
+- OK   RRFS (NOAA)
 - OK   HRRR (NOAA)
 - OK   NWS point forecast
 - OK   NWS alerts

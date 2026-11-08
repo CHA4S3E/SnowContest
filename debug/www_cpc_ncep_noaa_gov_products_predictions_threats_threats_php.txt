@@ -532,7 +532,7 @@
 
       <h4>For 3-7 day hazards see Weather Prediction Center's: <a href="https://www.wpc.ncep.noaa.gov/threats/threats.php" target="_blank" rel="noopener">WPC 3-7 Day Hazards</a></h4>
 
-      <center><h3>  U.S. Week-2 Hazards Outlook - Made November 07, 2026 | <a href="./week2_us_hazards_info.pdf" target="_blank">About the Hazards Outlook</a></h3></center>
+      <center><h3>  U.S. Week-2 Hazards Outlook - Made November 08, 2026 | <a href="./week2_us_hazards_info.pdf" target="_blank">About the Hazards Outlook</a></h3></center>
       <form name="hazards">
         <table border='1' width="805">
           <tr>
@@ -546,11 +546,11 @@
 
           <tr>
             <td> Composite Days 8-14 Map</td>
-              <td align='center'>No Hazards</td><td align='center'><input type='checkbox' name='haztype' id='prcp_det' value='prcp8' onclick='displaykmls(this.id)' checked></td><td align='center'><input type='checkbox' name='haztype' id='snow_det' value='snow8' onclick='displaykmls(this.id)' checked></td><td align='center'><input type='checkbox' name='haztype' id='wind_det' value='wind8' onclick='displaykmls(this.id)' checked></td><td align='center'>No Hazards</td>          </tr>
+              <td align='center'>No Hazards</td><td align='center'>No Hazards</td><td align='center'>No Hazards</td><td align='center'>No Hazards</td><td align='center'>No Hazards</td>          </tr>
 
           <tr>
             <td>Probabilistic Days 8-14 Map</td>
-              <td align='center'><input type='checkbox' name='haztype' id='temp_prob' value='tempp' onclick='displaykmls(this.id)' checked></td><td align='center'><input type='checkbox' name='haztype' id='prcp_prob' value='precipp' onclick='displaykmls(this.id)' checked></td><td align='center'><input type='checkbox' name='haztype' id='snow_prob' value='snowp' onclick='displaykmls(this.id)' checked></td><td align='center'><input type='checkbox' name='haztype' id='wind_prob' value='windp' onclick='displaykmls(this.id)' checked></td>          </tr>
+              <td align='center'>No Hazards</td><td align='center'><input type='checkbox' name='haztype' id='prcp_prob' value='precipp' onclick='displaykmls(this.id)' checked></td><td align='center'><input type='checkbox' name='haztype' id='snow_prob' value='snowp' onclick='displaykmls(this.id)' checked></td><td align='center'><input type='checkbox' name='haztype' id='wind_prob' value='windp' onclick='displaykmls(this.id)' checked></td>          </tr>
         </table>
       </form>
 
@@ -585,83 +585,90 @@
       </div><!-- end .tablesel -->
 
       <div id="discDiv">
-          <h2>Valid Sunday November 15, 2026 to Saturday November 21, 2026</h2>US Hazards Outlook<br>NWS Climate Prediction Center College Park MD<br>300 PM 
-EST November 07 2026<br><br><u>Synopsis</u>: Dynamical models continue to 
-depict mid-level low pressure near the West Coast of the Contiguous U.S. 
-(CONUS) leading to a potent surge of moisture into the West Coast around the 
-outset of the period, particularly into portions of the Pacific Northwest and 
-northern and central California. This feature is favored to weaken while 
-shifting inland, but it may result in enhanced precipitation across the 
-Southwest and Four Corners which could exacerbate impacts over areas recently 
-impacted by heavy rainfall and flooding. Above-normal temperatures are favored 
-for much of the CONUS, although areas of the east-central CONUS, Southeast, and 
-Mid-Atlantic Coastal Plain may experience first frosts or freezes, which would 
-be a couple of weeks behind climatologically, and be potentially hazardous to 
-sensitive vegetation. <br><br><u>Hazards</u> <ul><li>Moderate risk of heavy 
-precipitation for parts of southwest Oregon, and northern and central 
-California, Sun, Nov 15.<li>Moderate risk of high elevation heavy snow across the Klamath and the 
-Sierra Nevada Mountains, Sun, Nov 15.<li>Moderate risk of high winds across coastal portions of Washington, Oregon, 
-and much of California, Sun, Nov 15.<li>Slight risk of heavy precipitation across the West Coast and into parts of 
-the Southwest, Great Basin, and Southern Rockies, Sun-Wed, Nov 15-18.<li>Slight risk of high elevation heavy snow across the Cascades, Klamath, and 
-Sierra Nevada Mountains, Sun-Wed, Nov 15-18.<li>Slight risk of heavy high elevation snow for parts of the Northern 
-Intermountain, Great Basin, and Central and Northern Rockies, Sun-Wed, Nov 
-15-18.<li>Slight risk of high winds for much of the West Coast and Interior West, 
-Sun-Wed, Nov 15-18.<li>Slight risk of high winds across portions of the Northeast and northern 
-Mid-Atlantic, Sun-Mon, Nov 15-16.<li>Slight risk of much below normal temperatures across portions of the Ohio 
-and Tennessee Valleys, Southeast, and along the Mid-Atlantic Coastal Plain, 
-Sun, Nov 15. </li></ul><u>Detailed Summary</u><br><br>For Tuesday November 10 - 
-Saturday November 14: <a name='3-7days' 
+          <h2>Valid Monday November 16, 2026 to Sunday November 22, 2026</h2>US Hazards Outlook<br>NWS Climate Prediction Center College Park MD<br>300 PM 
+EST November 08 2026<br><br><u>Synopsis</u>: An area of mid-level low pressure 
+is favored to move across the southern Contiguous U.S. (CONUS) during the 
+week-2 forecast period, bringing the potential for a variety of hazardous 
+weather from the Desert Southwest across portions of the Rocky Mountains and 
+into the Great Plains and Mississippi Valley. Persistent mid-level low pressure 
+over the North Pacific may tap into enhanced atmospheric moisture, resuming 
+atmospheric river activity over the Pacific Northwest after a brief respite 
+early in the forecast period. <br><br><u>Hazards</u> <ul><li>Slight risk of 
+heavy precipitation for portions of Southern California and the Desert 
+Southwest, Mon-Tue, Nov 16-17.<li>Slight risk of heavy precipitation for portions of the Southern and Central 
+Plains and the Lower and Middle Mississippi Valley, Wed-Fri, Nov 18-20.<li>Slight risk of heavy precipitation for western portions of the Pacific 
+Northwest, Wed-Sun, Nov 18-22.<li>Slight risk of heavy snow for higher elevations of the Central and Northern 
+Rockies and Wasatch Mountains, Mon-Fri, Nov 16-20.<li>Slight risk of heavy snow for the Cascades, Klamath, and northern Sierra 
+Nevada mountains, Wed-Sun, Nov 18-22.<li>Slight risk of high winds for much of the Great Plains, Mon-Wed, Nov 16-18.<li>Slight risk of high winds for coastal portions of the Pacific Northwest, 
+Wed-Sun, Nov 18-22. </li></ul><u>Detailed Summary</u><br><br>For Wednesday 
+November 11 - Sunday November 15: <a name='3-7days' 
 href=https://www.wpc.ncep.noaa.gov/threats/threats.php> WPC Days 3-7 U.S. 
 Hazards</a> <br><br><a name='8-14days' 
-href='/products/predictions/814day/index.php'> For Sunday November 15 - 
-Saturday November 21: </a> The 0z ECMWF, GEFS, and Canadian ensembles continue 
-to depict anomalous troughing off the West Coast of the CONUS. Probabilities 
-for Integrated Vapor Transport (IVT) greater than 250 kg/m/s along the West 
-Coast remain elevated at the outset of week-2 in the ECMWF and GEFS ensembles, 
-supporting the continuation of the moderate risks for heavy precipitation and 
-high elevation heavy snow on day 8 (Nov 15). The moderate risk of heavy 
-precipitation extends from southwestern Oregon, through northern and central 
-California where the uncalibrated guidance depicts the strongest signals for 
-3-day amounts over 1-2 inches, most of which would likely occur on day-8. 
-Slight risks of heavy precipitation and snow surround the moderate risks and 
-are valid through day-11 (Nov 18) as the trough weakens further and shifts 
-inland, with the PETs decreasing the signal for enhanced precipitation across 
-the West Coast toward the second half of week-2.<br><br>The ECMWF ensemble depicts some enhanced precipitation across southern 
-California into the Southwest and Four Corners as the trough moves inland, 
-which could result in adverse impacts due to recent heavy rainfall and 
-flooding. However, actual precipitation amounts are lower compared to farther 
-north, with the stronger signals in percentile space in the PETs mainly driven 
-by the low climatology. However, given the elevated probabilities (40-60 
-percent) for 3-day precipitation to exceed a half inch over some areas, the 
-slight risk of heavy precipitation remains posted over this area, with any 
-additional precipitation over already saturated ground resulting in flooding 
-concerns. <br><br>Across the remainder of the CONUS, ridging and above-normal temperatures 
-are more likely, with troughing predicted near the East Coast early in the 
-period. There is better model agreement compared to yesterday regarding the 
-progression of surface low pressure into the North Atlantic and surface high 
-pressure building over the eastern CONUS in its wake. This leads to a 
-tightening pressure gradient across portions of the Northeast and northern 
-Mid-Atlantic supporting a slight risk of high winds, Nov 15-16. Despite the 
-above-normal temperatures there is some concern for overnight temperatures 
-supportive of first frosts or freezes across portions of the east-central 
-CONUS, Southeast, and Mid-Atlantic Coastal Plain which for many of these areas 
-would be 2-3 weeks behind climatology. Both the GEFS and ECMWF PETs depict at 
-least a 20 percent chance temperatures fall below 32 deg F as surface high 
-pressure settles into the region leading to ideal radiational cooling 
-conditions. Therefore, a slight risk of much below normal temperatures is 
-posted across the aforementioned areas, Nov 15, with the caveat that 
-temperatures may not truly be below normal, but more likely hazardous to 
-vegetation.<br><br>Tied to surface high pressure shifting into the eastern CONUS and troughing 
-initially near the West Coast moving farther inland, enhanced southerly flow 
-from the Gulf is possible across the Southern Plains and adjacent Mississippi 
-Valley. The ECMWF, GEFS, and Canadian ensembles all show some evidence of 
-enhanced precipitation developing across the Southern Plains, Mississippi 
-Valley, and Gulf Coast late in week-2, with an associated response in the PETs 
-which now show some areas with at least a 20 percent chance for 3-day amounts 
-exceeding the 85th percentile and 1-inch on days 10-12 (Nov 17-19). If these 
-trends continue and shift earlier in the period, related precipitation hazards 
-may be needed but no hazard is forecast today due to recent high variability in 
-the dynamical guidance.<br><br>Forecaster: Danny Barandiaran<br><br>$$
+href='/products/predictions/814day/index.php'> For Monday November 16 - Sunday 
+November 22: </a> Multiple model ensembles indicate some reorganization of 
+persistent mid-level troughing over the North Pacific as a shortwave trough is 
+favored to eject out of the base of the larger trough at the outset of the 
+week-2 period. Strong ridging is predicted downstream resulting in a relatively 
+slow earward propagation of the trough along the Southern Tier. As this feature 
+moves eastward models indicate the potential for a variety of hazardous weather 
+from the Desert Southwest to the Mississippi Valley. Model ensembles also favor 
+a reloading of troughing over the North Pacific, potentially bringing renewed 
+atmospheric river activity for much of the Pacific Northwest by mid week-2.<br><br>Hazardous weather associated with the shortwave trough begins over the 
+Desert Southwest at the outset of the forecast period. The Probabilistic 
+Extremes Tools (PETs) from the ECMWF and GEFS both indicate at least a 20% 
+chance of 3-day precipitation accumulation to exceed the 85th climatological 
+percentile and at least half and inch over much of Southern California and the 
+lower Four Corners, with uncalibrated model probabilities exceeding similar 
+thresholds. The ECMWF is particularly bullish, indicating similar probabilities 
+for exceeding one inch of accumulated precipitation. Even discounting this 
+aggressive solution there is sufficient support to warrant a slight risk of 
+heavy precipitation for much of Southern California and the Desert Southwest 
+valid Nov 16-17. Localized urban and flash flooding is possible due to 
+antecedent precipitation, although no associated flooding hazard is issued at 
+this time.<br><br>As the mid-level trough and associated moisture move inland, enhanced snow 
+is anticipated over much of the Intermountain West. This is well indicated by 
+the GEFS PET, which shows a 20% chance of three-day snow water equivalent to 
+exceed the 85th climatological percentile through the middle of week-2, and 
+uncalibrated probabilities from the ECMWF and GEFS indicate at least a 20% 
+chance of 3-day accumulated snowfall to exceed 6 inches for much of the 
+forecast period. Therefore a slight risk of heavy snow is posted for much of 
+the Northern and Central Rockies and Wasatch Range for Nov 16-20.<br><br>As the mid-level trough continues east a round of surface low cyclogenesis 
+is indicated by the middle of week-2, which is favored to tap into Gulf 
+moisture resulting in enhanced precipitation ahead of the surface low. The GEFS 
+and ECMWF are initially in good agreement with the onset of heavy precipitation 
+on day-10 (Nov 18) over the Southern Plains and Mississippi Valley, although 
+their solutions diverge quickly with regard to the intensity and extent of the 
+heaviest precipitation. Based on best consensus a slight risk of heavy 
+precipitation is posted for eastern portions of the Southern and Central 
+Plains, and the Lower and Middle Mississippi Valley where probabilities of 
+3-day precipitation accumulation to exceed 1 inch from both models best align, 
+valid Nov 18-20. More aggressive model solutions would argue for longer 
+duration and possibly a moderate risk to be issued as well, but lack of better 
+support from guidance precludes these scenarios. This situation will be closely 
+monitored in the coming days. As the surface low develops models indicate tight 
+surface pressure gradients and accompanying enhanced winds over the Great 
+Plains, therefore a slight risk of high winds is indicated for much of the 
+Great Plains for Nov 16-18.<br><br>Persistent mid-level troughing over the North Pacific is favored to weaken 
+slightly as the shortwave trough exits the larger tough axis early in week-2, 
+but multiple model ensembles depict a reloading of this longwave trough as 
+week-2 progresses, potentially resulting in a resumption of atmospheric river 
+activity over the Pacific Northwest for much of the forecast period after a 
+brief lull at the outset of week-2. Uncalibrated probabilities from the GEFS 
+and ECMWF both indicate at least a 20% chance of 3-day precipitation 
+accumulations to exceed 1.5 inches across much of the Pacific Northwest from 
+the middle of week-2 onward. Similar probability thresholds are met for 
+snowfall accumulations to exceed 6 inches at higher elevations along coastal 
+ranges and the northern Sierra Nevadas. Integrated water vapor flux forecasts 
+are not particularly impressive over the same period, but nonetheless there is 
+sufficient support to issue a slight risk of heavy precipitation for much of 
+the western Pacific Northwest valid Nov 18-22, along with a slight risk of 
+heavy snow for the Cascades, Klamath, and northern Sierra Nevada mountains, and 
+a slight risk of high wind along the Pacific Northwest coast, both also valid 
+for Nov 18-22.<br><br>While much of the strong troughing over the northeastern Pacific and Bering 
+Sea is likely to result in periods of strong winds and heavy precipitation 
+along the southern and southeastern coast of Alaska, hazardous thresholds are 
+not expected to be exceeded, so no hazards are posted for Alaska at this 
+time.<br><br>Forecaster: Danny Barandiaran<br><br>$$
 
           <font size="4"><b>Please consult local NWS Forecast Offices for short range forecasts and region-specific information.</b></font>
           <br><br>

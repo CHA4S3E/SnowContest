@@ -1,17 +1,15 @@
 {
- "model": "gemini-3.6-flash",
+ "model": "gemini-3.5-flash",
  "answer": {
-  "afd_snow": "town",
-  "afd_snow_dates": [
-   "2026-11-12"
-  ],
+  "afd_snow": "elevation_only",
+  "afd_snow_dates": [],
   "t610": {
    "cat": "B",
    "soft": true
   },
   "p610": {
    "cat": "B",
-   "soft": true
+   "soft": false
   },
   "t814": {
    "cat": "A",
@@ -29,57 +27,13 @@
    "cat": "A",
    "soft": false
   },
-  "hazards": [
-   {
-    "kind": "snow",
-    "level": "moderate",
-    "start": "2026-11-15",
-    "end": "2026-11-15",
-    "covers_pa": false,
-    "region": "the Klamath and the Sierra Nevada Mountains"
-   },
-   {
-    "kind": "snow",
-    "level": "slight",
-    "start": "2026-11-15",
-    "end": "2026-11-18",
-    "covers_pa": false,
-    "region": "the Cascades, Klamath, and Sierra Nevada Mountains"
-   },
-   {
-    "kind": "snow",
-    "level": "slight",
-    "start": "2026-11-15",
-    "end": "2026-11-18",
-    "covers_pa": false,
-    "region": "parts of the Northern Intermountain, Great Basin, and Central and Northern Rockies"
-   },
-   {
-    "kind": "cold",
-    "level": "slight",
-    "start": "2026-11-15",
-    "end": "2026-11-15",
-    "covers_pa": false,
-    "region": "portions of the Ohio and Tennessee Valleys, Southeast, and along the Mid-Atlantic Coastal Plain"
-   }
-  ]
+  "hazards": []
  },
  "changes": [
   {
-   "what": "afd snow",
-   "parser": [
-    "elev",
-    [
-     "2026-11-08",
-     "2026-11-12"
-    ]
-   ],
-   "ai": [
-    "state",
-    [
-     "2026-11-12"
-    ]
-   ]
+   "what": "t610",
+   "parser": "A",
+   "ai": "B"
   }
  ]
 }

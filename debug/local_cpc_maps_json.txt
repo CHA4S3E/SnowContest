@@ -6,11 +6,11 @@
   ],
   "p610": [
    "B",
-   "40-50"
+   "50-60"
   ],
   "t814": [
    "A",
-   "50-60"
+   "60-70"
   ],
   "p814": [
    "B",
@@ -34,20 +34,14 @@
   {
    "what": "hazard dropped",
    "kind": "snow",
-   "start": "2026-11-15",
-   "miles": 2136
+   "start": "2026-11-16",
+   "miles": 1428
   },
   {
    "what": "hazard dropped",
    "kind": "snow",
-   "start": "2026-11-15",
-   "miles": 2124
-  },
-  {
-   "what": "hazard dropped",
-   "kind": "snow",
-   "start": "2026-11-15",
-   "miles": 1412
+   "start": "2026-11-18",
+   "miles": 2206
   }
  ]
 }
