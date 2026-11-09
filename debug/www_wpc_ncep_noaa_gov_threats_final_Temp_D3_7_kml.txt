@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
  xsi:schemaLocation="http://www.opengis.net/kml/2.2 http://schemas.opengis.net/kml/2.2.0/ogckml22.xsd http://www.google.com/kml/ext/2.2 http://code.google.com/apis/kml/schema/kml22gx.xsd">
-<Document id="3-7 Day Temperature Hazards Created: 11-08-2026 Valid: 11-11-2026 - 11-15-2026">
-  <name>3-7 Day Temperature Hazards Created: 11-08-2026 Valid: 11-11-2026 - 11-15-2026</name>
+<Document id="3-7 Day Temperature Hazards Created: 11-09-2026 Valid: 11-12-2026 - 11-16-2026">
+  <name>3-7 Day Temperature Hazards Created: 11-09-2026 Valid: 11-12-2026 - 11-16-2026</name>
   <snippet></snippet>
   <Folder id="FeatureLayer0">
-    <name>3-7 Day Temperature Hazards Created: 11-08-2026 Valid: 11-11-2026 - 11-15-2026</name>
+    <name>3-7 Day Temperature Hazards Created: 11-09-2026 Valid: 11-12-2026 - 11-16-2026</name>
     <snippet></snippet>
     <Placemark id="ID_00000">
       <name>Frost/Freeze</name>
