@@ -73,18 +73,23 @@ def hour(tmpl, run, f):
     return r
 
 
-def newest(tmpl, fmax, step=6):
+def candidates(tmpl, fmax, step=6, limit=3):
+    """Newest-first runs whose last-hour index exists. The index can appear while the run's earlier hours are still being
+    written (every morning the 06Z RRFS fails partway), so the caller falls back to the next older run on any failure."""
     now = dt.datetime.now(dt.timezone.utc).replace(tzinfo=None)
+    n = 0
     for back in range(0, 36):
         run = (now - dt.timedelta(hours=back)).replace(minute=0, second=0, microsecond=0)
         if run.hour % step:
             continue
         try:
             get(tmpl.format(d=run.strftime("%Y%m%d"), h=run.hour, f=fmax) + ".idx")
-            return run
         except Exception:
             continue
-    raise SystemExit("no complete run in the last 36 hours")
+        yield run
+        n += 1
+        if n >= limit:
+            return
 
 
 model, out_path = sys.argv[1], sys.argv[2]
@@ -92,9 +97,19 @@ tmpl, fmax = SRC[model]
 hourly = "--hourly" in sys.argv
 if hourly:
     fmax = 18
-run = newest(tmpl, fmax, 1 if hourly else 6)
-with cf.ThreadPoolExecutor(8) as ex:
-    hrs = list(ex.map(lambda f: hour(tmpl, run, f), range(1, fmax + 1)))
+run, hrs, last = None, None, None
+for cand in candidates(tmpl, fmax, 1 if hourly else 6):
+    try:
+        with cf.ThreadPoolExecutor(8) as ex:
+            hrs = list(ex.map(lambda f: hour(tmpl, cand, f), range(1, fmax + 1)))
+        run = cand
+        break
+    except Exception as e:  # an incomplete run: try the one before it
+        last = e
+        NEAR.clear()
+        print("run %s incomplete (%r), trying an older run" % (cand.strftime("%Y-%m-%d %HZ"), e)[:200], file=sys.stderr)
+if run is None:
+    raise SystemExit("no complete run in the last 36 hours" + ("" if last is None else ": %r" % last)[:150])
 per, hours = {}, []
 for r in hrs:
     tp = max(0.0, r.get("tp") or 0.0)

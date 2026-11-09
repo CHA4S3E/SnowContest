@@ -791,7 +791,7 @@ def cam(model):
     import os, subprocess, sys, tempfile
     out = os.path.join(tempfile.mkdtemp(), model + ".json")
     r = subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "cam_point.py"), model, out],
-                       capture_output=True, text=True, timeout=300)
+                       capture_output=True, text=True, timeout=540)
     if r.returncode != 0 or not os.path.exists(out):
         raise RuntimeError((r.stderr or r.stdout or "cam_point failed")[-200:])
     d = json.load(open(out))
