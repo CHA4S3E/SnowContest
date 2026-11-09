@@ -1,12 +1,8 @@
 {
  "model": "gemini-3.5-flash",
  "answer": {
-  "afd_snow": "town",
-  "afd_snow_dates": [
-   "2026-11-12",
-   "2026-11-13",
-   "2026-11-14"
-  ],
+  "afd_snow": "elevation_only",
+  "afd_snow_dates": [],
   "t610": {
    "cat": "A",
    "soft": false
@@ -28,10 +24,27 @@
    "soft": false
   },
   "p34": {
-   "cat": "EC",
+   "cat": "A",
    "soft": false
   },
-  "hazards": []
+  "hazards": [
+   {
+    "kind": "snow",
+    "level": "moderate",
+    "start": "2026-11-17",
+    "end": "2026-11-17",
+    "covers_pa": false,
+    "region": "San Juan Mountains of southwestern Colorado"
+   },
+   {
+    "kind": "snow",
+    "level": "slight",
+    "start": "2026-11-17",
+    "end": "2026-11-23",
+    "covers_pa": false,
+    "region": "higher elevations of the Klamath, Sierra Nevada, and Wasatch Mountains along with Colorado Rockies"
+   }
+  ]
  },
  "changes": [
   {
@@ -41,12 +54,8 @@
     []
    ],
    "ai": [
-    "state",
-    [
-     "2026-11-12",
-     "2026-11-13",
-     "2026-11-14"
-    ]
+    "elev",
+    []
    ]
   },
   {
