@@ -1,8 +1,8 @@
-# 2026-11-08-pm
+# 2026-11-09
 
-First Flakes Nov 8: Braeden leads Meteo at 33.6%; Layla leads Ritner Floor 2 at 44.4%. Median Nov. 14.
+First Flakes Nov 9: Braeden leads Meteo at 31.3%; Layla leads Ritner Floor 2 at 27.7%. Median Nov. 20.
 
-Headline (new): The National Blend, the GFS, and the European show flakes around Nov. 12-17; the best day sits near 25%. The curve's middle moves a day earlier, to Nov. 14.
+Headline (new): Snow appears in the forecast for the first time, around Nov. 13-16, with a peak near 12%. Overall, the median is six days later, at Nov. 20.
 
 ## Input health
 
@@ -11,7 +11,7 @@ Headline (new): The National Blend, the GFS, and the European show flakes around
 - FAIL NAM MOS (no data)
 - OK   LAMP
 - OK   European (Open-Meteo)
-- OK   RRFS (NOAA)
+- FAIL RRFS (NOAA) (RuntimeError('.py", line 36, in get\n    raise RuntimeError("failed: " + url)\nRuntimeError: failed: https://nomads.ncep.noaa.gov/pub/data/nccf/com/rrfs/prod/rrfs.20261109/06/rrfs.t06z.2dfld.3km.f056.)
 - OK   HRRR (NOAA)
 - OK   NWS point forecast
 - OK   NWS alerts

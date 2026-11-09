@@ -27,7 +27,24 @@
    "cat": "A",
    "soft": false
   },
-  "hazards": []
+  "hazards": [
+   {
+    "kind": "snow",
+    "level": "slight",
+    "start": "2026-11-16",
+    "end": "2026-11-20",
+    "covers_pa": false,
+    "region": "higher elevations of the Central and Northern Rockies and Wasatch Mountains"
+   },
+   {
+    "kind": "snow",
+    "level": "slight",
+    "start": "2026-11-18",
+    "end": "2026-11-22",
+    "covers_pa": false,
+    "region": "the Cascades, Klamath, and northern Sierra Nevada mountains"
+   }
+  ]
  },
  "changes": [
   {
