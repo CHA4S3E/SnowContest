@@ -118,15 +118,19 @@ def build_inputs(today, raw, prev_doc, flakes_possible):
         t = (v.get("text") or "").lower()
         if d < today:
             continue
+        pop = (v.get("pop") or 0) / 100
+        says = "snow" in t or "flurr" in t
+        # how sure NWS's own wording is that flakes fall: "likely" is a forecaster's call, "slight chance" a mention
+        word = 0.45 if "likely" in t else 0.2 if "slight chance" in t else 0.3 if "chance" in t else 0.4
         if v.get("snow_in") is not None:
             # NWS's numeric grid: snow counts only when it puts some snow in the forecast for the point itself
             if v["snow_in"] >= 0.05:
-                win.append({"start": d, "end": d, "hazard": min(0.6, max(0.15, (v.get("pop") or 0) / 100))})
-            elif "snow" in t or "flurr" in t:
+                win.append({"start": d, "end": d, "hazard": min(0.6, max(0.15, pop, word if says else 0))})
+            elif says:
                 # the grid shows no accumulation, but NWS names snow showers or a rain-snow mix for the point itself
-                win.append({"start": d, "end": d, "hazard": max(0.15, min(0.3, (v.get("pop") or 0) / 100))})
-        elif ("snow" in t or "flurr" in t) and "rain" not in t.split("snow")[0][-12:]:
-            win.append({"start": d, "end": d, "hazard": max(0.15, (v.get("pop") or 0) / 100 if "snow" in t else 0.15)})
+                win.append({"start": d, "end": d, "hazard": max(0.15, min(word, max(0.2, pop)))})
+        elif says and "rain" not in t.split("snow")[0][-12:]:
+            win.append({"start": d, "end": d, "hazard": max(0.15, pop if "snow" in t else 0.15)})
     inp["windows"] = win
     return inp, cold_flags
 

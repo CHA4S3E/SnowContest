@@ -22,6 +22,7 @@ SRC = {"rrfs": ("https://nomads.ncep.noaa.gov/pub/data/nccf/com/rrfs/prod/rrfs.{
 
 
 def get(url, rng=None, tries=4):
+    why = None
     for i in range(tries):
         try:
             hd = {"Range": "bytes=%d-%s" % (rng[0], "" if rng[1] is None else rng[1])} if rng else {}
@@ -30,10 +31,12 @@ def get(url, rng=None, tries=4):
         except urllib.error.HTTPError as e:
             if e.code == 404:
                 raise
+            why = "HTTP %s" % e.code
             time.sleep(2 ** i)
-        except Exception:
+        except Exception as e:
+            why = type(e).__name__
             time.sleep(2 ** i)
-    raise RuntimeError("failed: " + url)
+    raise RuntimeError("failed (%s): %s" % (why, url.split("/")[-1]))
 
 
 def index(url):
@@ -98,16 +101,30 @@ hourly = "--hourly" in sys.argv
 if hourly:
     fmax = 18
 run, hrs, last = None, None, None
-for cand in candidates(tmpl, fmax, 1 if hourly else 6):
+def safe_hour(cand, f):
     try:
-        with cf.ThreadPoolExecutor(8) as ex:
-            hrs = list(ex.map(lambda f: hour(tmpl, cand, f), range(1, fmax + 1)))
-        run = cand
+        return hour(tmpl, cand, f)
+    except Exception as e:  # noqa
+        return e
+
+
+MIN_HOURS = 24 if not hourly else 12
+for cand in candidates(tmpl, fmax, 1 if hourly else 6):
+    with cf.ThreadPoolExecutor(4) as ex:
+        got = list(ex.map(lambda f: safe_hour(cand, f), range(1, fmax + 1)))
+    ok = []
+    for g in got:  # keep the unbroken stretch from hour 1; a late hour still being written or throttled only shortens the run
+        if isinstance(g, Exception):
+            last = g
+            break
+        ok.append(g)
+    if len(ok) >= MIN_HOURS:
+        run, hrs = cand, ok
+        if len(ok) < fmax:
+            print("run %s used for its first %d of %d hours (%r)" % (cand.strftime("%Y-%m-%d %HZ"), len(ok), fmax, last)[:200], file=sys.stderr)
         break
-    except Exception as e:  # an incomplete run: try the one before it
-        last = e
-        NEAR.clear()
-        print("run %s incomplete (%r), trying an older run" % (cand.strftime("%Y-%m-%d %HZ"), e)[:200], file=sys.stderr)
+    NEAR.clear()
+    print("run %s incomplete (%d hours, %r), trying an older run" % (cand.strftime("%Y-%m-%d %HZ"), len(ok), last)[:200], file=sys.stderr)
 if run is None:
     raise SystemExit("no complete run in the last 36 hours" + ("" if last is None else ": %r" % last)[:150])
 per, hours = {}, []

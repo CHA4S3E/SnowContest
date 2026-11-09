@@ -252,6 +252,13 @@ _f = _rh["haz"]["flags"]
 check("hazard kml: polygons replace the text readers, far snow dropped, other kinds stay, quoted region kept",
       [(x["kind"], x["covers_pa"]) for x in _f] == [("wind", True), ("cold", True), ("cold", False)] and _f[1]["region"] == "the Ohio Valley")
 
+from ffu import facts as _facts
+def _hz(text, pop, snow_in=0.0):
+    _i, _ = _facts.build_inputs("2026-11-09", {"pfc": {"days": {"2026-11-13": {"text": text, "pop": pop, "snow_in": snow_in}}}}, None, True)
+    return [w["hazard"] for w in _i["windows"] if w.get("start") == "2026-11-13" and "hazard" in w]
+check("NWS wording sets the snow window: likely > chance > slight chance, rain-only none",
+      _hz("Rain And Snow Showers Likely", 90) == [0.45] and _hz("Chance Rain And Snow Showers", 90) == [0.3] and _hz("Slight Chance Snow Showers", 20) == [0.2] and _hz("Light Rain", 80) == [], (_hz("Rain And Snow Showers Likely", 90), _hz("Slight Chance Snow Showers", 20)))
+
 print("\n%d failed" % len(FAILS) if FAILS else "\nALL PASSED")
 print("data dir:", D)
 sys.exit(1 if FAILS else 0)
