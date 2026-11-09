@@ -188,11 +188,106 @@ def pick_hh(f, g, pick, side, v, key, w=None):
     return out
 
 
+
+# ------------------------------------------------------------------ the scenario sentence
+def _pc(x):
+    return "%.0f%%" % x if x >= 10 else "%.1f%%" % x
+
+
+def _dname(d, today):
+    return dow(d) if 0 <= days_between(today, d) <= 6 else dm(d)
+
+
+def scenario(dist, w, today, wx):
+    """What has to happen for this pick to win, from the model's day-by-day chances: {ctx}, or None when there is nothing to say.
+    before / after = the share of first flakes landing before the window opens / after it closes (a halfway day counts half)."""
+    if not dist or not w:
+        return None
+    (s, sh), (e, eh) = w["start"], w["end"]
+    S, E = D(s), D(e)
+    if E < D(today):
+        return None
+    before = after = 0.0
+    pre = []
+    inside = {}
+    for d, p in dist.items():
+        if p <= 0:
+            continue
+        dd = D(d)
+        if dd < S or (dd == S and sh == "pm"):
+            fb = 1.0 if dd < S else 0.5
+            before += p * fb
+            pre.append((d, p * fb, fb))
+            if fb < 1:
+                inside[d] = p * 0.5
+        elif dd > E or (dd == E and eh == "am"):
+            fa = 1.0 if dd > E else 0.5
+            after += p * fa
+            if fa < 1:
+                inside[d] = p * 0.5
+        else:
+            inside[d] = p
+    pre = sorted([x for x in pre if x[1] >= 4], key=lambda x: x[0])[:3]
+    sp = None
+    if sh == "pm" and dist.get(s, 0) >= 8:
+        sp = ("splitstart", s)
+    elif eh == "am" and dist.get(e, 0) >= 8:
+        sp = ("splitend", e)
+    top_d, top_p = max(dist.items(), key=lambda x: x[1])
+    drv = max(inside.items(), key=lambda x: x[1]) if inside else None
+    c = {"before": _pc(before), "after": _pc(after), "pre_days": join(["%s%s (%s)" % (_dname(d, today), " morning" if fb < 1 else "", _pc(p)) for d, p, fb in pre]),
+         "top_day": _dname(top_d, today), "top_pct": _pc(top_p), "open_day": _dname(s, today)}
+    if drv:
+        c["drv_day"] = _dname(drv[0], today)
+        c["drv_pct"] = _pc(dist[drv[0]])
+    wd = wx.get(s) or {}
+    if wd.get("text") and D(s) >= D(today) and days_between(today, s) <= 6:
+        hi = wd.get("hi")
+        c["open_wx"] = "NWS has %s %s%s" % (_dname(s, today), wd["text"].lower(), (" with a high of %d" % hi + "\u00b0") if hi is not None else "")
+    if sp:
+        kind = sp[0]
+        c["split_day"] = _dname(sp[1], today)
+        c["split_pct"] = _pc(dist[sp[1]])
+        c["split_desc"] = "the model's biggest day" if sp[1] == top_d else "a big day for the model"
+    elif before >= 8 and pre:
+        kind = "before"
+    elif drv and dist[drv[0]] >= 8 and drv[0] == top_d:
+        kind = "driver"
+    elif after > 50 and top_d < s:
+        kind = "early"
+    elif top_d > e and top_p >= 8:
+        kind = "late"
+    else:
+        kind = "quiet"
+    return kind, c
+
+
+SCEN = {
+    "before": ["It needs {pre_days} to stay flake-free, since {before} of the model's chance falls before this window opens.",
+               "{before} of the model's chance falls before this window opens, mostly {pre_days}, so those days have to stay flake-free first.",
+               "To cash in, {pre_days} have to pass without flakes ({before} of the chance sits there), then the first flakes need to land in this window."],
+    "splitstart": ["{split_day} is {split_desc} at {split_pct}, and it splits at noon: flakes before noon go to the earlier pick, noon or later count here.",
+                   "{split_day} carries {split_pct}, {split_desc}, and the noon split decides it: only flakes from noon on belong to this pick."],
+    "splitend": ["{split_day} is {split_desc} at {split_pct}, and it splits at noon: flakes before noon count here, noon or later go to the next pick.",
+                 "{split_day} carries {split_pct}, {split_desc}, and the noon split decides it: only flakes before noon belong to this pick."],
+    "driver": ["{drv_day} is the model's biggest day at {drv_pct} and it sits inside this window, so this pick is riding the main weather event.",
+               "The model's top day, {drv_day} at {drv_pct}, falls inside this window, with just {before} of the chance coming before it opens.",
+               "This window holds the model's biggest day ({drv_day}, {drv_pct}), so the pick mostly needs that system to deliver."],
+    "early": ["The model puts most of its chance, {after}, after this window closes, so the pick needs flakes sooner than the models expect.",
+              "{after} of the chance comes after this window shuts, so this pick needs an earlier surprise."],
+    "late": ["The model's biggest day, {top_day} at {top_pct}, comes after this window, so the pick needs the first flakes to arrive ahead of that system.",
+             "{top_day}, at {top_pct}, is the model's top day and it lands after this window closes, so this pick needs flakes earlier than that."],
+    "quiet": ["The model keeps only {before} before this window opens and {after} after it closes, so the pick comes down to timing in a quiet stretch.",
+              "Nothing in the model's day-by-day chances threatens or favors this window much, so it rides on how the cold shows up later."],
+}
+
 # ------------------------------------------------------------------ blurbs
 def build_pool(f, g, v, picks, odds, pool_id):
     t = g["today"]
     y = t[:4]
     ws = windows(picks, "%s-09-25" % y, "%s-12-31" % y)
+    dist = (f.get("u") or {}).get("dist") or {}
+    wx = f.get("wx") or {}
     ranked = sorted(picks, key=lambda n: -odds.get(n, 0))
     reports = []
     top = odds.get(ranked[0], 0) if ranked else 0
@@ -250,6 +345,10 @@ def build_pool(f, g, v, picks, odds, pool_id):
             s2 = ["That's {n_days} past the {med} median, inside the {range} range.", "It lands {n_days} after the {med} median, inside the {range} range.",
                   "That's {n_days} later than the {med} median, within the {range} range."]
         s2_txt = say(v, "p2:" + key, s2, c)
+        mates_txt = ""
+        if n_same[p] > 1 and D(p) >= D(t):
+            c["mates_ph"] = "one other pick" if n_same[p] == 2 else "%s other picks" % numw(n_same[p] - 1)
+            mates_txt = say(v, "pm:" + key, ["It is shared in full with {mates_ph}, so a hit pays everyone on that date.", "The date is shared in full with {mates_ph}."], c)
         # sentence 3: weather hook tied to today's signals
         hooks = []
         ws_, we_ = win_dates(w, p)
@@ -285,14 +384,32 @@ def build_pool(f, g, v, picks, odds, pool_id):
         hooks.append((1, ["A cold, showery stretch is what this pick needs to cash in.", "This pick needs a decent cold shot at the right time.",
                           "The pick is fine so long as the first flakes land inside its window.", "Timing is everything here: flakes inside this window and this pick wins."]))
         hooks.sort(key=lambda x: -x[0])
-        s3_txt = ""
-        for _, temps in hooks[:3]:
+        scen = scenario(dist, w, t, wx) if o >= 0.05 else None
+        s3_txt = s4_txt = ""
+        if scen:
+            kind, sc = scen
+            c.update(sc)
             try:
-                s3_txt = say(v, "p3:" + key, temps, c)
-                break
+                s3_txt = say(v, "p4:" + key, SCEN[kind], c)
+                if sc.get("open_wx") and kind in ("before", "quiet", "early", "splitstart", "splitend", "driver"):
+                    s3_txt = sentence(s3_txt) + " " + sentence(say(v, "p5:" + key, ["{open_wx}, the first day of the window.", "{open_wx}, the window's opening day."], c))
+            except KeyError:
+                s3_txt = ""
+        for _, temps in hooks[:3]:
+            if scen and s3_txt and "{snow_span}" in temps[0]:
+                continue  # the scenario sentence already covers the snow chance
+            try:
+                txt = say(v, "p3:" + key, temps, c)
             except KeyError:
                 continue
-        blurb = " ".join(x for x in [sentence(s1_txt), sentence(s2_txt), sentence(s3_txt)] if x)
+            if s3_txt:
+                s4_txt = txt
+            else:
+                s3_txt = txt
+            break
+        if mates_txt:
+            s2_txt = sentence(s2_txt) + " " + sentence(mates_txt)
+        blurb = " ".join(x for x in [sentence(s1_txt), sentence(s2_txt), sentence(s3_txt), sentence(s4_txt)] if x)
         reports.append({"name": name, "blurb": blurb, "helps": pick_hh(f, g, p, "helps", v, key, w), "hurts": pick_hh(f, g, p, "hurts", v, key, w)})
     return reports
 
