@@ -290,7 +290,7 @@ def run(inp):
             for t in range(day(w["start"]), day(w["end"]) + 1):
                 h[t] = max(h[t], w["hazard"])
 
-    day_chance = {iso(t): round(float(h[t]) * 100, 1) for t in range(today, min(N, today + 3))}  # today + next 2 days, for the snow watch
+    day_chance = {iso(t): round(float(h[t]) * 100, 1) for t in range(today, min(N, today + 5))}  # today + next 4 days, for the snow watch (the on-deck heads-up)
     h[:today] = 0  # days already gone (days change at midnight Eastern); today still counts
     f = np.zeros(N)
     s = 1.0
