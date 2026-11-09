@@ -115,7 +115,7 @@ def main():
             print("on-deck snow chance passed; watch ended")
             return 0
         if not chk.get("goLive"):
-            prev["goLiveAt"] = (now_et0 + dt.timedelta(hours=1)).replace(minute=8, second=0, microsecond=0).isoformat(timespec="minutes")
+            prev["nextCheckAt"] = (now_et0 + dt.timedelta(hours=1)).replace(minute=8, second=0, microsecond=0).isoformat(timespec="minutes")  # goLiveAt stays the planned start
             prev["checkedAt"] = now_et0.isoformat(timespec="minutes")
             save(os.path.join(D_, "watch.json"), prev)
             print("on deck: next18 %s%%, not live yet" % chk.get("next18"))

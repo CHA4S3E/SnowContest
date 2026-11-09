@@ -254,8 +254,7 @@ def main():
             title, hd = watch_txt.title_headline(f, derive.derive(dict(f, watch={"active": False})), vf(0))
             watch.update({"baseDays": dc, "days": [d for d in days_list if d["chance"] >= 1], "until": max(watch.get("until", hot_days[-1]), hot_days[-1]),
                           "title": title, "headline": hd})
-            if not watch.get("goLiveAt") or go_live.isoformat(timespec="minutes") < watch["goLiveAt"]:
-                watch["goLiveAt"] = go_live.isoformat(timespec="minutes")
+            watch["goLiveAt"] = go_live.isoformat(timespec="minutes")  # recomputed from the first hot day every update
         else:  # the chance faded before the live watch started
             watch.update({"stage": "ended", "active": False, "endedAt": now_et.isoformat(timespec="minutes")})
             log.append("The on-deck snow chance faded; watch called off.")
