@@ -118,12 +118,13 @@ def build_inputs(today, raw, prev_doc, flakes_possible):
         t = (v.get("snowText") or v.get("text") or "").lower()  # snowText = the day's or night's own snow wording
         if d < today:
             continue
-        pop = max(v.get("pop") or 0, v.get("snowPop") or 0) / 100
+        # the chance of precipitation that belongs to the snow wording itself when there is one, else the day's
+        pop = (v["snowPop"] if (v.get("snowText") and v.get("snowPop")) else (v.get("pop") or 0)) / 100
         says = "snow" in t or "flurr" in t
         # NWS's own wording sets the day, the way the Claude-run version reads it: "likely" up to 70%, "chance" up to 50%,
         # "slight chance" 20%, each capped by the chance of precipitation
         cap = 0.7 if "likely" in t else 0.2 if "slight chance" in t else 0.5 if "chance" in t else 0.6
-        word = max(0.15, min(cap, pop if pop > 0 else cap))
+        word = 0.2 if "slight chance" in t else max(0.15, min(cap, pop if pop > 0 else cap))  # a slight chance is a flat 20%
         if v.get("snow_in") is not None and v["snow_in"] >= 0.05:
             win.append({"start": d, "end": d, "hazard": min(0.7, max(0.15, pop, word if says else 0))})
         elif says and (v.get("snowText") or v.get("snow_in") is not None or "rain" not in t.split("snow")[0][-12:]):
