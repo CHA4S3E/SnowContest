@@ -3,14 +3,14 @@ Same rules as headline_more.py: a template that needs a fact we do not have is s
 
 S1_MORE2 = {
     "watch": [
-        "It is time to pay attention to {watch_when}: the chance of flakes has reached {watch_pct}.",
+        "It is time to pay attention to {watch_when}: the chance of flakes has reached {watch_pct_up}.",
         "{cap_watch_when} is where the forecast gets interesting, with first flakes about a {watch_pct} bet.",
         "The snow watch lights up for {watch_when}, and the hourly numbers say {watch_pct}.",
         "Circle {watch_when}: the chance of a first flake is now {watch_pct}.",
-        "For the first time this season, a real flake chance sits on the calendar: {watch_pct} for {watch_when}.",
+        "For the first time this season, a real flake chance sits on the calendar: {watch_pct_first} for {watch_when}.",
         "The hourly guidance finally has something to say for {watch_when}, and it says {watch_pct}.",
         "A flake chance of {watch_pct} lands on {watch_when}, enough to put the watch on.",
-        "The odds of flakes on {watch_when} have climbed to {watch_pct}, so the watch is on.",
+        "The odds of flakes on {watch_when} have climbed to {watch_pct_up}, so the watch is on.",
         "Cold air and moisture finally meet {watch_when}, and the flake chance reads {watch_pct}.",
         "{cap_watch_when} has the best shot at the first flakes yet, near {watch_pct}.",
         "The window opens {watch_when}: first flakes are about a {watch_pct} shot.",

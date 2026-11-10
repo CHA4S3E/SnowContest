@@ -104,6 +104,13 @@ def build_ctx(f, g):
         c["watch_pct"] = pct(wp)
         c["watch_pct_loose"] = pct_n(wp)
         c["watch_dow"] = dow(wd)
+        ref = f.get("mid") if (g.get("evening") and f.get("mid")) else f.get("prev")
+        pv = ((ref or {}).get("dist") or {}).get(wd)
+        cur = (f.get("u") or {}).get("dist", {}).get(wd)
+        if pv is not None and cur is not None and cur >= pv + 2:
+            c["watch_pct_up"] = c["watch_pct"]  # "climbed" wording only when the day really rose since the last update
+        if pv is not None and pv < 10:
+            c["watch_pct_first"] = c["watch_pct"]
     # hazards
     cf = g["cold_flag_pa"]
     if cf:
@@ -182,7 +189,7 @@ S1 = {
     ],
     "watch": [
         "A real shot at flakes is on the board for {watch_when}, about {watch_pct} in the hourly numbers.",
-        "{cap_watch_when} is the day to watch: the chance of flakes has climbed to {watch_pct}.",
+        "{cap_watch_when} is the day to watch: the chance of flakes has climbed to {watch_pct_up}.",
         "Flakes are in play for {watch_when}, with the chance at {watch_pct}.",
         "The snow watch is on, with a {watch_pct} chance of flakes {watch_when}.",
         "Keep an eye on {watch_when}: the models put the chance of flakes at {watch_pct} and the watch is live.",

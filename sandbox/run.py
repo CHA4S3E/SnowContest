@@ -280,7 +280,7 @@ def _hz(text, pop, snow_in=0.0):
     _i, _ = _facts.build_inputs("2026-11-09", {"pfc": {"days": {"2026-11-13": {"text": text, "pop": pop, "snow_in": snow_in}}}}, None, True)
     return [w["hazard"] for w in _i["windows"] if w.get("start") == "2026-11-13" and "hazard" in w]
 check("NWS wording sets the snow window: likely > chance > slight chance, rain-only none",
-      _hz("Rain And Snow Showers Likely", 90) == [0.45] and _hz("Chance Rain And Snow Showers", 90) == [0.3] and _hz("Slight Chance Snow Showers", 20) == [0.2] and _hz("Light Rain", 80) == [], (_hz("Rain And Snow Showers Likely", 90), _hz("Slight Chance Snow Showers", 20)))
+      _hz("Rain And Snow Showers Likely", 90) == [0.7] and _hz("Chance Rain And Snow Showers", 90) == [0.5] and _hz("Slight Chance Snow Showers", 20) == [0.2] and _hz("Light Rain", 80) == [], (_hz("Rain And Snow Showers Likely", 90), _hz("Slight Chance Snow Showers", 20)))
 
 _rw = {"cpc": {"t610": {"cat": "N", "conf": 5, "table": True}}}
 cpc_maps.apply(_rw, {"t610": ("A", 0)})

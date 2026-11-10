@@ -167,9 +167,39 @@ def mex(today_utc):
 
 
 # ---------------------------------------------------------------------------- ECMWF through Open-Meteo
+def _om_run(model):
+    try:
+        ts = get_json("https://api.open-meteo.com/data/%s/static/meta.json" % model).get("last_run_initialisation_time")
+        return dt.datetime.fromtimestamp(ts, dt.timezone.utc) if ts else None
+    except Exception:
+        return None
+
+
 def ecmwf():
-    url = ("https://api.open-meteo.com/v1/ecmwf?latitude=%s&longitude=%s&hourly=temperature_2m,precipitation,snowfall&models=ecmwf_ifs025"
-           "&forecast_days=11&temperature_unit=fahrenheit&timezone=UTC" % (LAT, LON))
+    """ECMWF's own open data first (same source and grid as the Claude-run version); Open-Meteo if that fails."""
+    import os, subprocess, sys, tempfile
+    out = os.path.join(tempfile.mkdtemp(), "ecmwf.json")
+    try:
+        r = subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ecmwf_point.py"), out],
+                           capture_output=True, text=True, timeout=300)
+        if r.returncode == 0 and os.path.exists(out):
+            d = json.load(open(out))
+            age = dt.datetime.utcnow() - dt.datetime.strptime(d["run"], "%Y-%m-%d %HZ")
+            if d.get("periods") and age <= dt.timedelta(hours=36):
+                return d
+        note("European open data", False, ((r.stderr or r.stdout or "") if r.returncode else "stale run")[-120:] + "; used Open-Meteo")
+    except Exception as ex:
+        note("European open data", False, repr(ex)[:100] + "; used Open-Meteo")
+    return ecmwf_openmeteo()
+
+
+def ecmwf_openmeteo():
+    # Open-Meteo's 0.25-degree copy (the same grid as ECMWF's open data) sometimes lags a run behind; its 9-km copy of the
+    # same operational run usually arrives first. Use whichever has the newer run, the 0.25-degree one on a tie.
+    runs = {m: _om_run(m) for m in ("ecmwf_ifs025", "ecmwf_ifs")}
+    model = "ecmwf_ifs" if runs["ecmwf_ifs"] and (not runs["ecmwf_ifs025"] or runs["ecmwf_ifs"] > runs["ecmwf_ifs025"]) else "ecmwf_ifs025"
+    url = ("https://api.open-meteo.com/v1/ecmwf?latitude=%s&longitude=%s&hourly=temperature_2m,precipitation,snowfall&models=%s"
+           "&forecast_days=11&temperature_unit=fahrenheit&timezone=UTC" % (LAT, LON, model))
     j = get_json(url)
     h = j["hourly"]
     times = h["time"]
@@ -192,14 +222,7 @@ def ecmwf():
         if g["n"] < 6 or end <= now - dt.timedelta(hours=0):
             continue
         periods.append({"end": end.strftime("%Y-%m-%d %H:%M"), "hours": 6, "tp": round(g["tp"], 2), "sf": round(g["sf"], 2), "t": round(min(g["t"]), 1) if g["t"] else None})
-    run = None
-    try:
-        meta = get_json("https://api.open-meteo.com/data/ecmwf_ifs025/static/meta.json")
-        ts = meta.get("last_run_initialisation_time")
-        if ts:
-            run = dt.datetime.fromtimestamp(ts, dt.timezone.utc).strftime("%Y-%m-%d %HZ")
-    except Exception:
-        pass
+    run = runs[model].strftime("%Y-%m-%d %HZ") if runs.get(model) else None
     if not run:
         r0 = utc_now().replace(minute=0, second=0, microsecond=0)
         r0 = r0.replace(hour=(r0.hour // 12) * 12) - dt.timedelta(hours=12)
@@ -244,6 +267,62 @@ def grid_days(url):
     return out
 
 
+def _snow_rank(t):
+    t = t.lower()
+    return 3 if "likely" in t else 1 if "slight chance" in t else 2 if "chance" in t else 2.5
+
+
+def _night_snow_days(det, d, nxt):
+    """Which date(s) a night period's snow belongs to: 'then rain and snow after 4am' -> the next date."""
+    sent = next((x for x in re.split(r"(?<=[.!?])\s+", det) if "snow" in x or "flurr" in x), det)
+    cut = min(i for i in (sent.find("snow"), sent.find("flurr")) if i >= 0) if ("snow" in sent or "flurr" in sent) else 0
+    marks = re.findall(r"(midnight|\d{1,2} ?am|\d{1,2} ?pm)", sent[:cut])
+    after = re.search(r"snow[^.]{0,40}\bafter (midnight|\d{1,2} ?am)", sent)
+    ends_early = re.search(r"before (midnight|\d{1,2} ?pm)", sent[cut:])
+    if (marks and (marks[-1] == "midnight" or marks[-1].endswith("am"))) or after:
+        return [nxt]
+    if ends_early:
+        return [d]
+    return [d, nxt]
+
+
+def _snow_phrase(det):
+    """The sentence that carries the snow wording, cleaned for display ('A chance of snow in the morning')."""
+    sent = next((x for x in re.split(r"(?<=[.!?])\s+", det) if "snow" in x.lower() or "flurr" in x.lower()), "")
+    return sent.strip().rstrip(".")
+
+
+def zone_snow(today):
+    """NWS zone forecast for Southern Centre (PAZ019, which includes State College): {date: {text, pop}} for each date
+    whose wording carries snow. The zone forecast often names snow the gridded point forecast leaves out."""
+    j = get_json("https://api.weather.gov/zones/forecast/PAZ019/forecast", headers=nws_headers())
+    pr = j.get("properties") or {}
+    out = {}
+    day = dt.date.fromisoformat(today)
+    prev_night = False
+    for i, per in enumerate(pr.get("periods") or []):
+        name = (per.get("name") or "").lower()
+        night = "night" in name or name in ("tonight", "overnight")
+        if i > 0 and not night:
+            day += dt.timedelta(days=1)
+        elif i > 0 and night and not prev_night and i == 1 and pr["periods"][0].get("name", "").lower() in ("tonight", "overnight"):
+            day += dt.timedelta(days=1)
+        prev_night = night
+        det = per.get("detailedForecast") or ""
+        low = det.lower()
+        if "snow" not in low and "flurr" not in low:
+            continue
+        pm = re.findall(r"(\d{2,3}) percent", low)
+        pop = max(int(x) for x in pm) if pm else (60 if "likely" in low else 40 if "chance" in low else 70)
+        d, nxt = str(day), str(day + dt.timedelta(days=1))
+        for w in (_night_snow_days(low, d, nxt) if night else [d]):
+            phrase = _snow_phrase(det)
+            e = out.get(w)
+            if not e or _snow_rank(phrase) > _snow_rank(e["text"]) or (_snow_rank(phrase) == _snow_rank(e["text"]) and pop > e["pop"]):
+                out[w] = {"text": phrase, "pop": pop, "period": per.get("name")}
+    return {"days": out, "updated": pr.get("updated")}
+
+
 def point_forecast():
     p = get_json("https://api.weather.gov/points/%s,%s" % (LAT, LON), headers=nws_headers())
     fc = get_json(p["properties"]["forecast"], headers=nws_headers())
@@ -266,7 +345,6 @@ def point_forecast():
             if not en["text"]:
                 en["text"] = short
     # Snow wording by the day it falls: a night period's "rain and snow showers" used to be lost when the next day had its own text.
-    rank = lambda t: 3 if "likely" in t else 1 if "slight chance" in t else 2 if "chance" in t else 2.5
     for per in periods:
         short = (per.get("shortForecast") or "").strip()
         low, det = short.lower(), (per.get("detailedForecast") or "").lower()
@@ -274,24 +352,23 @@ def point_forecast():
             continue
         start = dt.datetime.fromisoformat(per["startTime"])
         d, nxt = str(start.date()), str((start + dt.timedelta(days=1)).date())
-        if per.get("isDaytime") or start.hour < 12:
-            when = [d]
-        else:  # an evening-to-morning period: place the snow before or after midnight when the detailed text says which
-            sent = next((x for x in re.split(r"(?<=[.!?])\s+", det) if "snow" in x or "flurr" in x), det)
-            cut = min(i for i in (sent.find("snow"), sent.find("flurr")) if i >= 0) if ("snow" in sent or "flurr" in sent) else 0
-            marks = re.findall(r"(midnight|\d{1,2} ?am|\d{1,2} ?pm)", sent[:cut])   # "rain between 7pm and 4am, then rain and snow": snow starts at 4am
-            ends_early = re.search(r"before (midnight|\d{1,2} ?pm)", sent[cut:])
-            if marks and (marks[-1] == "midnight" or marks[-1].endswith("am")):
-                when = [nxt]
-            elif ends_early:
-                when = [d]
-            else:
-                when = [d, nxt]
+        when = [d] if (per.get("isDaytime") or start.hour < 12) else _night_snow_days(det, d, nxt)
         pop = ((per.get("probabilityOfPrecipitation") or {}).get("value")) or 0
         for w in when:
             e = days.get(w)
-            if e is not None and rank(low) >= rank((e.get("snowText") or "").lower() or "slight chance") - (0 if e.get("snowText") else 9):
+            if e is not None and (not e.get("snowText") or _snow_rank(short) >= _snow_rank(e["snowText"])):
                 e["snowText"], e["snowPop"] = short, max(pop, e.get("snowPop") or 0)
+    # the zone forecast for State College's zone, as the Claude-run version reads it, adds snow the point forecast leaves out
+    try:
+        z = zone_snow(str(dt.datetime.now(ET_TZ).date()))
+        for w, zv in z["days"].items():
+            e = days.get(w)
+            if e is None:
+                continue
+            if not e.get("snowText") or _snow_rank(zv["text"]) > _snow_rank(e["snowText"]) or zv["pop"] > (e.get("snowPop") or 0):
+                e["snowText"], e["snowPop"], e["snowFrom"] = zv["text"], zv["pop"], "zone forecast"
+    except Exception as ex:
+        note("NWS zone forecast", False, repr(ex)[:80])
     days = {d: v for d, v in days.items() if v["hi"] is not None or v["lo"] is not None}
     try:
         for d, g_ in grid_days(p["properties"].get("forecastGridData")).items():
@@ -859,7 +936,7 @@ def gather(today):
     raw["mex"] = try_("GFS MOS (MEX)", mex, today_utc)
     raw["nam"] = try_("NAM MOS", nam, today_utc)
     raw["lamp"] = try_("LAMP", lamp)
-    raw["ecmwf"] = try_("European (Open-Meteo)", ecmwf)
+    raw["ecmwf"] = try_("European (ECMWF)", ecmwf)
     raw["rrfs"] = try_("RRFS (NOAA)", cam, "rrfs")
     raw["hrrr"] = try_("HRRR (NOAA)", cam, "hrrr")
     for k_, n_ in (("rrfs", "RRFS (NOAA)"), ("hrrr", "HRRR (NOAA)")):
