@@ -20,6 +20,10 @@ def snapshot(f, g):
     for k in ("t610", "t814", "p610", "p814", "wk34"):
         fs[k] = (g[k] or {}).get("cat")
     fs["enso"] = (f.get("enso") or {}).get("status")
+    # what the next headline needs to build on this one: each model's daily chances and NWS's snow wording by day
+    ms = ((f.get("u") or {}).get("modelDays")) or {}
+    fs["src_days"] = {k: {d: round(float(x), 1) for d, x in sorted(v.items())[:8]} for k, v in ms.items() if isinstance(v, dict)}
+    fs["nws_snow"] = {d: w["snowText"] for d, w in (f.get("wx") or {}).items() if w.get("snowText")}
     return fs
 
 

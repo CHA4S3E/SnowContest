@@ -182,6 +182,137 @@ def safe_pm(f):
     return tuple(x) if x else None
 
 
+
+# --------------------------------------------------------------------------- the running story
+ORD = ["", "first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"]
+_SRC_NAME = {"ecmwf": "the European", "gfs": "the GFS", "nbm": "the National Blend"}
+
+
+def _rank(t):
+    t = (t or "").lower()
+    if not t:
+        return 0
+    return 3 if "likely" in t else 1 if "slight chance" in t else 2 if "chance" in t else 2.5
+
+
+def _phrase(t):
+    t = (t or "").strip().rstrip(".")
+    return (t[0].lower() + t[1:]) if t and not t.isupper() else t.lower()
+
+
+def story_ctx(f, g, c):
+    """Facts that tie this headline to the earlier ones: how the watched day moved, what moved it, how long it has led."""
+    wp = g.get("watch_peak")
+    if not wp or wp[1] < 10:
+        return None
+    wd, t = wp[0], g["today"]
+    dist = (f.get("u") or {}).get("dist") or {}
+    ref = f.get("mid") if (g.get("evening") and f.get("mid")) else f.get("prev")
+    if not ref or wd not in dist or (ref.get("dist") or {}).get(wd) is None:
+        return None
+    now, was = float(dist[wd]), float(ref["dist"][wd])
+    c["watch_now"], c["watch_was"] = pct(now), pct(was)
+    n = days_between(t, wd)
+    if n == 1:
+        c["days_out"] = "with a day to go"
+    elif n >= 2:
+        c["days_out"] = "%s days out" % numw(n)
+    # what moved it: NWS's own wording first, then the model that moved the most in the same direction
+    fs = ref.get("fs") or {}
+    up = now >= was
+    drivers = []
+    if "nws_snow" in fs:
+        a, b = (fs.get("nws_snow") or {}).get(wd), ((f.get("wx") or {}).get(wd) or {}).get("snowText")
+        when = c.get("watch_when", dow(wd))
+        if b and _rank(b) > _rank(a) and up:
+            drivers.append(("NWS raises %s to %s" % (when, _phrase(b))) if a else ("NWS adds %s to %s's forecast" % (_phrase(b), when)))
+        elif a and _rank(b) < _rank(a) and not up:
+            drivers.append(("NWS dials %s back to %s" % (when, _phrase(b))) if b else ("NWS takes the snow out of %s's forecast" % when))
+    ms = ((f.get("u") or {}).get("modelDays")) or {}
+    best = None
+    for k, nm in _SRC_NAME.items():
+        a, b = ((fs.get("src_days") or {}).get(k) or {}).get(wd), (ms.get(k) or {}).get(wd)
+        if a is None or b is None or abs(b - a) < 8 or (b > a) != up:
+            continue
+        if best is None or abs(b - a) > abs(best[2] - best[1]):
+            best = (nm, a, b)
+    if best:
+        nm, a, b = best
+        when = c.get("watch_when", dow(wd))
+        drivers.append("%s %s %s, %s" % (nm, "turns snowier for" if b > a else "backs off", when, ("up to %s" if b > a else "down to %s") % pct(b)))
+    if drivers:
+        c["driver_cap"] = cap(drivers[0])
+    # how long this day has led, and where it started
+    hist = f.get("hist") or []
+    streak = 1
+    for u in reversed(hist):
+        fut = {d: x for d, x in (u.get("dist") or {}).items() if d >= u["date"]}
+        if fut and max(fut, key=fut.get) == wd and fut[wd] >= 5:
+            streak += 1
+        else:
+            break
+    if 2 <= streak < len(ORD):
+        c["streak_ord"], c["streak_n"] = ORD[streak], numw(streak - 1)
+    first = None
+    for u in reversed(hist):
+        x = (u.get("dist") or {}).get(wd)
+        if x is None or x < 5:
+            break
+        first = (u, x)
+    if first and first[0]["id"] != ref.get("id") and now - first[1] >= 10:
+        u, x = first
+        ago = days_between(u["date"], t)
+        c["first_pct"] = pct(x)
+        c["first_when"] = ("this morning" if ago == 0 else "yesterday" if ago == 1 else "on " + dow(u["date"]) if ago < 7 else "on " + dm(u["date"]))
+    # did the watched day itself move?
+    rfut = {d: x for d, x in (ref.get("dist") or {}).items() if d >= t}
+    if rfut:
+        rd = max(rfut, key=rfut.get)
+        if rd != wd and rfut[rd] >= 10:
+            c["was_day"] = when_phrase(t, rd)
+            return "watch_moved"
+    return "watch_up" if now - was >= 5 else "watch_down" if was - now >= 5 else "watch_hold"
+
+
+STORY = {
+    "watch_up": [
+        "{driver_cap}, and the chance the first flakes fall {watch_when} climbs from {watch_was} to {watch_now}.",
+        "{cap_watch_when} keeps building: the chance of first flakes rises from {watch_was} to {watch_now}, {days_out}.",
+        "For the {streak_ord} update in a row {watch_when} is the day to watch, and its chance is up from {watch_was} to {watch_now}.",
+        "What began as a {first_pct} chance {first_when} is now {watch_now} for {watch_when}.",
+        "{driver_cap}. That lifts {watch_when} from {watch_was} to {watch_now}.",
+        "The case for {watch_when} gets stronger: {watch_was} last time, {watch_now} this time.",
+        "{cap_watch_when}'s flake chance jumps from {watch_was} to {watch_now}, {days_out}.",
+        "{driver_cap}, so {watch_when} moves from a {watch_was} chance of first flakes to {watch_now}.",
+        "{cap_watch_when} gains ground again, from {watch_was} to {watch_now}; it first showed up {first_when} at {first_pct}.",
+    ],
+    "watch_down": [
+        "{driver_cap}: the chance the first flakes fall {watch_when} slips from {watch_was} to {watch_now}.",
+        "{cap_watch_when} cools off, from {watch_was} to {watch_now}, but it is still the day to watch.",
+        "The forecast backs off {watch_when} a bit: {watch_was} last time, {watch_now} this time, {days_out}.",
+        "{driver_cap}. {cap_watch_when} gives back some ground, from {watch_was} to {watch_now}.",
+        "{cap_watch_when} is still the best shot at first flakes, though its chance eases from {watch_was} to {watch_now}.",
+        "After {streak_n} updates on top, {watch_when} loses a step: its flake chance drops from {watch_was} to {watch_now}.",
+        "{driver_cap}, and {watch_when} falls from {watch_was} to {watch_now}, {days_out}.",
+        "A step back for {watch_when}: the chance of first flakes goes from {watch_was} to {watch_now}.",
+    ],
+    "watch_hold": [
+        "{cap_watch_when} holds as the day to watch, steady near {watch_now} for the {streak_ord} update in a row.",
+        "Little movement for {watch_when}: the chance of first flakes stays near {watch_now}, {days_out}.",
+        "{driver_cap}, but {watch_when} barely moves, still near {watch_now}.",
+        "The story stays the same {days_out}: {watch_when} carries about a {watch_now} chance of first flakes.",
+        "{cap_watch_when} is still the one to watch at {watch_now}; it first showed up {first_when} at {first_pct}.",
+        "No surprises overnight for {watch_when}, which sits at {watch_now} after {watch_was} last time.",
+        "{cap_watch_when} stays put near {watch_now}, the {streak_ord} update in a row it has led the forecast.",
+    ],
+    "watch_moved": [
+        "The best shot at first flakes slides from {was_day} to {watch_when}, which carries {watch_now}.",
+        "{cap_watch_when} takes over from {was_day} as the day to watch, at {watch_now}.",
+        "{driver_cap}, and the focus moves from {was_day} to {watch_when}, at {watch_now}.",
+        "Attention shifts from {was_day} to {watch_when}: the chance of first flakes there is {watch_now}, {days_out}.",
+    ],
+}
+
 # --------------------------------------------------------------------------- sentence 1 banks
 S1 = {
     "possible": [
@@ -372,6 +503,7 @@ S2 = {
 from .headline_more import extend as _extend  # noqa: E402
 _extend(S1, S2)
 from .headline_more2 import extend as _extend2  # noqa: E402
+S1.update(STORY)
 _extend2(S1, S2)
 
 
@@ -439,6 +571,16 @@ def render_s1(v, f, g, c, scen, spec=None):
     if scen == "shift" and not g["ref"]:
         raise KeyError("shift")
     opts = S1[scen]
+    if scen in STORY and "driver_cap" in c and not (spec and spec.get("s1") == scen):
+        # when we know what moved the day, say so: try the templates that name it first
+        lead = [k for k, o in enumerate(opts) if "{driver_cap}" in o]
+        rest = [k for k in range(len(opts)) if k not in lead]
+        i = v.idx("hl1d:" + scen, len(lead))
+        for j in lead[i:] + lead[:i] + rest:
+            try:
+                return clean(opts[j].format_map(_SD(c))), j
+            except KeyError:
+                continue
     if spec and spec.get("s1_i") is not None and spec.get("s1") == scen:
         try:
             return clean(opts[spec["s1_i"]].format_map(_SD(c))), spec["s1_i"]
@@ -481,13 +623,24 @@ def choose_s2(f, g, s1_scen):
 def make(f, g, v, spec=None):
     c = build_ctx(f, g)
     s1_scen = choose_s1(f, g)
+    if s1_scen == "watch":
+        try:
+            s1_scen = story_ctx(f, g, c) or "watch"   # build on the last update when there is one to build on
+        except Exception:
+            s1_scen = "watch"
     if spec and spec.get("s1"):
         s1_scen = spec["s1"] if spec["s1"] in S1 else s1_scen
     try:
         s1, s1_i = render_s1(v, f, g, c, s1_scen, spec)
     except KeyError:
-        s1_scen = "calendar_late"
-        s1, s1_i = render_s1(v, f, g, c, s1_scen)
+        try:
+            if not s1_scen.startswith("watch_"):
+                raise KeyError(s1_scen)
+            s1_scen = "watch"
+            s1, s1_i = render_s1(v, f, g, c, s1_scen)
+        except KeyError:
+            s1_scen = "calendar_late"
+            s1, s1_i = render_s1(v, f, g, c, s1_scen)
     c2 = _s2_ctx(c, g)
     s2 = ""
     s2_key = s2_i = None

@@ -287,9 +287,11 @@ def _night_snow_days(det, d, nxt):
 
 
 def _snow_phrase(det):
-    """The sentence that carries the snow wording, cleaned for display ('A chance of snow in the morning')."""
+    """The clause that carries the snow wording, cleaned for display ('A chance of snow in the morning')."""
     sent = next((x for x in re.split(r"(?<=[.!?])\s+", det) if "snow" in x.lower() or "flurr" in x.lower()), "")
-    return sent.strip().rstrip(".")
+    parts = [x.strip() for x in re.split(r",\s*then\s+|;\s*", sent.strip().rstrip("."))]
+    hit = next((x for x in parts if "snow" in x.lower() or "flurr" in x.lower()), sent.strip().rstrip("."))
+    return (hit[0].upper() + hit[1:]) if hit else hit
 
 
 def zone_snow(today):
@@ -317,6 +319,8 @@ def zone_snow(today):
         d, nxt = str(day), str(day + dt.timedelta(days=1))
         for w in (_night_snow_days(low, d, nxt) if night else [d]):
             phrase = _snow_phrase(det)
+            if night and w == nxt:
+                phrase = phrase.replace("after midnight", "before dawn")  # the snow falls on this date's early hours
             e = out.get(w)
             if not e or _snow_rank(phrase) > _snow_rank(e["text"]) or (_snow_rank(phrase) == _snow_rank(e["text"]) and pop > e["pop"]):
                 out[w] = {"text": phrase, "pop": pop, "period": per.get("name")}

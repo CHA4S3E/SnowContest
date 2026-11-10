@@ -286,6 +286,21 @@ _rw = {"cpc": {"t610": {"cat": "N", "conf": 5, "table": True}}}
 cpc_maps.apply(_rw, {"t610": ("A", 0)})
 check("CPC maps: the map pixel does not overrule the state table", _rw["cpc"]["t610"]["cat"] == "N" and _rw["cpc"]["t610"]["map"]["cat"] == "A")
 
+from ffu.texts import headline as _H
+def _story(now, was, nws_was=None, nws_now=None, ec=(None, None), hist=()):
+    f = {"u": {"dist": {"2026-11-13": now, "2026-11-14": 9.0}, "modelDays": {"ecmwf": {"2026-11-13": ec[1]}} if ec[1] is not None else {}},
+         "prev": {"id": "2026-11-09-pm", "dist": {"2026-11-13": was, "2026-11-14": 6.0},
+                  "fs": {"nws_snow": {"2026-11-13": nws_was} if nws_was else {}, "src_days": {"ecmwf": {"2026-11-13": ec[0]}} if ec[0] is not None else {}}},
+         "wx": {"2026-11-13": {"snowText": nws_now}} if nws_now else {}, "hist": list(hist)}
+    g = {"watch_peak": ("2026-11-13", now), "today": "2026-11-10", "evening": False}
+    c = {"watch_when": "Friday"}
+    return _H.story_ctx(f, g, c), c
+_s, _c = _story(46.8, 67.8, "Rain And Snow Showers Likely", "A chance of snow in the morning")
+check("headline story: a drop names NWS dialing the day back, with from and to", _s == "watch_down" and _c.get("driver_cap", "").startswith("NWS dials Friday back to a chance of snow") and (_c["watch_was"], _c["watch_now"]) == ("68%", "47%"), (_s, _c))
+_s, _c = _story(47.0, 30.0, None, None, (10.0, 33.0), [{"id": "2026-11-08-pm", "date": "2026-11-08", "pm": True, "dist": {"2026-11-13": 12.0}}, {"id": "2026-11-09", "date": "2026-11-09", "pm": False, "dist": {"2026-11-13": 20.0}}, {"id": "2026-11-09-pm", "date": "2026-11-09", "pm": True, "dist": {"2026-11-13": 30.0}}])
+check("headline story: a rise names the model behind it, the streak and where the day started", _s == "watch_up" and "European turns snowier" in _c.get("driver_cap", "") and _c.get("streak_ord") == "fourth" and _c.get("first_pct") == "12%", (_s, _c))
+check("headline story: a steady day reads as a hold", _story(46.0, 47.0)[0] == "watch_hold")
+
 print("\n%d failed" % len(FAILS) if FAILS else "\nALL PASSED")
 print("data dir:", D)
 sys.exit(1 if FAILS else 0)
