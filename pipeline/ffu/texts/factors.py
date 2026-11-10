@@ -380,7 +380,10 @@ def nws(f, g, v):
     sn = a.get("snow", "none")
     sd = a.get("snow_dates") or []
     c2 = {"dates": join([dm(x) for x in sd[:3]]) if sd else ""}
-    if sn == "state" and not sd:
+    pf = [(d, (wx[d].get("text") or "").lower()) for d in sorted(wx) if d >= t and ("snow" in (wx[d].get("text") or "").lower() or "flurr" in (wx[d].get("text") or "").lower())][:3]
+    if pf and sn != "state":
+        pass  # the discussion's own words about ridges or vague storms would contradict the point-forecast sentence below
+    elif sn == "state" and not sd:
         parts.append(sentence(say(v, "fn3n", ["The discussion mentions snow for State College without naming days, so the day-by-day forecast sets the dates.",
                                               "Snow is mentioned for State College but not pinned to days, so the point forecast decides which days count."], c2)))
     elif sn == "state":
@@ -411,7 +414,6 @@ def nws(f, g, v):
     else:
         parts.append(say(v, "fn6", ["No snow or flurries are mentioned.", "There's no mention of snow or flurries.", "Snow isn't mentioned.",
                                     "No flakes are mentioned in the forecast."], {}))
-    pf = [(d, (wx[d].get("text") or "").lower()) for d in sorted(wx) if d >= t and ("snow" in (wx[d].get("text") or "").lower() or "flurr" in (wx[d].get("text") or "").lower())][:3]
     if pf:
         bits = join(["%s on %s" % (t_, dow(d)) for d, t_ in pf])
         parts.append(sentence(say(v, "fn7", ["The point forecast puts snow in town: {bits}, and that wording counts directly in the odds.",
