@@ -1,8 +1,8 @@
-# 2026-11-10
+# 2026-11-10-pm
 
-First Flakes Nov 10: Braeden leads Meteo at 26.8%; Layla leads Ritner Floor 2 at 42.5%. Median Nov. 15.
+First Flakes Nov 10: Braeden leads Meteo at 34.0%; Layla leads Ritner Floor 2 at 55.4%. Median Nov. 13.
 
-Headline (new): The odds of flakes on Friday have climbed to 30%, so the watch is on. The middle of the curve moves a day later to Nov. 15.
+Headline (new): Friday surges 21 points to 49%, three days out. The median moves two days earlier, to Nov. 13.
 
 ## Input health
 
@@ -10,7 +10,7 @@ Headline (new): The odds of flakes on Friday have climbed to 30%, so the watch i
 - OK   GFS MOS (MEX)
 - FAIL NAM MOS (no data)
 - OK   LAMP
-- OK   European (Open-Meteo)
+- OK   European (ECMWF)
 - OK   RRFS (NOAA)
 - OK   HRRR (NOAA)
 - OK   NWS point forecast

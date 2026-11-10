@@ -1,8 +1,8 @@
 {
- "model": "gemini-3.5-flash",
+ "model": "gemini-3.6-flash",
  "answer": {
   "afd_snow": "elevation_only",
-  "afd_quote": "A cold air injection associated with an intensifying upper trough over the Eastern U.S. should allow for rain and higher elevation snow Thursday night into Friday.",
+  "afd_quote": "Potential for the first accumulating snowfall of the season, especially across the Laurels and the northern tier of Pennsylvania.",
   "afd_snow_dates": [],
   "t610": {
    "cat": "A",
@@ -28,13 +28,33 @@
    "cat": "A",
    "soft": false
   },
-  "hazards": []
+  "hazards": [
+   {
+    "kind": "snow",
+    "level": "slight",
+    "start": "2026-11-18",
+    "end": "2026-11-24",
+    "covers_pa": false,
+    "region": "higher elevations of the Klamath, Sierra Nevada, and Wasatch Mountains along with the Central to Southern Rockies"
+   }
+  ]
  },
  "changes": [
   {
-   "what": "t610",
+   "what": "afd snow",
+   "parser": [
+    "state",
+    []
+   ],
+   "ai": [
+    "elev",
+    []
+   ]
+  },
+  {
+   "what": "p814",
    "table": "N",
-   "ai": "A",
+   "ai": "B",
    "kept": "table"
   }
  ]
