@@ -98,8 +98,6 @@ def build_inputs(today, raw, prev_doc, flakes_possible):
                     continue
                 if t610 and t610.get("cat") == "A" and t610["start"] <= cf["start"] <= t610["end"]:
                     continue
-                if t814 and t814.get("cat") == "A" and t814["start"] <= cf["start"] <= t814["end"]:
-                    continue
                 win.append({"start": max(cf["start"], today), "end": cf["end"], "cold_risk": cf["cold_risk"], "covers_pa": cf.get("covers_pa", True)})
                 cold_flags.append(dict(cf, source=(cf.get("source", "CPC") + " (carried over)").replace("(carried over) (carried over)", "(carried over)")))
     if wp:
@@ -123,7 +121,7 @@ def build_inputs(today, raw, prev_doc, flakes_possible):
         says = "snow" in t or "flurr" in t
         # NWS's own wording sets the day, the way the Claude-run version reads it: "likely" up to 70%, "chance" up to 50%,
         # "slight chance" 20%, each capped by the chance of precipitation
-        cap = 0.7 if "likely" in t else 0.2 if "slight chance" in t else 0.5 if "chance" in t else 0.6
+        cap = 0.7 if "likely" in t else 0.2 if "slight chance" in t else 0.5 if "chance" in t else 0.9  # no hedge word: the stated chance itself
         word = 0.2 if "slight chance" in t else max(0.15, min(cap, pop if pop > 0 else cap))  # a slight chance is a flat 20%
         if v.get("snow_in") is not None and v["snow_in"] >= 0.05:
             win.append({"start": d, "end": d, "hazard": min(0.7, max(0.15, pop, word if says else 0))})

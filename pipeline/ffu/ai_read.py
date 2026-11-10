@@ -46,7 +46,7 @@ afd_quote = copy character for character the single sentence from the discussion
 t610, p610, t814, p814: the CPC 6-10 day and 8-14 day outlooks, temperature (t) and precipitation (p), for central Pennsylvania. A = above normal, B = below normal, N = near normal, EC = equal chances. Pick the category of the region that contains central PA (for example the Northeast, East, Mid-Atlantic, Great Lakes and Northeast, or "the eastern third of the CONUS"). If the text only describes other regions, answer EC. soft = true when the wording for PA is hedged, such as "near to below normal", "slightly favored" or "weak signal".
 t34, p34: the same for the week 3-4 outlook.
 
-hazards: from the CPC hazards outlook list, include only (a) kind "cold": risks of much below normal temperatures, and (b) kind "snow": heavy snow risks. Give level (slight, moderate or high), start and end dates (YYYY-MM-DD), and region: the area CPC names, copied in a few words (for example "the Ohio and Tennessee Valleys, Southeast and Mid-Atlantic Coastal Plain"); covers_pa: true only if Pennsylvania is inside the named region (it names Pennsylvania, the Northeast, the Mid-Atlantic as a whole, or the central or northern Appalachians). False if the region is only a coastal plain, the Southeast, the Tennessee Valley, the southern Ohio Valley, the West, or a mountain range far from PA. Leave out wind, rain, heat and everything else. If there are none, return [].
+hazards: from the CPC hazards outlook list, include only (a) kind "cold": risks of much below normal temperatures, and (b) kind "snow": heavy snow risks. Give level (slight, moderate or high), start and end dates (YYYY-MM-DD), and region: the area CPC names, copied in a few words (for example "the Ohio and Tennessee Valleys, Southeast and Mid-Atlantic Coastal Plain"); covers_pa: true only if the region names Pennsylvania, the Mid-Atlantic as a whole, the central Appalachians (or the Appalachians generally), or the Ohio Valley through Pennsylvania. False if it names only the Northeast, New England or New York (next door, not clearly over State College), or only a coastal plain, the Southeast, the Tennessee Valley, the West, or a mountain range far from PA. Leave out wind, rain, heat and everything else. If there are none, return [].
 
 === NWS STATE COLLEGE FORECAST DISCUSSION ===
 %(afd)s
@@ -192,7 +192,7 @@ def merge(raw, ai, today, afd_text=None):
             if not s_ or not e_ or e_ < s_ or h.get("kind") not in ("cold", "snow") or h.get("level") not in ("slight", "moderate", "high"):
                 continue
             reg = str(h.get("region") or "")
-            covers = bool(h.get("covers_pa")) and bool(re.search(r"pennsylvania|northeast|appalachian|mid-?atlantic", reg, re.I)) \
+            covers = bool(h.get("covers_pa")) and bool(re.search(r"pennsylvania|appalachian|mid-?atlantic|ohio valley", reg, re.I)) \
                 and not (re.search(r"coastal plain", reg, re.I) and not re.search(r"pennsylvania|appalachian", reg, re.I))
             h = dict(h, covers_pa=covers)  # the model's yes must also pass a plain check of the region it quoted
             if h["kind"] == "snow" and not h.get("covers_pa"):
