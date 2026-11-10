@@ -154,8 +154,8 @@ def blend(f, g, v):
     if days:
         a = sum(cons[d] for d in days) / len(days)
         b = sum(curve[d] for d in days) / len(days)
-        if a > b * 1.3 and a >= 1.0:
-            effect = "earlier"
+        if max(cons[d] for d in days) >= 10 or (a > b * 1.3 and a >= 1.0):
+            effect = "earlier"  # a real flake day in the blend (10% or more) pulls the odds earlier, whatever the average says
         elif a < b * 0.75:
             effect = "later"
     elif g["snow_days"]:
@@ -380,7 +380,7 @@ def nws(f, g, v):
     sn = a.get("snow", "none")
     sd = a.get("snow_dates") or []
     c2 = {"dates": join([dm(x) for x in sd[:3]]) if sd else ""}
-    pf = [(d, (wx[d].get("text") or "").lower()) for d in sorted(wx) if d >= t and ("snow" in (wx[d].get("text") or "").lower() or "flurr" in (wx[d].get("text") or "").lower())][:3]
+    pf = [(d, (wx[d].get("snowText") or wx[d].get("text") or "").lower()) for d in sorted(wx) if d >= t and ("snow" in (wx[d].get("snowText") or wx[d].get("text") or "").lower() or "flurr" in (wx[d].get("snowText") or wx[d].get("text") or "").lower())][:3]
     if pf and sn != "state":
         pass  # the discussion's own words about ridges or vague storms would contradict the point-forecast sentence below
     elif sn == "state" and not sd:

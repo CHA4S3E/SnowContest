@@ -180,7 +180,7 @@ def nws_row(f, g, v):
         short = summ if len(summ) <= 110 else summ[:107].rsplit(" ", 1)[0] + "..."
         call += "; " + short
     wx = f.get("wx") or {}
-    pf = [(d, (wx[d].get("text") or "").lower()) for d in sorted(wx) if d >= g["today"] and ("snow" in (wx[d].get("text") or "").lower() or "flurr" in (wx[d].get("text") or "").lower())][:3]
+    pf = [(d, (wx[d].get("snowText") or wx[d].get("text") or "").lower()) for d in sorted(wx) if d >= g["today"] and ("snow" in (wx[d].get("snowText") or wx[d].get("text") or "").lower() or "flurr" in (wx[d].get("snowText") or wx[d].get("text") or "").lower())][:3]
     if pf:  # the point forecast's own wording about snow in town counts directly, whatever the discussion says
         call += "; point forecast: " + join(["%s %s" % (t_, dms(d)) for d, t_ in pf])
         wt = "Point-forecast snow wording counts directly" if (sn != "state" or not sd) else wt + ", plus the point-forecast wording"

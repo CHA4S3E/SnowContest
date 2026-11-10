@@ -103,6 +103,7 @@ nbe_rows = [{"ftime": (dt.datetime(2026, 12, 10, 12) + dt.timedelta(hours=12 * k
 inputs.iem_mos = lambda m, t, f: (nbe_rows, "2026-12-10 12Z")
 inputs.ecmwf = lambda: ([{"end": (dt.datetime(2026, 12, 10, 18) + dt.timedelta(hours=6 * k)).strftime("%Y-%m-%d %H:%M"), "hours": 6, "tp": 1.0, "sf": 6.0 if k < 6 else 0, "t": 28} for k in range(30)], "2026-12-10 00Z")
 inputs.point_forecast = lambda: {"days": {(dt.date(2026, 12, 10) + dt.timedelta(k)).isoformat(): {"hi": 33, "lo": 24, "text": "Snow likely"} for k in range(7)}, "issued": "x"}
+_cpc_windows_real = inputs.cpc_windows
 inputs.cpc_windows = lambda t: {"t814": {"cat": "B"}, "p814": {"cat": "A"}, "t610": {"cat": "B"}, "p610": {"cat": "A"}}
 inputs.alerts = lambda: []
 
@@ -156,6 +157,16 @@ for n in ("config", "updates", "weather", "watch", "season", "seasonfc"):
 # ---- reading the NWS forecast discussion: where the snow is matters
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pipeline"))
 from ffu.inputs import parse_afd, parse_hazards
+from ffu import inputs as _I2
+_pg = "Valid: Nov 15 - 19, 2026 (6-10 Day Outlook) Valid: Nov 17 - 23, 2026 (8-14 Day Outlook) Issued: Nov 9, 2026 6-10 DAY OUTLOOK FOR NOV 15 - 19 2026 Above normal temperatures are favored for the eastern CONUS. confidence 5 out of 5 8-14 DAY OUTLOOK FOR NOV 17 - 23 2026 text 4 out of 5 STATE TEMP PCPN PENN N B NEW JERSEY N B more PENN A B NEW JERSEY A B"
+_g0 = _I2.get
+_I2.get = lambda *a, **k: _pg
+try:
+    _cw = _cpc_windows_real("2026-11-10")
+finally:
+    _I2.get = _g0
+check("CPC state table decides Pennsylvania's category over the prose", _cw and [_cw[k]["cat"] for k in ("t610", "p610", "t814", "p814")] == ["N", "B", "A", "B"] and _cw["t610"].get("table"), _cw)
+
 _hd = "Area Forecast Discussion\n734 AM EST Fri Nov 6 2026\n\n.DISCUSSION...\n"
 _fx = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pipeline", "fixtures", "afd_nov06_ridges_only.txt")
 check("AFD real text (snow only NW Mtns and Laurel Highlands) is not snow in town", parse_afd(open(_fx).read(), "2026-11-06")["snow"] == "elev")
@@ -270,6 +281,10 @@ def _hz(text, pop, snow_in=0.0):
     return [w["hazard"] for w in _i["windows"] if w.get("start") == "2026-11-13" and "hazard" in w]
 check("NWS wording sets the snow window: likely > chance > slight chance, rain-only none",
       _hz("Rain And Snow Showers Likely", 90) == [0.45] and _hz("Chance Rain And Snow Showers", 90) == [0.3] and _hz("Slight Chance Snow Showers", 20) == [0.2] and _hz("Light Rain", 80) == [], (_hz("Rain And Snow Showers Likely", 90), _hz("Slight Chance Snow Showers", 20)))
+
+_rw = {"cpc": {"t610": {"cat": "N", "conf": 5, "table": True}}}
+cpc_maps.apply(_rw, {"t610": ("A", 0)})
+check("CPC maps: the map pixel does not overrule the state table", _rw["cpc"]["t610"]["cat"] == "N" and _rw["cpc"]["t610"]["map"]["cat"] == "A")
 
 print("\n%d failed" % len(FAILS) if FAILS else "\nALL PASSED")
 print("data dir:", D)

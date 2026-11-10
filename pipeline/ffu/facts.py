@@ -115,10 +115,10 @@ def build_inputs(today, raw, prev_doc, flakes_possible):
         for d in afd.get("snow_dates") or []:
             win.append({"start": d, "end": d, "hazard": 0.15})
     for d, v in sorted((pfc.get("days") or {}).items()):
-        t = (v.get("text") or "").lower()
+        t = (v.get("snowText") or v.get("text") or "").lower()  # snowText = the day's or night's own snow wording
         if d < today:
             continue
-        pop = (v.get("pop") or 0) / 100
+        pop = max(v.get("pop") or 0, v.get("snowPop") or 0) / 100
         says = "snow" in t or "flurr" in t
         # how sure NWS's own wording is that flakes fall: "likely" is a forecaster's call, "slight chance" a mention
         word = 0.45 if "likely" in t else 0.2 if "slight chance" in t else 0.3 if "chance" in t else 0.4
@@ -199,7 +199,7 @@ def src_summaries(inp, out, raw, today):
 def build_facts(today, edition, hour, raw, out, inp, prev_doc, mid_doc, picks_cfg, prior, curve, odds_by_pool, watch, dry, flakes_possible):
     src = src_summaries(inp, out, raw, today)
     pfc = raw.get("pfc") or {}
-    wx = {d: {"hi": v.get("hi"), "lo": v.get("lo"), "text": v.get("text", "")} for d, v in (pfc.get("days") or {}).items() if d >= today}
+    wx = {d: {"hi": v.get("hi"), "lo": v.get("lo"), "text": v.get("text", ""), **({"snowText": v["snowText"]} if v.get("snowText") else {})} for d, v in (pfc.get("days") or {}).items() if d >= today}
     cpc = {}
     for k in ("t610", "t814", "p610", "p814"):
         w = (raw.get("cpc") or {}).get(k)

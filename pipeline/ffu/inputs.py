@@ -181,9 +181,9 @@ def ecmwf():
         bucket_end = d if d.hour % 6 == 0 else d + dt.timedelta(hours=6 - d.hour % 6)
         g = per.setdefault(bucket_end, {"tp": 0.0, "sf": 0.0, "t": [], "n": 0})
         g["tp"] += h["precipitation"][i] or 0
-        g["sf"] += (h["snowfall"][i] or 0)  # cm of snow ~ mm of water at 10:1
-        if h["temperature_2m"][i] is not None:
-            g["t"].append(h["temperature_2m"][i])
+        g["sf"] += (h["snowfall"][i] or 0) * 10 / 7  # Open-Meteo gives cm of snow at 7:1; ECMWF's own field is mm of water
+        if h["temperature_2m"][i] is not None and d == bucket_end:
+            g["t"].append(h["temperature_2m"][i])  # the temperature AT the period's end, as ECMWF's 6-hourly files give it
         g["n"] += 1
     periods = []
     now = utc_now().replace(tzinfo=None)
@@ -265,6 +265,33 @@ def point_forecast():
             en["lo"] = per.get("temperature")
             if not en["text"]:
                 en["text"] = short
+    # Snow wording by the day it falls: a night period's "rain and snow showers" used to be lost when the next day had its own text.
+    rank = lambda t: 3 if "likely" in t else 1 if "slight chance" in t else 2 if "chance" in t else 2.5
+    for per in periods:
+        short = (per.get("shortForecast") or "").strip()
+        low, det = short.lower(), (per.get("detailedForecast") or "").lower()
+        if "snow" not in low and "flurr" not in low:
+            continue
+        start = dt.datetime.fromisoformat(per["startTime"])
+        d, nxt = str(start.date()), str((start + dt.timedelta(days=1)).date())
+        if per.get("isDaytime") or start.hour < 12:
+            when = [d]
+        else:  # an evening-to-morning period: place the snow before or after midnight when the detailed text says which
+            sent = next((x for x in re.split(r"(?<=[.!?])\s+", det) if "snow" in x or "flurr" in x), det)
+            cut = min(i for i in (sent.find("snow"), sent.find("flurr")) if i >= 0) if ("snow" in sent or "flurr" in sent) else 0
+            marks = re.findall(r"(midnight|\d{1,2} ?am|\d{1,2} ?pm)", sent[:cut])   # "rain between 7pm and 4am, then rain and snow": snow starts at 4am
+            ends_early = re.search(r"before (midnight|\d{1,2} ?pm)", sent[cut:])
+            if marks and (marks[-1] == "midnight" or marks[-1].endswith("am")):
+                when = [nxt]
+            elif ends_early:
+                when = [d]
+            else:
+                when = [d, nxt]
+        pop = ((per.get("probabilityOfPrecipitation") or {}).get("value")) or 0
+        for w in when:
+            e = days.get(w)
+            if e is not None and rank(low) >= rank((e.get("snowText") or "").lower() or "slight chance") - (0 if e.get("snowText") else 9):
+                e["snowText"], e["snowPop"] = short, max(pop, e.get("snowPop") or 0)
     days = {d: v for d, v in days.items() if v["hi"] is not None or v["lo"] is not None}
     try:
         for d, g_ in grid_days(p["properties"].get("forecastGridData")).items():
@@ -328,7 +355,8 @@ def dates_in(sentence, today):
     t = dt.date.fromisoformat(today)
     if re.search(r"\b(today|this (afternoon|morning|evening))\b", low):
         out.append(str(t))
-    if re.search(r"\b(tonight|overnight)\b", low):
+    has_dow = any(re.search(r"\b" + full + r"\b", low) for full, _ in DOW_NAMES)
+    if re.search(r"\btonight\b", low) or (re.search(r"\bovernight\b", low) and not has_dow):  # "overnight Wednesday night" is Wednesday, not today
         out.append(str(t))
     if re.search(r"\btomorrow\b", low):
         out.append(str(t + dt.timedelta(1)))
@@ -340,6 +368,14 @@ def dates_in(sentence, today):
                     out.append(str(d))
                     break
     return sorted(set(out))
+
+
+def dates_near(sentence, today):
+    """Dates named close to the snow words (a long key-message 'sentence' also holds dates for unrelated weather)."""
+    out = set()
+    for m in SNOW_RE.finditer(sentence):
+        out |= set(dates_in(sentence[max(0, m.start() - 110):m.end() + 150], today))
+    return sorted(out)
 
 
 def forecast_text(body):
@@ -444,9 +480,9 @@ def parse_afd(text, today):
             kind = {"state": "state", "elev": "elev", "none": "vague"}[where]
             by_kind[kind].append(s + (" " + nxt if where == "elev" and not ELEV_WORDS.search(s) else ""))
             if rank[kind] > rank[snow]:
-                snow, dates, why = kind, dates_in(s, today), s[:200]
+                snow, dates, why = kind, dates_near(s, today), s[:200]
             elif kind == snow:
-                dates = sorted(set(dates) | set(dates_in(s, today)))
+                dates = sorted(set(dates) | set(dates_near(s, today)))
         elif snow == "none" and STORM_RE.search(s) and re.search(r"(possible|potential|watch|monitor|signal|threat|chance|uncertain)", s, re.I) and not re.search(r"\b(thunder|severe|convective|tstm)", s, re.I):
             snow = "vague"
             dates = dates_in(s, today)
@@ -552,10 +588,16 @@ def cpc_windows(today):
             continue
         cm = re.search(r"(\d)\s+out\s+of\s+5", sec)
         conf = int(cm.group(1)) if cm else 3
-        for name, word in (("t", "temperature"), ("p", "precipitation")):
+        # CPC's own state table at the end of each section ("PENN N B" = temperature near normal, precipitation below) is the
+        # official call for Pennsylvania; when it is there it decides, and the prose is only the fallback.
+        tbs = re.findall(r"\bPENN\s+([ABN])\s+([ABN])\b", txt)  # two tables in the page: 6-10 day first, then 8-14 day
+        tb = (tbs[0] if k == "610" else tbs[1]) if len(tbs) == 2 else None
+        for j, (name, word) in enumerate((("t", "temperature"), ("p", "precipitation"))):
             r = prose_category(sec, word)
             cat, soft = r if r else ("EC", True)
             out[name + k] = {"start": dates[k][0], "end": dates[k][1], "issued": issued, "cat": cat, "conf": conf}
+            if tb:
+                out[name + k].update(cat=tb[j], table=True)
     return out if len(out) == 4 else None
 
 

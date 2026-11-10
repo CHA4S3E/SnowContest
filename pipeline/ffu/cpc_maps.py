@@ -95,10 +95,14 @@ def apply(raw, maps):
         if not d or not m:
             continue
         cat, b = m
+        d["map"] = {"cat": cat, "bin": None if b is None else BINS[b]}
+        if d.get("table"):  # CPC's state table already gave Pennsylvania's category; the map pixel is kept only as a note
+            if d.get("cat") != cat:
+                diffs.append({"what": k, "table": d.get("cat"), "map": cat, "kept": "table"})
+            continue
         if d.get("cat") != cat:
             diffs.append({"what": k, "before": d.get("cat"), "map": cat})
         d["cat"] = cat
-        d["map"] = {"cat": cat, "bin": None if b is None else BINS[b]}
     wk, m = raw.get("wk34"), maps.get("t34")
     if wk and m:
         if wk.get("cat") != m[0]:

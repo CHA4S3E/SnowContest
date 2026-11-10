@@ -168,6 +168,10 @@ def merge(raw, ai, today, afd_text=None):
         a = ai.get(ai_key)
         if not d or not isinstance(a, dict) or a.get("cat") not in CATS:
             return
+        if d.get("table"):  # CPC's state table is the official call; the reader's view is only logged
+            if d.get("cat") != a["cat"]:
+                diffs.append({"what": key, "table": d.get("cat"), "ai": a["cat"], "kept": "table"})
+            return
         if d.get("cat") != a["cat"]:
             diffs.append({"what": key, "parser": d.get("cat"), "ai": a["cat"]})
         d["cat"] = a["cat"]  # the confidence stays CPC's own "N out of 5" for the period
