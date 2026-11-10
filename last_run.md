@@ -1,8 +1,8 @@
-# 2026-11-09-pm
+# 2026-11-10
 
-First Flakes Nov 9: Braeden leads Meteo at 32.4%; Layla leads Ritner Floor 2 at 52.1%. Median Nov. 14.
+First Flakes Nov 10: Braeden leads Meteo at 26.8%; Layla leads Ritner Floor 2 at 42.5%. Median Nov. 15.
 
-Headline (new): Flakes are in play for Friday, with the chance at 45%. The median slides six days earlier to Nov. 14.
+Headline (new): The odds of flakes on Friday have climbed to 30%, so the watch is on. The middle of the curve moves a day later to Nov. 15.
 
 ## Input health
 

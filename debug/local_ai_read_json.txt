@@ -2,6 +2,7 @@
  "model": "gemini-3.5-flash",
  "answer": {
   "afd_snow": "elevation_only",
+  "afd_quote": "A cold air injection associated with an intensifying upper trough over the Eastern U.S. should allow for rain and higher elevation snow Thursday night into Friday.",
   "afd_snow_dates": [],
   "t610": {
    "cat": "A",
@@ -27,46 +28,14 @@
    "cat": "A",
    "soft": false
   },
-  "hazards": [
-   {
-    "kind": "snow",
-    "level": "moderate",
-    "start": "2026-11-17",
-    "end": "2026-11-17",
-    "covers_pa": false,
-    "region": "San Juan Mountains of southwestern Colorado"
-   },
-   {
-    "kind": "snow",
-    "level": "slight",
-    "start": "2026-11-17",
-    "end": "2026-11-23",
-    "covers_pa": false,
-    "region": "higher elevations of the Klamath, Sierra Nevada, and Wasatch Mountains along with Colorado Rockies"
-   }
-  ]
+  "hazards": []
  },
  "changes": [
   {
-   "what": "afd snow",
-   "parser": [
-    "state",
-    []
-   ],
-   "ai": [
-    "elev",
-    []
-   ]
-  },
-  {
    "what": "t610",
-   "parser": "B",
-   "ai": "A"
-  },
-  {
-   "what": "p610",
-   "parser": "EC",
-   "ai": "B"
+   "table": "N",
+   "ai": "A",
+   "kept": "table"
   }
  ]
 }

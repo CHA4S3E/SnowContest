@@ -27,6 +27,12 @@
  },
  "changes": [
   {
+   "what": "t610",
+   "table": "N",
+   "map": "A",
+   "kept": "table"
+  },
+  {
    "what": "hazard dropped",
    "kind": "snow",
    "start": "2026-11-17",
