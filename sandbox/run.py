@@ -192,7 +192,7 @@ check("watch library: a watch that never ran live is not saved", not watchlib.ar
 from ffu import ai_read  # noqa: E402
 _raw = {"afd": {"snow": "none", "snow_dates": []}, "cpc": {"t610": {"cat": "EC", "conf": 1}, "p610": {"cat": "B", "conf": 3}, "t814": {"cat": "A", "conf": 3}, "p814": {"cat": "EC", "conf": 1}},
         "wk34": {"cat": "EC", "conf": 2}, "haz": {"flags": [], "carried": []}}
-_ai = {"afd_snow": "town", "afd_snow_dates": ["2026-11-13", "2025-01-01", "junk"], "t610": {"cat": "N", "soft": False}, "p610": {"cat": "A", "soft": False}, "t814": {"cat": "A", "soft": False},
+_ai = {"afd_snow": "town", "afd_quote": "Snow showers are expected for State College on Friday.", "afd_snow_dates": ["2026-11-13", "2025-01-01", "junk"], "t610": {"cat": "N", "soft": False}, "p610": {"cat": "A", "soft": False}, "t814": {"cat": "A", "soft": False},
        "p814": {"cat": "B", "soft": True}, "t34": {"cat": "A", "soft": False}, "p34": {"cat": "N", "soft": False},
        "hazards": [{"kind": "cold", "level": "slight", "start": "2026-11-14", "end": "2026-11-15", "covers_pa": False}, {"kind": "snow", "level": "moderate", "start": "2026-11-14", "end": "2026-11-15", "covers_pa": False}, {"kind": "snow", "level": "bogus", "start": "2026-11-14", "end": "2026-11-15", "covers_pa": True},
                    {"kind": "cold", "level": "slight", "start": "2031-01-01", "end": "2031-01-02", "covers_pa": True}]}
@@ -208,8 +208,20 @@ ai_read.merge(_r5, {"hazards": [{"kind": "cold", "level": "slight", "start": "20
                                 {"kind": "cold", "level": "slight", "start": "2026-11-16", "end": "2026-11-17", "covers_pa": True, "region": "the Northeast"}]}, "2026-11-06")
 check("second reader: a yes on PA coverage must pass a check of the quoted region", [f["covers_pa"] for f in _r5["haz"]["flags"]] == [False, True])
 _r4 = {"afd": {"snow": "none", "snow_dates": []}}
-ai_read.merge(_r4, {"afd_snow": "town", "afd_snow_dates": []}, "2026-11-06")
+ai_read.merge(_r4, {"afd_snow": "town", "afd_quote": "Snow showers are expected for State College on Friday.", "afd_snow_dates": []}, "2026-11-06")
 check("second reader: town snow with no usable date is ignored", _r4["afd"]["snow"] == "none")
+_afd9 = ("All ensemble guidance points towards colder air working into the region Thursday night into Friday, which could bring the first accumulating snowfall to portions of central Pennsylvania. "
+         "Gradual mixing will likely continue into sunrise on Friday with areas generally north/west of the I-80/I-99 corridor experiencing some potential for snow for the Friday morning commute. "
+         "The first accumulating snowfall across the region typically catches folks off guard, but keep in mind that we are getting into the middle of November.")
+def _town(q, ty=_afd9):
+    _r = {"afd": {"snow": "none", "snow_dates": []}}
+    ai_read.merge(_r, {"afd_snow": "town", "afd_quote": q, "afd_snow_dates": ["2026-11-13"]}, "2026-11-09", ty)
+    return _r["afd"]["snow"]
+check("second reader: 'portions of central Pennsylvania' is not town", _town("All ensemble guidance points towards colder air working into the region Thursday night into Friday, which could bring the first accumulating snowfall to portions of central Pennsylvania.") == "elev")
+check("second reader: a climatology sentence is not town", _town("The first accumulating snowfall across the region typically catches folks off guard, but keep in mind that we are getting into the middle of November.") == "elev")
+check("second reader: a quote that is not in the discussion is rejected", _town("Snow showers are likely across State College on Friday.") == "elev")
+check("second reader: a real town sentence is accepted", _town("Snow showers are likely across State College on Friday.", _afd9 + " Snow showers are likely across State College on Friday.") == "state")
+check("regex parser: the same discussion reads as higher elevations, not town", parse_afd("\n224 PM EST Mon Nov 9 2026\n\n.DISCUSSION...\n" + _afd9.replace(" Gradual", "\nGradual") + "\n", "2026-11-09")["snow"] in ("elev", "vague"))
 check("second reader: disagreements are logged", any(x["what"] == "p610" for x in _d))
 check("second reader: a non-dict answer changes nothing", ai_read.merge({"afd": {"snow": "none"}}, "junk", "2026-11-06") == [])
 _calls = []

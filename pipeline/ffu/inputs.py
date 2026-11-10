@@ -302,8 +302,10 @@ def alerts():
 ELEV_WORDS = re.compile(
     r"(higher elevations?|high(er)? terrain|elevations? (above|over)|(above|over|greater than) \d{3,4} ?(ft|feet|msl)|\d{3,4} ?(ft|feet) msl|\bmsl\b|"
     r"ridges?\b|ridgetops?|summits?|mountain|mtns?\b|mts\b|alleghen|laurel|highlands|poconos?|endless|tug hill|"
-    r"\bnw\b|northwest(ern)?\b|\bnrn\b|northern (pa|pennsylvania|tier|mtns|mountains)|north(ern)? central mtns|far (north|northwest)|"
+    r"(north|west)(/|\s+and\s+|\s+or\s+)?(north|west)?\s+of\s+(the\s+)?(i-?\d{2,3}|route\s+\d+)|\bnw\b|northwest(ern)?\b|\bnrn\b|northern (pa|pennsylvania|tier|mtns|mountains)|north(ern)? central mtns|far (north|northwest)|"
     r"lake[- ](effect|enhanced)|upslope|orographic|\bbfd\b|\bjst\b|bradford|warren|elk|mckean|potter|cameron|tioga)", re.I)
+# advice, climatology and season-level remarks are not a forecast for any place ("typically catches folks off guard")
+GENERIC_RE = re.compile(r"(typically|climatolog|catches folks off guard|we urge|keep in mind|take time to|winter plans|monitor the (forecast|latest)|stay (tuned|up to date)|getting into the (middle|heart|thick))", re.I)
 TOWN_WORDS = re.compile(r"(state college|centre county|centre co\b|bellefonte|happy valley|\bunv\b)", re.I)
 AREA_WORDS = re.compile(r"(\b(to|over|for|in|across) the (area|region|cwa|forecast area)\b|across (the )?(entire |whole )?(area|region|cwa|forecast area|central pa|central pennsylvania)|area-?wide|region-?wide|widespread|most (locations|of (the )?(area|region|cwa|central))|much of (the )?(area|region|cwa|central)|all of (central|the))", re.I)
 NARROW_NEXT = re.compile(r"^\W*(but |though |however )?(mainly|mostly|primarily|especially|only|just|limited to|confined to|best chance|favou?red|highest)\b", re.I)
@@ -435,6 +437,8 @@ def parse_afd(text, today):
         nxt = sentences[i + 1] if i + 1 < len(sentences) else ""
         if SNOW_RE.search(s):
             if NEG_RE.search(s) and not NOT_NEG.search(s):
+                continue
+            if GENERIC_RE.search(s) and not TOWN_WORDS.search(s) and not ELEV_WORDS.search(s):
                 continue
             where = sentence_places(s, nxt)
             kind = {"state": "state", "elev": "elev", "none": "vague"}[where]

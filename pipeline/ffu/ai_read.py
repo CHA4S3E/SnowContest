@@ -17,6 +17,7 @@ CATS = ["A", "N", "B", "EC"]
 _CAT = {"type": "OBJECT", "properties": {"cat": {"type": "STRING", "enum": CATS}, "soft": {"type": "BOOLEAN"}}, "required": ["cat", "soft"]}
 SCHEMA = {"type": "OBJECT", "properties": {
     "afd_snow": {"type": "STRING", "enum": ["none", "elevation_only", "town"]},
+    "afd_quote": {"type": "STRING"},
     "afd_snow_dates": {"type": "ARRAY", "items": {"type": "STRING"}},
     "t610": _CAT, "p610": _CAT, "t814": _CAT, "p814": _CAT, "t34": _CAT, "p34": _CAT,
     "hazards": {"type": "ARRAY", "items": {"type": "OBJECT", "properties": {
@@ -24,11 +25,23 @@ SCHEMA = {"type": "OBJECT", "properties": {
         "level": {"type": "STRING", "enum": ["slight", "moderate", "high"]},
         "start": {"type": "STRING"}, "end": {"type": "STRING"}, "covers_pa": {"type": "BOOLEAN"}, "region": {"type": "STRING"}},
         "required": ["kind", "level", "start", "end", "covers_pa", "region"]}}},
-    "required": ["afd_snow", "afd_snow_dates", "t610", "p610", "t814", "p814", "t34", "p34", "hazards"]}
+    "required": ["afd_snow", "afd_quote", "afd_snow_dates", "t610", "p610", "t814", "p814", "t34", "p34", "hazards"]}
 
 PROMPT = """You read National Weather Service text for State College, Pennsylvania (Centre County, central PA, ridge-and-valley terrain). Answer in the JSON format given, using ONLY the text below. Do not guess: if the text does not say, use "none", "EC" or an empty list. Today is %(weekday)s %(today)s (year %(year)s). Turn weekday names and "Saturday night" style phrases into calendar dates (YYYY-MM-DD) counted forward from today.
 
-afd_snow: read the forecast discussion. "town" = it says snow, snow showers, flurries or a rain/snow mix for State College, Centre County or central Pennsylvania generally (not only the mountains). "elevation_only" = snow only on ridges, mountain tops, the Laurel Highlands, the Allegheny Plateau or Allegheny Front, lake-effect belts, or far northwest or north-central PA. "none" = no snow mentioned, or snow explicitly ruled out. Ignore snow that already happened and snow elsewhere in the country. afd_snow_dates = the dates snow is expected for the town (only when "town"), within the next 10 days, else [].
+afd_snow: read the forecast discussion the way a forecaster would for the town of State College (about 1,200 ft, in the valley along the I-99 corridor) and say where it puts snow.
+"town" = a sentence forecasts snow, snow showers, flurries or a rain/snow mix for State College, Centre County, or the whole forecast area or central Pennsylvania generally, with nothing narrowing it to other places.
+"elevation_only" = the snow is limited to somewhere other than the valley town: ridges and mountain tops, "the higher elevations", the Laurel Highlands or Laurels, the Allegheny Plateau or Front, the northern tier, northwest or north-central PA, "north and west of the I-80/I-99 corridor", lake-effect or lake-enhanced belts, or counties such as McKean, Potter, Elk, Cameron, Tioga and Warren.
+"none" = no snow mentioned, or snow explicitly ruled out.
+Rules for the usual traps:
+1. "portions of central Pennsylvania", "some locations" and "parts of the area" are NOT town unless that sentence or the next one names State College, Centre County or a place that contains them. When such a sentence is followed by or contains the places it means (the Laurels, the northern tier, areas north and west of I-80/I-99) the answer is elevation_only.
+2. Advice, climatology and season-level remarks are not forecasts, so ignore them ("the first accumulating snowfall typically catches folks off guard", "we are getting into the middle of November", "continue to monitor the forecast", "take time to look over winter plans").
+3. A key message such as "potential for the first accumulating snowfall of the season, especially across the Laurels and the northern tier" means those places: elevation_only.
+4. Hedged wording ("potential", "possible", "chance") still counts at its place, so "possible snow in State College" is town and "possible snow in the higher elevations" is elevation_only.
+5. If both kinds appear, answer town only when some sentence puts snow in town or across the whole area; otherwise elevation_only.
+6. Ignore the AVIATION section (airport shorthand) and snow that already happened or is somewhere else in the country.
+Real examples: "could bring the first accumulating snowfall to portions of central Pennsylvania ... areas generally north/west of the I-80/I-99 corridor experiencing some potential for snow" -> elevation_only. "rain Thursday mixing/changing to snow across the higher elevations Thursday night into Friday" -> elevation_only. "snow showers likely across central Pennsylvania Friday, including State College" -> town.
+afd_quote = copy character for character the single sentence from the discussion that decided your answer ("" when the answer is none). afd_snow_dates = the calendar dates snow is expected in the town (only when "town"; the day it falls in Eastern time, so snow after midnight belongs to the new day), within the next 10 days, else [].
 
 t610, p610, t814, p814: the CPC 6-10 day and 8-14 day outlooks, temperature (t) and precipitation (p), for central Pennsylvania. A = above normal, B = below normal, N = near normal, EC = equal chances. Pick the category of the region that contains central PA (for example the Northeast, East, Mid-Atlantic, Great Lakes and Northeast, or "the eastern third of the CONUS"). If the text only describes other regions, answer EC. soft = true when the wording for PA is hedged, such as "near to below normal", "slightly favored" or "weak signal".
 t34, p34: the same for the week 3-4 outlook.
@@ -88,7 +101,7 @@ def call(prompt, key, models=None, post=None):
     for model in models or MODELS:
         try:
             body = {"contents": [{"parts": [{"text": prompt}]}],
-                    "generationConfig": {"temperature": 0, "responseMimeType": "application/json", "responseSchema": SCHEMA, "maxOutputTokens": 4096}}
+                    "generationConfig": {"temperature": 0, "responseMimeType": "application/json", "responseSchema": SCHEMA, "maxOutputTokens": 4096, "seed": 7}}
             r = post("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent" % model, body, key)
             txt = r["candidates"][0]["content"]["parts"][0]["text"]
             return json.loads(txt), model
@@ -112,7 +125,26 @@ def _date(s, today, lo=-1, hi=21):
     return str(d) if t + dt.timedelta(lo) <= d <= t + dt.timedelta(hi) else None
 
 
-def merge(raw, ai, today):
+def _norm(x):
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9/ ]+", " ", str(x or "").lower())).strip()
+
+
+def town_ok(quote, afd_text=None):
+    """The deterministic check behind a 'town' answer: the quoted sentence must really be in the discussion and must put snow in town,
+    not just somewhere in central Pennsylvania. Same rules the regex parser uses."""
+    q = str(quote or "").strip()
+    if len(q) < 12:
+        return False
+    if afd_text is not None and _norm(q) not in _norm(afd_text):
+        return False
+    if I.TOWN_WORDS.search(q):
+        return True
+    if re.search(r"portions? of|parts? of|some (areas|locations|portions)|pockets", q, re.I):
+        return False
+    return bool(I.AREA_WORDS.search(q)) and not I.ELEV_WORDS.search(q) and not I.GENERIC_RE.search(q)
+
+
+def merge(raw, ai, today, afd_text=None):
     """Fill gaps in `raw` from the validated AI answer. Returns the list of disagreements for the debug log."""
     diffs = []
     if not isinstance(ai, dict):
@@ -121,6 +153,9 @@ def merge(raw, ai, today):
     afd = raw.get("afd")
     dates = [d for d in (_date(x, today, 0, 10) for x in ai.get("afd_snow_dates") or []) if d]
     kind = {"town": "state", "elevation_only": "elev", "none": "none"}.get(ai.get("afd_snow"))
+    if kind == "state" and not town_ok(ai.get("afd_quote"), afd_text):
+        diffs.append({"what": "afd town claim rejected", "quote": str(ai.get("afd_quote") or "")[:200]})
+        kind = "elev"  # a town call has to be backed by a quoted sentence that really puts snow in town
     if afd is not None and kind and not (kind == "state" and not dates):
         if afd.get("snow") != kind or (kind == "state" and sorted(afd.get("snow_dates") or []) != sorted(dates)):
             diffs.append({"what": "afd snow", "parser": [afd.get("snow"), afd.get("snow_dates")], "ai": [kind, dates]})
@@ -183,7 +218,7 @@ def run(raw, afd_text, today, post=None):
         if ai is None:
             I.note(name, False, model)
             return
-        diffs = merge(raw, ai, today)
+        diffs = merge(raw, ai, today, afd_text)
         I.note(name, True, "%s, %d disagreement(s)/fill(s)" % (model, len(diffs)))
         I.DEBUG["https://local/ai_read.json"] = json.dumps({"model": model, "answer": ai, "changes": diffs}, indent=1)
     except Exception as e:  # noqa
