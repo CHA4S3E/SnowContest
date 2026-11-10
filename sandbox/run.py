@@ -296,10 +296,31 @@ def _story(now, was, nws_was=None, nws_now=None, ec=(None, None), hist=()):
     c = {"watch_when": "Friday"}
     return _H.story_ctx(f, g, c), c
 _s, _c = _story(46.8, 67.8, "Rain And Snow Showers Likely", "A chance of snow in the morning")
-check("headline story: a drop names NWS dialing the day back, with from and to", _s == "watch_down" and _c.get("driver_cap", "").startswith("NWS dials Friday back to a chance of snow") and (_c["watch_was"], _c["watch_now"]) == ("68%", "47%"), (_s, _c))
+check("headline story: a drop names NWS dialing the day back, with from and to", _s == "watch_slump" and _c.get("driver_cap", "").startswith("NWS dials Friday back to a chance of snow") and (_c["watch_was"], _c["watch_now"]) == ("68%", "47%"), (_s, _c))
 _s, _c = _story(47.0, 30.0, None, None, (10.0, 33.0), [{"id": "2026-11-08-pm", "date": "2026-11-08", "pm": True, "dist": {"2026-11-13": 12.0}}, {"id": "2026-11-09", "date": "2026-11-09", "pm": False, "dist": {"2026-11-13": 20.0}}, {"id": "2026-11-09-pm", "date": "2026-11-09", "pm": True, "dist": {"2026-11-13": 30.0}}])
 check("headline story: a rise names the model behind it, the streak and where the day started", _s == "watch_up" and "European turns snowier" in _c.get("driver_cap", "") and _c.get("streak_ord") == "fourth" and _c.get("first_pct") == "12%", (_s, _c))
 check("headline story: a steady day reads as a hold", _story(46.0, 47.0)[0] == "watch_hold")
+
+def _other(base, ref, g=None, u_dist=None, hist=()):
+    f = {"u": {"dist": u_dist or {}, "modelDays": {}}, "prev": ref, "wx": {}, "hist": list(hist)}
+    gg = {"today": "2026-11-14", "evening": False, "peak_day": "2026-11-18", "peak_pct": 6.0, "cons_peak": ("2026-11-18", 6.0), "freeze_days": [], "any_snow": False}
+    gg.update(g or {})
+    c = {"peak_when": "Wednesday", "peak": "6%"}
+    return _H.story_other(f, gg, c, base), c
+_q = [{"id": "x%d" % i, "date": "2026-11-1%d" % i, "pm": False, "dist": {}, "s1": "calendar_late"} for i in range(1, 4)]
+_s, _c = _other("calendar_late", {"id": "2026-11-13-pm", "date": "2026-11-13", "dist": {"2026-11-13": 47.0, "2026-11-14": 9.0}, "fs": {}, "hspec": {"s1": "watch_hold"}})
+check("headline story: the day after a watched day passes says it came and went", _s == "after_miss" and _c["cap_missed_day"] == "Yesterday" and _c["missed_pct"] == "47%", (_s, _c))
+_s, _c = _other("calendar_late", {"id": "2026-11-13-pm", "date": "2026-11-13", "dist": {"2026-11-16": 22.0}, "fs": {}, "hspec": {"s1": "watch_hold"}}, u_dist={"2026-11-16": 4.0})
+check("headline story: a watched day that drops under 10% reads as faded, with from and to", _s == "watch_gone" and (_c["faded_was"], _c["faded_now"]) == ("22%", "4%"), (_s, _c))
+_s, _c = _other("calendar_late", {"id": "p", "date": "2026-11-13", "dist": {}, "fs": {"snow_days": [], "haz_cold": False}, "hspec": {"s1": "calendar_late"}}, hist=_q)
+check("headline story: a run of blank forecasts counts the streak", _s == "quiet_streak" and _c["quiet_ord"] == "fourth", (_s, _c))
+check("headline story: a dry spell that continues counts up", _other("dry_spell", {"id": "p", "date": "2026-11-13", "dist": {}, "fs": {}, "hspec": {"s1": "dry_spell"}})[0] == "dry_grow")
+check("headline story: rain after a long dry spell says it ends the streak", _other("rain", {"id": "p", "date": "2026-11-13", "dist": {}, "fs": {"dry_days": 17}, "hspec": {"s1": "dry_grow"}})[1].get("dry_was") == "17")
+check("headline story: the first small snow signal after blanks reads as new", _other("snow_signal", {"id": "p", "date": "2026-11-13", "dist": {}, "fs": {"snow_days": [], "cons_peak": None}, "hspec": {"s1": "calendar_late"}})[0] == "signal_new")
+check("headline story: no earlier update means the plain headline", _other("warm", None)[0] is None)
+import re as _re
+_need = {"driver_cap": "NWS raises Friday to snow showers likely", "watch_when": "Friday", "cap_watch_when": "Friday"}
+check("headline story: the story banks are all registered", len(_H.STORY) >= 30 and sum(len(v) for v in _H.STORY.values()) >= 240 and all(k in _H.S1 for k in _H.STORY))
 
 print("\n%d failed" % len(FAILS) if FAILS else "\nALL PASSED")
 print("data dir:", D)

@@ -158,7 +158,8 @@ def main():
     dry = raw.get("dry") or {}
     f = F.build_facts(today, edition, hour, raw, out, inp, prev_doc, mid_doc, pools, prior, curve, odds_by_pool, watch, dry, flakes_possible)
     # the story so far, for headlines that build on earlier updates (memory only, never saved)
-    f["hist"] = [{"id": u["id"], "date": u["date"], "pm": u["id"].endswith("-pm"), "dist": u.get("dist") or {}} for u in earlier[-16:]]
+    f["prev2"] = earlier[-2] if (edition == "evening" and mid_doc and len(earlier) >= 2) else None
+    f["hist"] = [{"id": u["id"], "date": u["date"], "pm": u["id"].endswith("-pm"), "dist": u.get("dist") or {}, "s1": (u.get("hspec") or {}).get("s1")} for u in earlier[-16:]]
     g = derive.derive(f)
     names = all_names(cfg)
     seed = "%s|%s|%s" % (today, edition, state.get("salt", ""))
