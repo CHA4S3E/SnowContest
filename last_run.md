@@ -1,8 +1,8 @@
 # 2026-11-10-pm
 
-First Flakes Nov 10: Braeden leads Meteo at 34.0%; Layla leads Ritner Floor 2 at 55.4%. Median Nov. 13.
+First Flakes Nov 10: Braeden leads Meteo at 28.6%; Layla leads Ritner Floor 2 at 37.9%. Median Nov. 17.
 
-Headline (new): Friday surges 21 points to 49%, three days out. The median moves two days earlier, to Nov. 13.
+Headline (new): Friday holds as the day to watch, steady near 30% for the third update in a row. The median nudges two days later, to Nov. 17.
 
 ## Input health
 

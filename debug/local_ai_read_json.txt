@@ -1,5 +1,5 @@
 {
- "model": "gemini-3.6-flash",
+ "model": "gemini-3.5-flash",
  "answer": {
   "afd_snow": "elevation_only",
   "afd_quote": "Potential for the first accumulating snowfall of the season, especially across the Laurels and the northern tier of Pennsylvania.",
