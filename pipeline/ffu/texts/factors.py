@@ -380,7 +380,10 @@ def nws(f, g, v):
     sn = a.get("snow", "none")
     sd = a.get("snow_dates") or []
     c2 = {"dates": join([dm(x) for x in sd[:3]]) if sd else ""}
-    if sn == "state":
+    if sn == "state" and not sd:
+        parts.append(sentence(say(v, "fn3n", ["The discussion mentions snow for State College without naming days, so the day-by-day forecast sets the dates.",
+                                              "Snow is mentioned for State College but not pinned to days, so the point forecast decides which days count."], c2)))
+    elif sn == "state":
         parts.append(sentence(say(v, "fn3", ["Forecasters mention snow at State College {dates}, which counts directly in the odds.",
                                              "Snow is mentioned for State College on {dates}, and the forecast chance goes straight into the model."], c2)))
     elif sn == "elev" and not sd:
@@ -408,7 +411,13 @@ def nws(f, g, v):
     else:
         parts.append(say(v, "fn6", ["No snow or flurries are mentioned.", "There's no mention of snow or flurries.", "Snow isn't mentioned.",
                                     "No flakes are mentioned in the forecast."], {}))
-    effect = "earlier" if sn == "state" else "neutral"
+    pf = [(d, (wx[d].get("text") or "").lower()) for d in sorted(wx) if d >= t and ("snow" in (wx[d].get("text") or "").lower() or "flurr" in (wx[d].get("text") or "").lower())][:3]
+    if pf:
+        bits = join(["%s on %s" % (t_, dow(d)) for d, t_ in pf])
+        parts.append(sentence(say(v, "fn7", ["The point forecast puts snow in town: {bits}, and that wording counts directly in the odds.",
+                                             "For State College itself, the point forecast reads {bits}, which goes straight into the odds.",
+                                             "The point forecast carries snow for the town ({bits}), so it counts directly."], {"bits": bits})))
+    effect = "earlier" if ((sn == "state" and sd) or pf) else "neutral"
     return {"name": "NWS forecasters", "effect": effect, "text": " ".join(parts)}
 
 

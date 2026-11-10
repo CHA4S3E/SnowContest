@@ -100,7 +100,7 @@ tmpl, fmax = SRC[model]
 hourly = "--hourly" in sys.argv
 if hourly:
     fmax = 18
-run, hrs, last = None, None, None
+run, hrs, last, partial = None, None, None, None
 def safe_hour(cand, f):
     try:
         return hour(tmpl, cand, f)
@@ -112,6 +112,12 @@ MIN_HOURS = 24 if not hourly else 12
 for cand in candidates(tmpl, fmax, 1 if hourly else 6):
     with cf.ThreadPoolExecutor(4) as ex:
         got = list(ex.map(lambda f: safe_hour(cand, f), range(1, fmax + 1)))
+    for i, g in enumerate(got):  # a throttled hour often goes through when asked again alone after a pause
+        for _ in range(2):
+            if not isinstance(g, Exception):
+                break
+            time.sleep(6)
+            g = got[i] = safe_hour(cand, i + 1)
     ok = []
     for g in got:  # keep the unbroken stretch from hour 1; a late hour still being written or throttled only shortens the run
         if isinstance(g, Exception):
@@ -121,6 +127,7 @@ for cand in candidates(tmpl, fmax, 1 if hourly else 6):
     if len(ok) >= MIN_HOURS:
         run, hrs = cand, ok
         if len(ok) < fmax:
+            partial = "first %d of %d hours (%r)" % (len(ok), fmax, last)
             print("run %s used for its first %d of %d hours (%r)" % (cand.strftime("%Y-%m-%d %HZ"), len(ok), fmax, last)[:200], file=sys.stderr)
         break
     NEAR.clear()
@@ -147,6 +154,6 @@ for r in hrs:
         g["t"].append(tf)
 periods = [{"end": e.strftime("%Y-%m-%d %H:%M"), "hours": 6, "tp": round(g["tp"], 2), "sf": round(g["sf"], 2), "t": round(min(g["t"]), 1) if g["t"] else None}
            for e, g in sorted(per.items())]
-json.dump({"model": model, "run": run.strftime("%Y-%m-%d %HZ"), "gridPoint": NEAR.get("at"), "periods": periods, "hours": hours}, open(out_path, "w"))
+json.dump({"model": model, "run": run.strftime("%Y-%m-%d %HZ"), "gridPoint": NEAR.get("at"), "partial": (partial or "")[:160], "periods": periods, "hours": hours}, open(out_path, "w"))
 print(model, "run", run.strftime("%Y-%m-%d %HZ"), "grid point", NEAR.get("at"), "periods", len(periods), "precip %.1f mm" % sum(p["tp"] for p in periods),
       "frozen %.1f mm" % sum(p["sf"] for p in periods), "coldest %.0fF" % min(p["t"] for p in periods if p["t"] is not None))

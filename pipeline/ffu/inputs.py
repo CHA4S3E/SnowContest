@@ -816,6 +816,9 @@ def gather(today):
     raw["ecmwf"] = try_("European (Open-Meteo)", ecmwf)
     raw["rrfs"] = try_("RRFS (NOAA)", cam, "rrfs")
     raw["hrrr"] = try_("HRRR (NOAA)", cam, "hrrr")
+    for k_, n_ in (("rrfs", "RRFS (NOAA)"), ("hrrr", "HRRR (NOAA)")):
+        if raw.get(k_) and raw[k_].get("partial"):
+            note(n_, True, "used part of the run: " + raw[k_]["partial"])  # shows on the health list, still counts as working
     raw["pfc"] = try_("NWS point forecast", point_forecast)
     raw["alerts"] = try_("NWS alerts", alerts)
     afd_text = []

@@ -164,12 +164,14 @@ def nws_row(f, g, v):
     sd = a.get("snow_dates") or []
     ds = join([dms(x) for x in sd[:3]])
     summ = (a.get("summary") or "").strip().rstrip(".")
-    if sn == "state":
+    if sn == "state" and not sd:
+        call, wt = "Snow mentioned for State College, no days named", "Cross-check"
+    elif sn == "state":
         call, wt = "Snow mentioned for State College (%s)" % ds, "Sets %s at the stated chance" % ds
     elif sn == "elev":
         det = a.get("detail") or {}
         ft = (" above ~{:,} ft".format(det["elev_ft"])) if det.get("elev_ft") else ""
-        call, wt = "Snow mentioned for higher elevations only%s (%s)" % (ft, ds), "Cross-check"
+        call, wt = "Snow mentioned for higher elevations only%s%s" % (ft, (" (%s)" % ds) if ds else ""), "Cross-check"
     elif sn == "vague":
         call, wt = "Storm signal mentioned, no snow details yet (%s)" % ds, "Cross-check"
     else:
@@ -177,6 +179,11 @@ def nws_row(f, g, v):
     if summ:
         short = summ if len(summ) <= 110 else summ[:107].rsplit(" ", 1)[0] + "..."
         call += "; " + short
+    wx = f.get("wx") or {}
+    pf = [(d, (wx[d].get("text") or "").lower()) for d in sorted(wx) if d >= g["today"] and ("snow" in (wx[d].get("text") or "").lower() or "flurr" in (wx[d].get("text") or "").lower())][:3]
+    if pf:  # the point forecast's own wording about snow in town counts directly, whatever the discussion says
+        call += "; point forecast: " + join(["%s %s" % (t_, dms(d)) for d, t_ in pf])
+        wt = "Point-forecast snow wording counts directly" if (sn != "state" or not sd) else wt + ", plus the point-forecast wording"
     iss = issued_label(a.get("issued", "")).replace(".", "")
     if iss:
         call += " (%s)" % iss
