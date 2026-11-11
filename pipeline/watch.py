@@ -192,8 +192,12 @@ def main():
         peak_start = pk[0]["t"] if pk else None
         soon = peak_start is None or dt.datetime.fromisoformat(peak_start) <= now + dt.timedelta(hours=12)
         expired = today > until
+        # the best window over everything the hourly guidance reaches (LAMP, then the Blend out to 48 h): when it starts,
+        # minus 12 hours, is when the live watch should go live
+        mx48 = max([h["snow"] for h in hours] or [0])
+        pk48 = [h for h in hours if mx48 >= 3 and h["snow"] >= 0.6 * mx48]
         print(json.dumps({"mode": "check", "goLive": bool(next18 >= 10 and soon and not expired), "next18": next18, "peakStart": peak_start,
-                          "expired": expired, "until": str(until)}))
+                          "peak48": pk48[0]["t"] if pk48 else None, "max48": round(mx48, 1), "expired": expired, "until": str(until)}))
         return
 
     obs = prev.get("obs")

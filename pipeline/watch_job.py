@@ -115,7 +115,20 @@ def main():
             print("on-deck snow chance passed; watch ended")
             return 0
         if not chk.get("goLive"):
-            prev["nextCheckAt"] = (now_et0 + dt.timedelta(hours=1)).replace(minute=8, second=0, microsecond=0).isoformat(timespec="minutes")  # goLiveAt stays the planned start
+            nxt = (now_et0 + dt.timedelta(hours=1)).replace(minute=8, second=0, microsecond=0)
+            prev["nextCheckAt"] = nxt.isoformat(timespec="minutes")  # goLiveAt stays the planned start
+            # best guess at when the live watch starts: 12 hours before the best snow window the hourly guidance sees,
+            # on the hourly check at or after that (it moves as the guidance moves)
+            eta = None
+            if chk.get("peak48"):
+                t = dt.datetime.fromisoformat(chk["peak48"]) - dt.timedelta(hours=12)
+                t = t if t.minute <= 8 else t + dt.timedelta(hours=1)
+                eta = max(nxt, t.replace(minute=8, second=0, microsecond=0))
+            if eta is None and prev.get("goLiveAt"):
+                eta = max(nxt, dt.datetime.fromisoformat(prev["goLiveAt"]))
+            if eta is not None:
+                prev["liveEta"] = eta.isoformat(timespec="minutes")
+                prev["liveEtaFrom"] = "window" if chk.get("peak48") else "plan"
             prev["checkedAt"] = now_et0.isoformat(timespec="minutes")
             save(os.path.join(D_, "watch.json"), prev)
             print("on deck: next18 %s%%, not live yet" % chk.get("next18"))

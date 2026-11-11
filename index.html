@@ -3384,7 +3384,13 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       box.innerHTML = '<div class="wdeckin"><span class="wlive"><i></i>On deck</span><div class="wtitle"><b>' + esc(watch.title || "A chance of first flakes is coming up") + '</b>' +
         (watch.headline ? '<span>' + esc(watch.headline) + '</span>' : "") + '</div>' +
         '<div class="wdeckdays">' + dd.map((d) => '<span><b>' + esc(dayName(d.date)) + '</b> ' + (d.chance >= 1 ? Math.round(d.chance) : d.chance.toFixed(1)) + '%</span>').join("") + '</div>' +
-        '<div class="wdecknote">' + (gl && gl > new Date() ? "Hourly checks begin around " + clock(gl) + (iso(gl) !== todayIso ? " " + esc(((n) => /^(Today|Tomorrow)$/.test(n) ? n.toLowerCase() : n)(dayName(iso(gl)))) : "") + ". The live watch starts once the snow window is about 12 hours out." : "Checking every hour: the live watch starts once the snow window is about 12 hours out.") + ' Chances refresh with the twice-daily update until then.</div></div>';
+        '<div class="wdecknote">' + ((() => {
+          const eta = watch.liveEta ? new Date(watch.liveEta) : gl;
+          if (!eta || isNaN(eta)) return "Checked every hour: the live watch starts once the snow window is about 12 hours out.";
+          const dn = iso(eta) !== todayIso ? " " + esc(((n) => /^(Today|Tomorrow)$/.test(n) ? n.toLowerCase() : n)(dayName(iso(eta)))) : "";
+          if (eta <= new Date()) return "<b>Live watch: could start any hour now.</b> It goes live once the snow window is about 12 hours out.";
+          return "<b>Live watch expected around " + clock(eta) + dn + "</b>, about 12 hours before the best snow window. It's checked every hour, so this time can move.";
+        })()) + ' Chances refresh with each update until then.</div></div>';
       return;
     }
     if (!on) { box.innerHTML = ""; return; }
