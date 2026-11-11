@@ -331,7 +331,11 @@ def zone_snow(today):
             # the stronger wording wins ("likely" over "chance"); on a tie the date's own daytime period and its chance of
             # precipitation count, not the night before's, whose number also covers the evening's rain
             if not e or _snow_rank(phrase) > _snow_rank(e["text"]) or (_snow_rank(phrase) == _snow_rank(e["text"]) and own and not e.get("own")):
-                out[w] = {"text": phrase, "pop": pop, "period": per.get("name"), "own": own}
+                sents = [x.strip().rstrip(".") for x in re.split(r"(?<=[.!?])\s+", det) if x.strip()]
+                acc = next((x for x in sents if "accumulation" in x.lower()), None)
+                tm = next((m.group(0) for m in (re.search(r"\b(lows?|highs?) (in the|around|near) [^,.]+", x, re.I) for x in sents) if m), None)
+                rain = next((x for x in sents if re.search(r"\brain\b", x, re.I) and "snow" not in x.lower()), None)
+                out[w] = {"text": phrase, "pop": pop, "period": per.get("name"), "own": own, "accum": acc, "temps": tm, "rain": rain}
     return {"days": out, "updated": pr.get("updated")}
 
 
@@ -387,6 +391,7 @@ def point_forecast():
             if e is None:
                 continue
             e["snowText"], e["snowPop"], e["snowFrom"] = zv["text"], zv["pop"], "zone forecast"  # the zone forecast decides; the point forecast fills the other days
+            e["snowPeriod"], e["snowAccum"], e["snowTemps"], e["snowRain"] = zv.get("period"), zv.get("accum"), zv.get("temps"), zv.get("rain")
     except Exception as ex:
         note("NWS zone forecast", False, repr(ex)[:80])
     days = {d: v for d, v in days.items() if v["hi"] is not None or v["lo"] is not None}

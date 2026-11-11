@@ -198,7 +198,7 @@ def src_summaries(inp, out, raw, today):
 def build_facts(today, edition, hour, raw, out, inp, prev_doc, mid_doc, picks_cfg, prior, curve, odds_by_pool, watch, dry, flakes_possible):
     src = src_summaries(inp, out, raw, today)
     pfc = raw.get("pfc") or {}
-    wx = {d: {"hi": v.get("hi"), "lo": v.get("lo"), "text": v.get("text", ""), **({"snowText": v["snowText"]} if v.get("snowText") else {})} for d, v in (pfc.get("days") or {}).items() if d >= today}
+    wx = {d: {"hi": v.get("hi"), "lo": v.get("lo"), "text": v.get("text", ""), **{k: v[k] for k in ("snowText", "snowPeriod", "snowAccum", "snowTemps", "snowRain", "snowPop") if v.get(k)}} for d, v in (pfc.get("days") or {}).items() if d >= today}
     cpc = {}
     for k in ("t610", "t814", "p610", "p814"):
         w = (raw.get("cpc") or {}).get(k)
