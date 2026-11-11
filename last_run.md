@@ -1,8 +1,8 @@
 # 2026-11-11-pm
 
-First Flakes Nov 11: Maddie leads Meteo at 55.0%; Layla leads Ritner Floor 2 at 62.8%. Median Nov. 12.
+First Flakes Nov 11: Braeden leads Meteo at 29.0%; Layla leads Ritner Floor 2 at 54.0%. Median Nov. 13.
 
-Headline (new): Same day, same odds: tomorrow remains the best shot at first flakes, at 50%. The late edge of the range moves three days later to Nov. 29.
+Headline (new): Attention shifts from tomorrow to Friday: the chance of first flakes there is 48%, two days out. The typical first-flake date shifts a day later, to Nov. 13.
 
 ## Input health
 

@@ -1,8 +1,8 @@
 {
- "model": "gemini-3.5-flash-lite",
+ "model": "gemini-3.6-flash",
  "answer": {
   "afd_snow": "elevation_only",
-  "afd_quote": "The main game in town across central Pennsylvania over the next week will be the potential for the first accumulating snowfall mainly for the higher elevations.",
+  "afd_quote": "The main game in town across central Pennsylvania over the next week will be the potential for the first accumulating snowfall mainly for the higher elevations of central Pennsylvania.",
   "afd_snow_dates": [],
   "t610": {
    "cat": "A",
@@ -10,32 +10,42 @@
   },
   "p610": {
    "cat": "B",
-   "soft": false
+   "soft": true
   },
   "t814": {
    "cat": "A",
    "soft": false
   },
   "p814": {
-   "cat": "B",
-   "soft": false
+   "cat": "A",
+   "soft": true
   },
   "t34": {
    "cat": "A",
    "soft": false
   },
   "p34": {
-   "cat": "A",
+   "cat": "EC",
    "soft": false
   },
-  "hazards": []
+  "hazards": [
+   {
+    "kind": "snow",
+    "level": "slight",
+    "start": "2026-11-19",
+    "end": "2026-11-25",
+    "covers_pa": false,
+    "region": "higher elevations of the Klamath and Sierra Nevada Mountains"
+   },
+   {
+    "kind": "snow",
+    "level": "slight",
+    "start": "2026-11-19",
+    "end": "2026-11-21",
+    "covers_pa": false,
+    "region": "the Wasatch Mountains in Utah, western and central Colorado (including the Front Range area), and adjacent parts of northern New Mexico and southeast Wyoming"
+   }
+  ]
  },
- "changes": [
-  {
-   "what": "p814",
-   "table": "N",
-   "ai": "B",
-   "kept": "table"
-  }
- ]
+ "changes": []
 }

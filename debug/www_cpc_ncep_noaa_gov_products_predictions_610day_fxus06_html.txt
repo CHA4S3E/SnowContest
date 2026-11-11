@@ -140,7 +140,7 @@ Outlook Maps</a>&gt; Prognostic Map Discussion</font>
    <CENTER><B><FONT FACE="Brush Script" SIZE="4">Prognostic Discussions</FONT></B></CENTER> 
   </td>
  </tr>
-<tr><td><CENTER><B><FONT FACE="Brush Script" SIZE="3" COLOR="RED">Valid: Nov 16 - 20, 2026 (6-10 Day Outlook)<BR>Valid: Nov 18 - 24, 2026 (8-14 Day Outlook)<BR>Issued: Nov 10, 2026</FONT></B></CENTER></td></tr>
+<tr><td><CENTER><B><FONT FACE="Brush Script" SIZE="3" COLOR="RED">Valid: Nov 17 - 21, 2026 (6-10 Day Outlook)<BR>Valid: Nov 19 - 25, 2026 (8-14 Day Outlook)<BR>Issued: Nov 11, 2026</FONT></B></CENTER></td></tr>
     <tr>
      <td><hr></td>
     </tr>
@@ -149,62 +149,63 @@ Outlook Maps</a>&gt; Prognostic Map Discussion</font>
           <FONT FACE="Courier"><div align="left"><PRE>
 Prognostic Discussion for 6 to 10 and 8 to 14 day outlooks 
 NWS Climate Prediction Center College Park, MD 
-300 PM EST Tue November 10 2026 
+300 PM EST Wed November 11 2026 
  
-6-10 DAY OUTLOOK FOR NOV 16 - 20 2026 
+6-10 DAY OUTLOOK FOR NOV 17 - 21 2026 
  
 The 0z ECMWF, GEFS, and Canadian ensembles are in good agreement regarding the  
 <a href="/products/predictions/610day/glossary.html#500-hPa">500-hPa</a> height pattern during the 6-10 day period. Anomalous ridging over the  
 eastern and central <a href="/products/predictions/610day/glossary.html#CONUS">CONUS</a> is forecast to gradually shift eastward and displace  
-departing troughing over the western Atlantic, with a +240 meter positive  
-height <a href="/products/predictions/610day/glossary.html#anomaly">anomaly</a> center depicted south of Hudson Bay in the 6-10 day manual  
+departing troughing over the western Atlantic, with a +180 meter positive  
+height <a href="/products/predictions/610day/glossary.html#anomaly">anomaly</a> center depicted north of the Great Lakes in the 6-10 day manual  
 height <a href="/products/predictions/610day/glossary.html#blend">blend</a>. Upstream, a series of shortwave <a href="/products/predictions/610day/glossary.html#trough">troughs</a> are predicted to move  
 across the Bering Sea, northeastern Pacific, and into the West Coast of the  <br><a href="/products/predictions/610day/glossary.html#CONUS">CONUS</a>. The manual <a href="/products/predictions/610day/glossary.html#blend">blend</a> depicts above-normal heights for nearly all of the  
 <a href="/products/predictions/610day/glossary.html#CONUS">CONUS</a> east of the Rockies, with the exception of the Florida Peninsula where  
-near-normal heights are indicated. For the western portion of the domain, two  
--120 meter height minima are indicated, over the Bering Sea slightly north of  
-the Aleutians, and near the coast of northern California, with below-normal  
-heights extending across western Alaska and the western third of the <a href="/products/predictions/610day/glossary.html#CONUS">CONUS</a>.  
-Expanding mid-level ridging over western Canada favors above-normal heights  
-across eastern Mainland and Southeast Alaska. Above-normal heights are favored  
-for Hawaii tied to strong ridging across the tropical central Pacific. 
+near-normal heights are indicated. Below-normal heights are indicated across  
+much of the western <a href="/products/predictions/610day/glossary.html#CONUS">CONUS</a> and extending through the Aleutians and far western  
+Mainland Alaska. Expanding mid-level ridging over western Canada favors  
+above-normal heights across much of Mainland and Southeast Alaska. Above-normal  
+heights are favored for Hawaii tied to strong ridging across the tropical  
+central Pacific. 
  
-Departing troughing favors slightly increased chances of below-normal  
-temperatures across coastal portions of the southern Mid-Atlantic and  
-Southeast, although the coldest temperatures are more likely prior to the start  
-of the forecast period with a transition to relatively warmer temperatures  
-underway. Much of the central and northern <a href="/products/predictions/610day/glossary.html#CONUS">CONUS</a> is favored to have  
-above-normal temperatures tied to anomalous ridging, with the highest  
-probabilities (greater than 80 percent) across the Northern Plains and Upper  
-Mississippi Valley. A series of shortwave <a href="/products/predictions/610day/glossary.html#trough">troughs</a> moving into the West favors a  
-tendency toward cooler temperatures across portions of California, Great Basin,  
-and the Southwest, and this is reflected more so in the uncalibrated guidance  
-than the reforecast tools. Given support from the <a href="/products/predictions/610day/glossary.html#analog">analogs</a> and also the  
-increased likelihood of enhanced cloud cover and precipitation, near- to  
-below-normal temperatures are favored across the region. Ridging expanding into  
-western Canada supports elevated chances for above-normal temperatures over  
-much of Alaska, decreasing farther to the west closer to troughing over the  
-Bering Sea, with near- to below-normal temperatures favored for the Aleutians.  
-Above-normal temperatures are likely over Hawaii due to enhanced ridging over  
-the state. 
+Increased chances for above-normal temperatures are favored for most of the  
+<a href="/products/predictions/610day/glossary.html#CONUS">CONUS</a> east of the Rockies, and extending through the Northwest along the  
+Canadian border. Departing troughing over the western Atlantic favors slightly  
+increased chances of near-normal temperatures across coastal portions of the  
+southern Mid-Atlantic and Southeast, with a transition to relatively warmer  
+temperatures by the second half of the period. A series of shortwave <a href="/products/predictions/610day/glossary.html#trough">troughs</a>  
+moving into the West favors a tendency toward cooler temperatures across  
+portions of California, Great Basin, and the Southwest, and this is reflected  
+more so in the uncalibrated guidance than the reforecast tools. Given support  
+from the <a href="/products/predictions/610day/glossary.html#analog">analogs</a> and also the increased likelihood of enhanced cloud cover and  
+precipitation, near- to below-normal temperatures are favored across the  
+region. Ridging expanding over western Canada supports elevated chances for  
+above-normal temperatures over much of Alaska, with near- to slightly  
+below-normal temperatures favored for the Aleutians closer to troughing. Near-  
+to above-normal temperatures are likely over Hawaii due to enhanced ridging  
+over the state. 
  
 The aforementioned shortwave troughing propagating inland over the western  
 <a href="/products/predictions/610day/glossary.html#CONUS">CONUS</a> favors increased probabilities of above-normal precipitation across much  
-of the western and central CONUS, with the highest odds (greater than 70  
-percent) over the Four Corners due in part to low climatology. An additional  
-surge of moisture is possible across the West Coast, particularly California,  
-around the middle of the period. While surface high pressure continues to favor  
-enhanced odds of below-normal precipitation across portions of the East, return  
-flow around this feature is likely to contribute to elevated probabilities of  
-above-normal precipitation across Florida and near the Gulf Coast. Troughing  
-over the Bering Sea favors enhanced southerly mid-level flow and near-to  
-above-normal precipitation across Alaska, supported by most forecast tools.  
-Near-normal precipitation is favored over Hawaii. 
+of the western and central CONUS, with the highest odds (greater than 60  
+percent) over the Four Corners and Southwest due in part to low climatology.  
+While surface high pressure continues to favor enhanced odds of below-normal  
+precipitation across portions of the East, return flow around this feature  
+along with potential lee cyclogenesis is likely to contribute to elevated  
+probabilities of above-normal precipitation across the Southeast into the Great  
+Plains and Mississippi Valley. While the 0z GEFS is drier compared to the 0z  
+ECMWF and Canadian ensembles, the 6z GEFS depicts a more robust shortwave  
+<a href="/products/predictions/610day/glossary.html#trough">trough</a> moving into the region and subsequently a stronger signal for enhanced  
+precipitation. Troughing over the Bering Sea favors enhanced southerly  
+mid-level flow and near-to above-normal precipitation across Alaska, supported  
+by most forecast tools. Tied to more influence from ridging, odds for  
+below-normal precipitation are increased over southern parts of Southeast  
+Alaska. Near-normal precipitation is favored over Hawaii. 
  
-The official 6-10 day <a href="/products/predictions/610day/glossary.html#500-hPa">500-hPa</a> height <a href="/products/predictions/610day/glossary.html#blend">blend</a> consists of 30% of Today's 0z <a href="/products/predictions/610day/glossary.html#GFS">GFS</a>  
-Ensemble Mean centered on Day 8, 40% of Today's 0z European Ensemble Mean  
-centered on Day 8, and 30% of Today's 0z Canadian Ensemble Mean centered on Day  
-8  
+The official 6-10 day <a href="/products/predictions/610day/glossary.html#500-hPa">500-hPa</a> height <a href="/products/predictions/610day/glossary.html#blend">blend</a> consists of 15% of Today's 0z <a href="/products/predictions/610day/glossary.html#GFS">GFS</a>  
+Ensemble Mean centered on Day 8, 15% of Today's 6z <a href="/products/predictions/610day/glossary.html#GFS">GFS</a> Ensemble Mean centered  
+on Day 8, 40% of Today's 0z European Ensemble Mean centered on Day 8, and 30%  
+of Today's 0z Canadian Ensemble Mean centered on Day 8  
   
  
 FORECAST CONFIDENCE FOR THE 6-10 DAY PERIOD: Well above average, 5 out of 5,  
@@ -212,52 +213,54 @@ due to very good model agreement regarding the <a href="/products/predictions/61
 features across the forecast domain and consistency among tools regarding the  
 temperature and precipitation outlook. 
  
-8-14 DAY OUTLOOK FOR NOV 18 - 24 2026  
+8-14 DAY OUTLOOK FOR NOV 19 - 25 2026  
  
 Good dynamical model agreement continues into week-2 with the overall <a href="/products/predictions/610day/glossary.html#500-hPa">500-hPa</a>  
 pattern consistent with that of the 6-10 day period. Ridging remains forecast  
-over much of the eastern third of the <a href="/products/predictions/610day/glossary.html#CONUS">CONUS</a>. Shortwave troughing moving farther  
-inland favors decreasing mid-level heights across the central <a href="/products/predictions/610day/glossary.html#CONUS">CONUS</a> with time,  
-with the GEFS and Canadian ensembles depicting a farther eastward <a href="/products/predictions/610day/glossary.html#progression">progression</a>  
-of troughing into the southeastern U.S later in week-2 compared to the ECMWF  
-ensemble. The week-2 manual height <a href="/products/predictions/610day/glossary.html#blend">blend</a> depicts above-normal heights for  
-nearly all of the <a href="/products/predictions/610day/glossary.html#CONUS">CONUS</a> from the Great Plains to the East Coast, with the  
-exception of the immediate Gulf Coast and Florida where near-normal heights are  
-indicated. Below-normal heights are depicted from the Central and Southern High  
-Plains to the Pacific Coast and extending through western Mainland Alaska and  
-the Aleutians. Enhanced ridging over western Canada supports above-normal  
-heights over much of the Mainland and Southeast Alaska. Above-normal heights  
-remain forecast over Hawaii although a downward trend is predicted through the  
-period. 
+over much of the eastern third of the <a href="/products/predictions/610day/glossary.html#CONUS">CONUS</a> with above-normal heights depicted  
+along the U.S./Canadian border, and into parts of the Northeast, Ohio Valley,  
+and northern Mid-Atlantic in the week-2 manual height <a href="/products/predictions/610day/glossary.html#blend">blend</a>. Below-normal  
+heights are depicted from the Central and Southern High Plains to the Pacific  
+Coast and extending through western Mainland Alaska and the Aleutians. Despite  
+initial influence from ridging, near-normal heights are more likely over  
+portions of the Gulf Coast and Southeast for the period as a whole as shortwave  
+troughing moves across the Southern Tier. Enhanced ridging over western Canada  
+supports above-normal heights over much of the Mainland and Southeast Alaska.  
+Above-normal heights remain forecast over Hawaii although a downward trend is  
+predicted through the period. 
  
 Increased probabilities for above-normal temperatures are indicated for much of  
 the <a href="/products/predictions/610day/glossary.html#CONUS">CONUS</a> from the Rockies eastward and into the northwestern <a href="/products/predictions/610day/glossary.html#CONUS">CONUS</a> near the  
-Canadian border. The highest probabilities are across the Upper Mississippi  
-Valley and Great Lakes (above 70 percent), with an increase in probabilities  
-relative to the 6-10 day outlook over the East Coast, consistent with an  
+Canadian border and southward along the West Coast. The highest probabilities  
+are across the Great Lakes and Northeast (above 60 percent), consistent with an  
 eastward <a href="/products/predictions/610day/glossary.html#progression">progression</a> of the <a href="/products/predictions/610day/glossary.html#ridge">ridge</a> axis. Conversely, shortwave troughing moving  
 into the Southwest supports a tilt toward below-normal temperatures, supported  
 mainly by the uncalibrated models and the <a href="/products/predictions/610day/glossary.html#analog">analogs</a>. Ridging over western Canada  
 and subsequently higher mid-level heights expanding into Alaska support  
 increased probabilities of above-normal temperatures over most of the state.  
-Above-normal temperatures remain favored for Hawaii. 
+For Hawaii, the reforecast consolidation supports slightly elevated  
+probabilities of below-normal temperatures over Kauai. Near-normal temperatures  
+are favored across the central islands with above-normal temperatures more  
+likely across the Big Island. 
  
 As troughing shifts farther inland, lee cyclogenesis is possible toward the  
 middle of week-2 leading to increased chances for above-normal precipitation  
 extending from much of the West into the Great Plains, Mississippi Valley, and  
-Southeast. Models generally favor a more southerly track compared to yesterday,  
-although probabilities are still nudged above 60 percent across portions of the  
-Great Plains and adjacent Mississippi Valley given support from the ECMWF  
-reforecast tool and teleconnection analysis with the positive height <a href="/products/predictions/610day/glossary.html#anomaly">anomaly</a>  
-center over eastern Canada indicating a potential surface low track through the  
-Plains. Probabilities above 50 percent extend back through the Southwest and  
-California given continued inland <a href="/products/predictions/610day/glossary.html#progression">progression</a> of shortwaves and the potential  
-for increased precipitation across coastal California at the beginning of the  
-period. Below-normal precipitation odds remain elevated across parts of the  
-Northeast underneath ridging and associated surface high pressure. Enhanced  
+into the East. While the highest precipitation totals in the uncalibrated  
+models are generally focused closer to the Gulf Coast, there is a northward  
+extension in the 0z ECMWF and 6z GEFS ensembles indicative of a surface low  
+track, which is also supported by teleconnection analysis with the positive  
+height <a href="/products/predictions/610day/glossary.html#anomaly">anomaly</a> center over eastern Canada. Therefore, probabilities for  
+above-normal precipitation are increased above 50 percent northward through the  
+Central Plains and Middle Mississippi Valley. Elevated probabilities also  
+extend back through the Southwest and California given continued inland  
+<a href="/products/predictions/610day/glossary.html#progression">progression</a> of shortwaves and the potential for increased precipitation.  
+Near-normal precipitation is favored across parts of the Northeast underneath  
+ridging and associated surface high pressure early in the period, although more  
+influence from the upstream system is possible later in week-2. Enhanced  
 southerly flow favors near-to above-normal precipitation over Alaska, supported  
-by reforecast and uncalibrated tools. Near-normal precipitation is favored for  
-Hawaii. 
+by reforecast and uncalibrated tools. Below-normal precipitation is slightly  
+favored for Hawaii. 
  
 The official 8-14 day <a href="/products/predictions/610day/glossary.html#500-hPa">500-hPa</a> height <a href="/products/predictions/610day/glossary.html#blend">blend</a> consists of: 30% of Today's 0z <a href="/products/predictions/610day/glossary.html#GFS">GFS</a>  
 Ensemble Mean centered on Day 11, 40% of Today's 0z European Ensemble Mean  
@@ -303,66 +306,66 @@ November 19.
 <a href="/products/predictions/610day/glossary.html#Analog">Analogs</a> to the 5 day mean observed pattern centered 3 days ago (D-3) 
 for the region from 20N to 70N latitude and 175E to 60W longitude 
 include the 5 day periods centered on the following dates: 
-20161104 - 20101102 - 20251030 - 19951118 - 20011104 
+20101102 - 20161105 - 19951118 - 20251031 - 20251024 
  
  
 <a href="/products/predictions/610day/glossary.html#Analog">Analogs</a> to the 7 day mean observed pattern centered 4 days ago (D-4) 
 for the region from 20N to 70N latitude and 175E to 60W longitude 
 include the 7 day periods centered on the following dates: 
-20161104 - 20251027 - 20161109 - 20101104 - 20091123 
+20161104 - 20101103 - 20251031 - 20161109 - 20251026 
  
  
 6-10 DAY OUTLOOK TABLE 
-Outlook for Nov 16 - 20 2026 
+Outlook for Nov 17 - 21 2026 
  
 STATE      TEMP PCPN   STATE      TEMP PCPN   STATE      TEMP PCPN    
-WASHINGTON  N    N     OREGON      B    A     NRN CALIF   B    A      
+WASHINGTON  N    B     OREGON      B    A     NRN CALIF   B    A      
 SRN CALIF   B    A     IDAHO       N    A     NEVADA      B    A      
 W MONTANA   A    A     E MONTANA   A    A     WYOMING     A    A      
-UTAH        N    A     ARIZONA     N    A     COLORADO    A    A      
-NEW MEXICO  A    A     N DAKOTA    A    A     S DAKOTA    A    A      
-NEBRASKA    A    A     KANSAS      A    A     OKLAHOMA    A    A      
-N TEXAS     A    A     S TEXAS     A    A     W TEXAS     A    A      
-MINNESOTA   A    A     IOWA        A    A     MISSOURI    A    A      
-ARKANSAS    A    A     LOUISIANA   A    A     WISCONSIN   A    A      
-ILLINOIS    A    N     MISSISSIPPI A    A     MICHIGAN    A    B      
-INDIANA     A    B     OHIO        A    B     KENTUCKY    A    B      
-TENNESSEE   A    B     ALABAMA     A    A     NEW YORK    A    B      
-VERMONT     A    B     NEW HAMP    A    B     MAINE       A    B      
-MASS        A    B     CONN        N    B     RHODE IS    N    B      
-PENN        A    B     NEW JERSEY  N    B     W VIRGINIA  A    B      
-MARYLAND    N    B     DELAWARE    N    B     VIRGINIA    N    B      
-N CAROLINA  B    B     S CAROLINA  B    A     GEORGIA     N    A      
-FL PNHDL    N    A     FL PENIN    N    A     AK N SLOPE  A    N      
-AK ALEUTIAN N    A     AK WESTERN  A    A     AK INT BSN  A    A      
-AK S INT    A    A     AK SO COAST A    A     AK PNHDL    A    A      
-  
-                            
- 
-8-14 DAY OUTLOOK TABLE 
-Outlook for Nov 18 - 24 2026 
- 
-STATE      TEMP PCPN   STATE      TEMP PCPN   STATE      TEMP PCPN    
-WASHINGTON  N    B     OREGON      N    N     NRN CALIF   B    A      
-SRN CALIF   B    A     IDAHO       N    A     NEVADA      B    A      
-W MONTANA   A    N     E MONTANA   A    A     WYOMING     A    A      
-UTAH        B    A     ARIZONA     B    A     COLORADO    A    A      
+UTAH        N    A     ARIZONA     B    A     COLORADO    A    A      
 NEW MEXICO  N    A     N DAKOTA    A    A     S DAKOTA    A    A      
 NEBRASKA    A    A     KANSAS      A    A     OKLAHOMA    A    A      
 N TEXAS     A    A     S TEXAS     A    A     W TEXAS     A    A      
 MINNESOTA   A    A     IOWA        A    A     MISSOURI    A    A      
 ARKANSAS    A    A     LOUISIANA   A    A     WISCONSIN   A    A      
-ILLINOIS    A    A     MISSISSIPPI A    A     MICHIGAN    A    A      
-INDIANA     A    A     OHIO        A    N     KENTUCKY    A    A      
-TENNESSEE   A    A     ALABAMA     A    A     NEW YORK    A    B      
+ILLINOIS    A    A     MISSISSIPPI A    A     MICHIGAN    A    N      
+INDIANA     A    N     OHIO        A    B     KENTUCKY    A    B      
+TENNESSEE   A    N     ALABAMA     A    A     NEW YORK    A    B      
 VERMONT     A    B     NEW HAMP    A    B     MAINE       A    B      
-MASS        A    B     CONN        A    N     RHODE IS    A    N      
-PENN        A    N     NEW JERSEY  A    N     W VIRGINIA  A    N      
-MARYLAND    A    N     DELAWARE    A    N     VIRGINIA    A    A      
-N CAROLINA  A    A     S CAROLINA  A    A     GEORGIA     A    A      
+MASS        A    B     CONN        A    B     RHODE IS    A    B      
+PENN        A    B     NEW JERSEY  A    B     W VIRGINIA  A    B      
+MARYLAND    A    B     DELAWARE    A    B     VIRGINIA    A    B      
+N CAROLINA  N    A     S CAROLINA  N    A     GEORGIA     A    A      
 FL PNHDL    A    A     FL PENIN    A    A     AK N SLOPE  A    N      
 AK ALEUTIAN A    A     AK WESTERN  A    A     AK INT BSN  A    A      
-AK S INT    A    A     AK SO COAST A    A     AK PNHDL    A    A      
+AK S INT    A    A     AK SO COAST A    A     AK PNHDL    A    B      
+  
+                            
+ 
+8-14 DAY OUTLOOK TABLE 
+Outlook for Nov 19 - 25 2026 
+ 
+STATE      TEMP PCPN   STATE      TEMP PCPN   STATE      TEMP PCPN    
+WASHINGTON  A    B     OREGON      N    N     NRN CALIF   N    A      
+SRN CALIF   N    A     IDAHO       N    A     NEVADA      B    A      
+W MONTANA   A    N     E MONTANA   A    A     WYOMING     N    A      
+UTAH        B    A     ARIZONA     B    A     COLORADO    N    A      
+NEW MEXICO  B    A     N DAKOTA    A    A     S DAKOTA    A    A      
+NEBRASKA    A    A     KANSAS      A    A     OKLAHOMA    A    A      
+N TEXAS     A    A     S TEXAS     A    A     W TEXAS     N    A      
+MINNESOTA   A    A     IOWA        A    A     MISSOURI    A    A      
+ARKANSAS    A    A     LOUISIANA   A    A     WISCONSIN   A    A      
+ILLINOIS    A    A     MISSISSIPPI A    A     MICHIGAN    A    A      
+INDIANA     A    A     OHIO        A    A     KENTUCKY    A    A      
+TENNESSEE   A    A     ALABAMA     A    A     NEW YORK    A    A      
+VERMONT     A    N     NEW HAMP    A    N     MAINE       A    N      
+MASS        A    N     CONN        A    N     RHODE IS    A    N      
+PENN        A    A     NEW JERSEY  A    A     W VIRGINIA  A    A      
+MARYLAND    A    A     DELAWARE    A    A     VIRGINIA    A    A      
+N CAROLINA  A    A     S CAROLINA  A    A     GEORGIA     A    A      
+FL PNHDL    A    A     FL PENIN    A    A     AK N SLOPE  A    N      
+AK ALEUTIAN A    N     AK WESTERN  A    N     AK INT BSN  A    N      
+AK S INT    A    A     AK SO COAST A    A     AK PNHDL    A    B      
   
                            LEGEND 
 TEMPS WITH RESPECT TO NORMAL     PCPN WITH RESPECT TO MEDIAN 
