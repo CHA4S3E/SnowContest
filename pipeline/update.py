@@ -102,8 +102,11 @@ def main():
     now_et = dt.datetime.now(ET)
     today = a.today or str(now_et.date())
     hour = now_et.hour
-    edition = a.edition or ("morning" if hour < 11 else "evening")
-    doc_id = today if edition == "morning" else today + "-pm"
+    # 5:15 AM = morning, 5:15 PM = evening; a run forced in between is a midday update ("noon" on the page) that
+    # compares with the morning like an evening run, but is its own entry so the real 5:15 PM run still happens
+    label = a.edition or ("morning" if hour < 11 else "midday" if hour < 16 else "evening")
+    edition = "morning" if label == "morning" else "evening"
+    doc_id = today + {"morning": "", "midday": "-noon", "evening": "-pm"}[label]
 
     cfg = load(os.path.join(D_, "config.json"), {})
     updates = load(os.path.join(D_, "updates.json"), [])
@@ -116,14 +119,12 @@ def main():
         import season_job
         sys.argv = [sys.argv[0], D_] + (["--force"] if a.force else []) + (["--edition", a.edition] if a.edition else [])
         return season_job.main()
-    ex = next((u for u in updates if u.get("id") == doc_id), None)
-    early_pm = bool(ex and edition == "evening" and hour >= 17 and str(ex.get("updatedAt") or "")[11:13] < "16")
-    if ex and not a.force and not early_pm:  # an evening update forced before 4 PM is replaced by the real 5:15 PM run
+    if any(u.get("id") == doc_id for u in updates) and not a.force:
         print("update %s already exists; nothing to do" % doc_id)
         return 0
     ids = {u["id"]: u for u in updates}
     # previous update = the newest earlier document; for the evening run the morning doc is the reference
-    earlier = sorted([u for u in updates if u["id"] < doc_id and not u.get("live")], key=lambda u: (u["date"], 1 if u["id"].endswith("-pm") else 0))
+    earlier = sorted([u for u in updates if u["id"] < doc_id and not u.get("live")], key=lambda u: (u["date"], 2 if u["id"].endswith("-pm") else 1 if u["id"].endswith("-noon") else 0))
     prev_doc = earlier[-1] if earlier else None
     mid_doc = ids.get(today) if edition == "evening" else None
 
@@ -160,7 +161,8 @@ def main():
     dry = raw.get("dry") or {}
     f = F.build_facts(today, edition, hour, raw, out, inp, prev_doc, mid_doc, pools, prior, curve, odds_by_pool, watch, dry, flakes_possible)
     # the story so far, for headlines that build on earlier updates (memory only, never saved)
-    f["prev2"] = earlier[-2] if (edition == "evening" and mid_doc and len(earlier) >= 2) else None
+    _mi = next((i for i, u in enumerate(earlier) if mid_doc and u["id"] == mid_doc["id"]), None)
+    f["prev2"] = earlier[_mi - 1] if (edition == "evening" and _mi) else None  # what the morning compared with
     f["hist"] = [{"id": u["id"], "date": u["date"], "pm": u["id"].endswith("-pm"), "dist": u.get("dist") or {}, "s1": (u.get("hspec") or {}).get("s1")} for u in earlier[-16:]]
     g = derive.derive(f)
     names = all_names(cfg)
@@ -223,12 +225,12 @@ def main():
     prev_fs = (mid_doc or prev_doc or {}).get("fs") if (mid_doc or prev_doc) else None
     why, fs = changes.make(f, g, vf(0), prev_fs)
 
-    doc = {"id": doc_id, "date": today, "edition": edition, "updatedAt": now_et.isoformat(timespec="minutes"),
+    doc = {"id": doc_id, "date": today, "edition": label, "updatedAt": now_et.isoformat(timespec="minutes"),
            "center": out["center"], "range80": out["range80"], "pOct": out["pOct"], "odds": out["odds"], "dist": out["dist"], "nbmThrough": out["nbmThrough"],
            "headline": hl_text, "factors": fcards, "models": models, "sources": sources, "power": pw, "powerPicks": pp, "subpower": sub,
            "coldFlags": cold_flags, "changes": why, "fs": fs, "hspec": hl_holder.get("spec")}
     updates = [u for u in updates if u.get("id") != doc_id] + [doc]
-    updates.sort(key=lambda u: (u.get("date", ""), 1 if str(u.get("id", "")).endswith("-pm") else 0, u.get("updatedAt", "")))
+    updates.sort(key=lambda u: (u.get("date", ""), 2 if str(u.get("id", "")).endswith("-pm") else 1 if str(u.get("id", "")).endswith("-noon") else 0, u.get("updatedAt", "")))
 
     # ---------------- weather
     pfc = raw.get("pfc")

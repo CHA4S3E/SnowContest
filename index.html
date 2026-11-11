@@ -1729,7 +1729,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     if (!r) return null;
     return Object.assign({}, base, r, { date: todayIso, live: true, liveAt: watch.updatedAt, power: null });
   }
-  const ord = (u) => u.date + (u.edition === "midday" || u.edition === "evening" ? "~2" : "~1");
+  const ord = (u) => u.date + (u.edition === "evening" ? "~3" : u.edition === "midday" ? "~2" : "~1");
   const byOrd = (a, b) => (ord(a) < ord(b) ? -1 : ord(a) > ord(b) ? 1 : 0);
   const tag = (u) => ({ morning: " 5am", evening: " 5pm", midday: " noon", overnight: " 12am" }[u.edition] || "");
   function rebuild() {
