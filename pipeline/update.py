@@ -116,7 +116,9 @@ def main():
         import season_job
         sys.argv = [sys.argv[0], D_] + (["--force"] if a.force else []) + (["--edition", a.edition] if a.edition else [])
         return season_job.main()
-    if any(u.get("id") == doc_id for u in updates) and not a.force:
+    ex = next((u for u in updates if u.get("id") == doc_id), None)
+    early_pm = bool(ex and edition == "evening" and hour >= 17 and str(ex.get("updatedAt") or "")[11:13] < "16")
+    if ex and not a.force and not early_pm:  # an evening update forced before 4 PM is replaced by the real 5:15 PM run
         print("update %s already exists; nothing to do" % doc_id)
         return 0
     ids = {u["id"]: u for u in updates}
