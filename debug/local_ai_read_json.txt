@@ -1,8 +1,8 @@
 {
- "model": "gemini-3.5-flash",
+ "model": "gemini-3.5-flash-lite",
  "answer": {
   "afd_snow": "elevation_only",
-  "afd_quote": "Potential for the first accumulating snowfall of the season, especially across the Laurels and the northern tier of Pennsylvania.",
+  "afd_quote": "The main game in town across central Pennsylvania over the next week will be the potential for the first accumulating snowfall mainly for the higher elevations.",
   "afd_snow_dates": [],
   "t610": {
    "cat": "A",
@@ -28,29 +28,9 @@
    "cat": "A",
    "soft": false
   },
-  "hazards": [
-   {
-    "kind": "snow",
-    "level": "slight",
-    "start": "2026-11-18",
-    "end": "2026-11-24",
-    "covers_pa": false,
-    "region": "higher elevations of the Klamath, Sierra Nevada, and Wasatch Mountains along with the Central to Southern Rockies"
-   }
-  ]
+  "hazards": []
  },
  "changes": [
-  {
-   "what": "afd snow",
-   "parser": [
-    "state",
-    []
-   ],
-   "ai": [
-    "elev",
-    []
-   ]
-  },
   {
    "what": "p814",
    "table": "N",
