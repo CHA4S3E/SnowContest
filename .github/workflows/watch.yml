@@ -41,6 +41,15 @@ jobs:
         if: steps.gate.outputs.total == 'true'
         continue-on-error: true
         run: timeout 300 python pipeline/snowmap.py data/snowmap.json data/watch.json
+      - name: Extra update while a day is on deck (11 AM and 11 PM)
+        if: steps.gate.outputs.run == 'true' && steps.gate.outputs.live != 'true'
+        continue-on-error: true
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          H=$(TZ=America/New_York date +%H)
+          if [ "$H" = "11" ]; then python pipeline/update.py data --extra --edition midday; fi
+          if [ "$H" = "23" ]; then python pipeline/update.py data --extra --edition late; fi
       - if: steps.gate.outputs.run == 'true'
         run: python pipeline/watch_job.py data
       - if: steps.gate.outputs.run == 'true'

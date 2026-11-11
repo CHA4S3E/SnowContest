@@ -1729,9 +1729,14 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     if (!r) return null;
     return Object.assign({}, base, r, { date: todayIso, live: true, liveAt: watch.updatedAt, power: null });
   }
-  const ord = (u) => u.date + (u.edition === "evening" ? "~3" : u.edition === "midday" ? "~2" : "~1");
+  const ord = (u) => u.date + (u.edition === "late" ? "~4" : u.edition === "evening" ? "~3" : u.edition === "midday" ? "~2" : "~1");
   const byOrd = (a, b) => (ord(a) < ord(b) ? -1 : ord(a) > ord(b) ? 1 : 0);
-  const tag = (u) => ({ morning: " 5am", evening: " 5pm", midday: " noon", overnight: " 12am" }[u.edition] || "");
+  const tag = (u) => {
+    if ((u.edition === "midday" || u.edition === "late") && u.updatedAt && /T\d\d:/.test(u.updatedAt)) {
+      const h = +u.updatedAt.slice(11, 13); return " " + ((h % 12) || 12) + (h < 12 ? "am" : "pm");
+    }
+    return ({ morning: " 5am", evening: " 5pm", midday: " noon", late: " 11pm", overnight: " 12am" }[u.edition] || "");
+  };
   function rebuild() {
     if (stOn()) {
       updates = stUpdates().map((u) => Object.assign({}, u, { odds: stOdds(u) }));
@@ -3059,7 +3064,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       $("bannerDate").textContent = "It snowed · " + short(config.firstSnow);
       $("headline").textContent = "First flakes are in. " + w.join(" & ") + (w.length > 1 ? " share the win." : " wins the pool.");
     } else if (latest) {
-      $("bannerDate").textContent = short(latest.date) + ({ morning: " · morning update", evening: " · evening update", midday: " · midday update", overnight: " · overnight update" }[latest.edition] || " forecast");
+      $("bannerDate").textContent = short(latest.date) + ({ morning: " · morning update", evening: " · evening update", midday: " · midday update", late: " · late update", overnight: " · overnight update" }[latest.edition] || " forecast");
       $("headline").textContent = latest.headline || "";
     }
     renderFinal();

@@ -90,10 +90,22 @@ def clean_text(kind, text, names, v_factory, build, tries=6, **lint_kw):
     return text, v, problems
 
 
+SUFFIX = {"morning": "", "midday": "-noon", "evening": "-pm", "late": "-late"}
+RANK = {"morning": 0, "midday": 1, "evening": 2, "late": 3}
+
+
+def order_key(u):
+    """(date, place in the day): morning, midday, evening, late."""
+    i = str(u.get("id", ""))
+    r = 3 if i.endswith("-late") else 2 if i.endswith("-pm") else 1 if i.endswith("-noon") else 0
+    return (u.get("date", ""), r)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("datadir")
     ap.add_argument("--force", action="store_true")
+    ap.add_argument("--extra", action="store_true", help="an extra on-deck update (11 AM / 11 PM): only runs while a day is on deck")
     ap.add_argument("--edition")
     ap.add_argument("--fixtures")
     ap.add_argument("--today")
@@ -104,9 +116,9 @@ def main():
     hour = now_et.hour
     # 5:15 AM = morning, 5:15 PM = evening; a run forced in between is a midday update ("noon" on the page) that
     # compares with the morning like an evening run, but is its own entry so the real 5:15 PM run still happens
-    label = a.edition or ("morning" if hour < 11 else "midday" if hour < 16 else "evening")
-    edition = "morning" if label == "morning" else "evening"
-    doc_id = today + {"morning": "", "midday": "-noon", "evening": "-pm"}[label]
+    label = a.edition or ("morning" if hour < 11 else "midday" if hour < 16 else "evening" if hour < 21 else "late")
+    edition = "morning" if label == "morning" else "evening"   # midday and late runs compare with the update before them, like an evening run
+    doc_id = today + SUFFIX[label]
 
     cfg = load(os.path.join(D_, "config.json"), {})
     updates = load(os.path.join(D_, "updates.json"), [])
@@ -119,14 +131,18 @@ def main():
         import season_job
         sys.argv = [sys.argv[0], D_] + (["--force"] if a.force else []) + (["--edition", a.edition] if a.edition else [])
         return season_job.main()
+    if a.extra and not (watch and watch.get("stage") == "ondeck" and not watch.get("active") and not cfg.get("firstSnow")):
+        print("no day on deck; extra update skipped")
+        return 0
     if any(u.get("id") == doc_id for u in updates) and not a.force:
         print("update %s already exists; nothing to do" % doc_id)
         return 0
     ids = {u["id"]: u for u in updates}
     # previous update = the newest earlier document; for the evening run the morning doc is the reference
-    earlier = sorted([u for u in updates if u["id"] < doc_id and not u.get("live")], key=lambda u: (u["date"], 2 if u["id"].endswith("-pm") else 1 if u["id"].endswith("-noon") else 0))
+    earlier = sorted([u for u in updates if order_key(u) < (today, RANK[label]) and not u.get("live")], key=order_key)
     prev_doc = earlier[-1] if earlier else None
-    mid_doc = ids.get(today) if edition == "evening" else None
+    # the update this one is measured against: the morning for midday and evening runs, the evening for a late run
+    mid_doc = (ids.get(today + "-pm") or ids.get(today)) if label == "late" else ids.get(today) if edition == "evening" else None
 
     # ---------------- fetch
     if a.fixtures:
@@ -230,7 +246,7 @@ def main():
            "headline": hl_text, "factors": fcards, "models": models, "sources": sources, "power": pw, "powerPicks": pp, "subpower": sub,
            "coldFlags": cold_flags, "changes": why, "fs": fs, "hspec": hl_holder.get("spec")}
     updates = [u for u in updates if u.get("id") != doc_id] + [doc]
-    updates.sort(key=lambda u: (u.get("date", ""), 2 if str(u.get("id", "")).endswith("-pm") else 1 if str(u.get("id", "")).endswith("-noon") else 0, u.get("updatedAt", "")))
+    updates.sort(key=lambda u: order_key(u) + (u.get("updatedAt", ""),))
 
     # ---------------- weather
     pfc = raw.get("pfc")
