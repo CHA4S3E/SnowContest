@@ -1,8 +1,8 @@
-# 2026-11-11
+# 2026-11-11-pm
 
-First Flakes Nov 11: Maddie leads Meteo at 62.5%; Layla leads Ritner Floor 2 at 76.8%. Median Nov. 12.
+First Flakes Nov 11: Maddie leads Meteo at 55.0%; Layla leads Ritner Floor 2 at 62.8%. Median Nov. 12.
 
-Headline (new): NWS adds a chance of rain and snow in the evening to the forecast for tomorrow, and the focus moves from Friday to tomorrow, at 50%. On the curve, the median slips five days earlier to Nov. 12.
+Headline (new): Same day, same odds: tomorrow remains the best shot at first flakes, at 50%. The late edge of the range moves three days later to Nov. 29.
 
 ## Input health
 
