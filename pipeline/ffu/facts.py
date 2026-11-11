@@ -39,7 +39,10 @@ def build_inputs(today, raw, prev_doc, flakes_possible):
     """Everything model3 needs, plus the windows from CPC/WPC/NWS."""
     inp = {"date": today}
     if not flakes_possible:
-        inp["now"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%MZ")
+        now = dt.datetime.now(dt.timezone.utc)
+        if str(now.astimezone(ZoneInfo("America/New_York")).date()) != today:  # a replay or test run for another date: its own morning
+            now = dt.datetime.combine(dt.date.fromisoformat(today), dt.time(10, 15), tzinfo=dt.timezone.utc)
+        inp["now"] = now.strftime("%Y-%m-%dT%H:%MZ")
     nb = raw.get("nbe")
     inp["nbm"] = nb[0] if nb else []
     gf = raw.get("mex")

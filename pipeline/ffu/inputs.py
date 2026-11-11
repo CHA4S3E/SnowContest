@@ -279,6 +279,11 @@ def _night_snow_days(det, d, nxt):
     marks = re.findall(r"(midnight|\d{1,2} ?am|\d{1,2} ?pm)", sent[:cut])
     after = re.search(r"snow[^.]{0,40}\bafter (midnight|\d{1,2} ?am)", sent)
     ends_early = re.search(r"before (midnight|\d{1,2} ?pm)", sent[cut:])
+    tail = sent[cut:cut + 60]
+    if re.search(r"\bin the evening\b|\bthis evening\b|\bevening\b", tail) and not re.search(r"after midnight|overnight|late|toward (dawn|morning)", tail):
+        return [d]   # "a chance of rain and snow in the evening": before midnight, the night's own date
+    if re.search(r"after midnight|overnight|late (in the night|tonight)|toward (dawn|morning)|before dawn", tail):
+        return [nxt]
     if (marks and (marks[-1] == "midnight" or marks[-1].endswith("am"))) or after:
         return [nxt]
     if ends_early:
@@ -352,19 +357,28 @@ def point_forecast():
             if not en["text"]:
                 en["text"] = short
     # Snow wording by the day it falls: a night period's "rain and snow showers" used to be lost when the next day had its own text.
-    for per in periods:
+    # daytime periods first: a date's own period speaks for it; a night period's wording spills onto the next date only
+    # when the text puts the snow after midnight, or the next date has no snow wording of its own
+    day_first = sorted(periods, key=lambda p_: not p_.get("isDaytime"))
+    for per in day_first:
         short = (per.get("shortForecast") or "").strip()
         low, det = short.lower(), (per.get("detailedForecast") or "").lower()
         if "snow" not in low and "flurr" not in low:
             continue
         start = dt.datetime.fromisoformat(per["startTime"])
         d, nxt = str(start.date()), str((start + dt.timedelta(days=1)).date())
-        when = [d] if (per.get("isDaytime") or start.hour < 12) else _night_snow_days(det, d, nxt)
+        own_day = per.get("isDaytime") or start.hour < 12
+        when = [d] if own_day else _night_snow_days(det, d, nxt)
         pop = ((per.get("probabilityOfPrecipitation") or {}).get("value")) or 0
         for w in when:
             e = days.get(w)
-            if e is not None and (not e.get("snowText") or _snow_rank(short) >= _snow_rank(e["snowText"])):
-                e["snowText"], e["snowPop"] = short, max(pop, e.get("snowPop") or 0)
+            if e is None:
+                continue
+            spill = (not own_day) and w == nxt and len(when) == 2
+            if spill and e.get("snowText"):
+                continue
+            if not e.get("snowText") or _snow_rank(short) > _snow_rank(e["snowText"]) or (_snow_rank(short) == _snow_rank(e["snowText"]) and own_day):
+                e["snowText"], e["snowPop"] = short, pop
     # the zone forecast for State College's zone, as the Claude-run version reads it, adds snow the point forecast leaves out
     try:
         z = zone_snow(str(dt.datetime.now(ET_TZ).date()))
