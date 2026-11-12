@@ -3,7 +3,8 @@
 usage: python3 radar.py radar.json [--probe]
 
 Reads from the public NOAA MRMS bucket (noaa-mrms-pds, CONUS 0.01 deg grid, every 2 min):
-  MergedReflectivityQCComposite  how heavy (dBZ)
+  ReflectivityAtLowestAltitude   how heavy (dBZ) at the lowest radar beam, nearest the ground (the scan PrecipFlag is built from);
+                                 MergedReflectivityQCComposite (the strongest echo at any height) if it is missing
   PrecipFlag                     the radar's precip type (3 = snow; 1, 6, 10, 91, 96 = rain; 7 = rain with hail)
   Model_WetBulbTemp              hourly model wet-bulb temperature on the same grid (Model_SurfaceTemp if it is missing)
   Model_SurfaceTemp              hourly model surface (2 m) temperature, used for freezing rain
@@ -430,7 +431,7 @@ def main(out_path=None, step=10, cache=None):
     T0 = time.time()
     now = dt.datetime.now(dt.timezone.utc)
     dirs = product_dirs()
-    p_refl = pick(dirs, "MergedReflectivityQCComposite")
+    p_refl = pick(dirs, "ReflectivityAtLowestAltitude", "MergedReflectivityQCComposite")   # lowest beam: what is reaching the ground; composite only if it is missing
     p_flag = pick(dirs, "PrecipFlag")
     p_wb = pick(dirs, "Model_WetBulbTemp")
     p_sfc = pick(dirs, "Model_SurfaceTemp")
