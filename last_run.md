@@ -1,8 +1,8 @@
-# 2026-11-11-late
+# 2026-11-12
 
-First Flakes Nov 11: Maddie leads Meteo at 28.7%; Layla leads Ritner Floor 2 at 54.6%. Median Nov. 13.
+First Flakes Nov 12: Braeden leads Meteo at 32.8%; Layla leads Ritner Floor 2 at 57.8%. Median Nov. 13.
 
-Headline (new): The story stays the same two days out: Friday carries 48% for first flakes. Nothing moves the median off Nov. 13.
+Headline (new): Same day, same odds: tomorrow remains the best shot at first flakes, at 47%. The median doesn't budge from Nov. 13.
 
 ## Input health
 
@@ -24,6 +24,6 @@ Headline (new): The story stays the same two days out: Friday carries 48% for fi
 - OK   Fall warmth (ACIS)
 - OK   AO / NAO / PNA
 - OK   Dry streak (ACIS)
-- FAIL Second reader (Gemini) (gemini-3.5-flash-lite: <HTTPError 503: 'Service Unavailable'>)
+- OK   Second reader (Gemini)
 - OK   CPC outlook maps
 - OK   CPC hazard polygons
