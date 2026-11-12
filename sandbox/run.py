@@ -328,6 +328,31 @@ import re as _re
 _need = {"driver_cap": "NWS raises Friday to snow showers likely", "watch_when": "Friday", "cap_watch_when": "Friday"}
 check("headline story: the story banks are all registered", len(_H.STORY) >= 30 and sum(len(v) for v in _H.STORY.values()) >= 240 and all(k in _H.S1 for k in _H.STORY))
 
+try:
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pipeline"))
+    import radar as _RD
+    import numpy as _np
+except Exception as _e:   # the radar needs eccodes; skip these where it is not installed
+    _RD = None
+    print("radar tests skipped:", _e)
+if _RD is not None:
+    check("radar: wet-bulb from 35 F / dew 34 F is about 34.5 F", abs(_RD.wet_bulb_f(35, 34) - 34.5) < 0.4, _RD.wet_bulb_f(35, 34))
+    check("radar: wet-bulb from 50 F / dew 30 F is about 41 F", abs(_RD.wet_bulb_f(50, 30) - 41.0) < 1.0, _RD.wet_bulb_f(50, 30))
+    _la = _np.linspace(_RD.LAT_N, _RD.LAT_S, 60); _lo = _np.linspace(_RD.LON_W, _RD.LON_E, 80)
+    _f = _np.full((60, 80), 38.0)
+    _c, _st = _RD.obs_correction([("BGM", 42.2, -76.0, 35.0, 34.2, "RA")], _la, _lo, _f, 4)
+    _i = int(_np.argmin(abs(_la - 42.2))); _j = int(_np.argmin(abs(_lo + 76.0)))
+    check("radar: an airport reading pulls the model wet-bulb toward it nearby", -3.8 < _c[_i, _j] < -2.0, _c[_i, _j])
+    check("radar: the airport correction fades far away", abs(_c[-1, 0]) < 0.1, _c[-1, 0])
+    check("radar: a wild reading (bad sensor) is ignored", _RD.obs_correction([("X", 42.2, -76.0, 70.0, 60.0, "")], _la, _lo, _f, 4)[0] is None)
+    _o = _np.ones((1, 1), bool); _z = _np.zeros((1, 1), bool)
+    _pt = {"snow": _o, "rain": _z, "fzra": _z, "pellets": _z}
+    check("radar: rain flag on a frozen surface with cold air and model snow is snow, not freezing rain",
+          _RD.classify(_np.full((1, 1), 30.0), _np.full((1, 1), 10), _np.full((1, 1), 31.0), _np.full((1, 1), 31.0), _pt)[0, 0] == 1)
+    _pt2 = {"snow": _z, "rain": _o, "fzra": _o, "pellets": _z}
+    check("radar: rain flag on a frozen surface with a model warm layer stays freezing rain",
+          _RD.classify(_np.full((1, 1), 30.0), _np.full((1, 1), 10), _np.full((1, 1), 33.0), _np.full((1, 1), 31.0), _pt2)[0, 0] == 4)
+
 print("\n%d failed" % len(FAILS) if FAILS else "\nALL PASSED")
 print("data dir:", D)
 sys.exit(1 if FAILS else 0)

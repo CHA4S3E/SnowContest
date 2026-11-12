@@ -8,6 +8,8 @@ Reads from the public NOAA MRMS bucket (noaa-mrms-pds, CONUS 0.01 deg grid, ever
   PrecipFlag                     the radar's precip type (3 = snow; 1, 6, 10, 91, 96 = rain; 7 = rain with hail)
   Model_WetBulbTemp              hourly model wet-bulb temperature on the same grid (Model_SurfaceTemp if it is missing)
   Model_SurfaceTemp              hourly model surface (2 m) temperature, used for freezing rain
+Both temperature fields are adjusted for terrain, then pulled toward live airport (ASOS) readings (IEM currents, every ~10 min),
+so the rain/snow/ice line follows what the ground is actually reporting.
 Each file is the whole country (a few MB, gzipped); it is cut to ~120 miles around State College right away.
 
 Echo classes (reflectivity >= 5 dBZ with precipitation flagged):
@@ -143,7 +145,12 @@ def classify(refl, flag, wb_f, sfc_f=None, pt=None):
         cls[snow] = 1
         cls[rain] = 3
     if sfc_f is not None:  # rain onto a subfreezing surface
-        cls[echo & is_rain & (sfc_f <= 32)] = 4
+        fz = echo & is_rain & (sfc_f <= 32)
+        if pt is not None and wb_f is not None:   # unless the model has no warm layer aloft and the air is cold: that is snow the radar flag missed
+            sn = fz & pt["snow"] & ~pt["fzra"] & (wb_f <= 33)
+            cls[sn] = 1
+            fz &= ~sn
+        cls[fz] = 4
     if pt is not None:
         cold = np.ones(refl.shape, bool) if wb_f is None else (wb_f <= 37)
         cls[echo & pt["fzra"] & cold] = 4
@@ -408,6 +415,82 @@ def terrain_adjust(f, elev, elev_model, lapse):
     return f - np.clip((elev - elev_model) / M_PER_KFT * lapse, -6.0, 6.0)
 
 
+OBS_NETS = ("PA_ASOS", "NY_ASOS", "MD_ASOS", "WV_ASOS", "NJ_ASOS", "OH_ASOS")
+OBS_L_KM = 45.0    # how far one station's correction reaches (Gaussian length)
+OBS_PRIOR = 0.35   # weight of "no correction": far from every station the model field is left alone
+OBS_MAX = 8.0      # F; a bigger miss is more likely a bad sensor than a bad model
+
+
+def wet_bulb_f(tf, tdf):
+    """wet-bulb (F) from temperature and dew point (F), Stull (2011)"""
+    t = (tf - 32) / 1.8
+    td = (tdf - 32) / 1.8
+    rh = 100 * math.exp(17.625 * td / (243.04 + td)) / math.exp(17.625 * t / (243.04 + t))
+    rh = min(99.0, max(5.0, rh))
+    tw = (t * math.atan(0.151977 * math.sqrt(rh + 8.313659)) + math.atan(t + rh) - math.atan(rh - 1.676331)
+          + 0.00391838 * rh ** 1.5 * math.atan(0.023101 * rh) - 4.686035)
+    return tw * 1.8 + 32
+
+
+def station_obs(now, max_age_min=75):
+    """current airport (ASOS) readings around the map: [(id, lat, lon, temp F, wet-bulb F, weather)]"""
+    out = []
+    for net in OBS_NETS:
+        try:
+            j = json.loads(get("https://mesonet.agron.iastate.edu/api/1/currents.json?network=" + net, tries=2))
+        except Exception:
+            continue
+        for o in j.get("data", []):
+            la, lo, tf, tdf = o.get("lat"), o.get("lon"), o.get("tmpf"), o.get("dwpf")
+            if None in (la, lo, tf, tdf) or not (LAT_S - 0.5 <= la <= LAT_N + 0.5 and LON_W - 0.6 <= lo <= LON_E + 0.6):
+                continue
+            try:
+                vt = dt.datetime.strptime(o["utc_valid"][:16], "%Y-%m-%dT%H:%M").replace(tzinfo=dt.timezone.utc)
+            except Exception:
+                continue
+            if abs((now - vt).total_seconds()) > max_age_min * 60 or tdf > tf + 1:
+                continue
+            out.append((o["station"], la, lo, float(tf), wet_bulb_f(float(tf), min(float(tdf), float(tf))), o.get("wxcodes") or ""))
+    return out
+
+
+def obs_correction(obs, lats, lons, f, key):
+    """a smooth correction field (F) that pulls model temperature f toward what the airports read, fading out away
+    from them; key picks the reading (3 = temperature, 4 = wet-bulb). Returns (field, stats) or (None, None)."""
+    if f is None or not obs:
+        return None, None
+    la, lo = np.meshgrid(lats, lons, indexing="ij")
+    st, used = [], []
+    for o in obs:
+        if not (lats.min() <= o[1] <= lats.max() and lons.min() <= o[2] <= lons.max()):
+            continue   # the grid covers the map only
+        i = int(np.argmin(np.abs(lats - o[1])))
+        j = int(np.argmin(np.abs(lons - o[2])))
+        m = float(np.nanmean(f[max(0, i - 1):i + 2, max(0, j - 1):j + 2]))
+        b = o[key] - m
+        if abs(b) <= OBS_MAX:
+            st.append((o[1], o[2], b))
+            used.append((o[0], round(b, 1)))
+    if not st:
+        return None, None
+    # work on a coarse grid (every 8th pixel) and smooth back up: the correction is broad by design
+    step = 8
+    cla, clo = la[::step, ::step], lo[::step, ::step]
+    num = np.zeros(cla.shape)
+    den = np.full(cla.shape, OBS_PRIOR)
+    kx = 111.0 * math.cos(math.radians(LAT0))
+    for a, b, bias in st:
+        w = np.exp(-(((cla - a) * 111.0) ** 2 + ((clo - b) * kx) ** 2) / (2 * OBS_L_KM ** 2))
+        num += w * bias
+        den += w
+    coarse = (num / den).astype(np.float32)
+    full = cv2.resize(coarse, (f.shape[1], f.shape[0]), interpolation=cv2.INTER_LINEAR) if cv2 is not None else \
+        np.kron(coarse, np.ones((step, step)))[:f.shape[0], :f.shape[1]]
+    bs = [u[1] for u in used]
+    return full, {"stations": len(used), "mean_bias_f": round(float(np.mean(bs)), 1),
+                  "max_abs_bias_f": round(float(np.max(np.abs(bs))), 1)}
+
+
 def snow_line_ft(wb, elev, d):
     """elevation (ft) where the wet-bulb reaches 32 F, the median over the 30 miles around town; None if the field is not usable"""
     if wb is None or elev is None or wb.shape != elev.shape:
@@ -517,7 +600,8 @@ def main(out_path=None, step=10, cache=None):
     fc = cache.setdefault("frames", {})
     d = brg = mf = pt = None
     snowline = None
-    adjusted = False
+    adjusted = obs_done = False
+    wb_raw = wb
     for t in frames_t:
         if t in fc:   # the live loop already drew this scan
             series.append(dict(fc[t][0]))
@@ -545,10 +629,36 @@ def main(out_path=None, step=10, cache=None):
                 adjusted = True
                 pt = mf["pt"]
                 snowline = snow_line_ft(wb, mf["elev_model"], d)
+                wb_raw = wb
                 wb = terrain_adjust(wb, mf["elev"], mf["elev_model"], LAPSE_WB)
                 sfc = terrain_adjust(sfc, mf["elev"], mf["elev_model"], LAPSE_SFC)
                 sfc_prev = terrain_adjust(sfc_prev, mf["elev"], mf["elev_model"], LAPSE_SFC)
                 out["model"] = {"run": mf["run"], "terrain": True}
+            if not obs_done:   # pull the temperatures toward what the airports are reading right now
+                obs_done = True
+                ok = cache.get("obs_t")
+                if ok is None or (now - ok).total_seconds() > 600:
+                    try:
+                        cache["obs"], cache["obs_t"] = station_obs(now), now
+                    except Exception as e:
+                        cache["obs"], cache["obs_t"] = [], now
+                        out["obs_error"] = str(e)[:200]
+                obs = cache.get("obs") or []
+                try:
+                    cw, sw = obs_correction(obs, lats, lons, wb, 4)
+                    if cw is not None:
+                        if mf is not None:
+                            snowline = snow_line_ft(wb_raw + cw, mf["elev_model"], d)
+                        wb = wb + cw
+                        out["obs_wetbulb"] = sw
+                    cs, ss = obs_correction(obs, lats, lons, sfc, 3)
+                    if cs is not None:
+                        sfc = sfc + cs
+                        if sfc_prev is not None and sfc_prev.shape == cs.shape:
+                            sfc_prev = sfc_prev + cs
+                        out["obs_surface"] = ss
+                except Exception as e:
+                    out["obs_error"] = str(e)[:200]
         cls = classify(refl, np.round(flag).astype(int), wb, sfc_at(sfc, sfc_prev, sfc_t, sfc_pt, t), pt)   # freezing rain follows the same blended surface as the 32 F line
         s = stats(cls, refl, d, brg)
         s["t"] = t.astimezone(ET).isoformat(timespec="minutes")
