@@ -723,6 +723,8 @@ body.alarm.holding #ffalarm { --spd: .55s; }
 .wlake polygon { fill: #1b3f5c; opacity: .75; stroke: rgba(130,184,239,.35); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .wlake text { font: 600 7px/1 var(--mono); fill: rgba(160,200,235,.75); letter-spacing: .08em; }
 .wframe > img { position: relative; }
+.wframe > canvas.rcv { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
+.wframe.cv > img#radarImg { opacity: 0; }   /* the canvas shows the radar; the image keeps the size and feeds the particle effect */
 :root:not([data-theme="dark"]) .wlake polygon { fill: #bcd6ec; opacity: .8; stroke: rgba(70,110,150,.35); } :root:not([data-theme="dark"]) .wlake text { fill: rgba(60,100,140,.8); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .wlake polygon { fill: #1b3f5c; opacity: .75; stroke: rgba(130,184,239,.35); } :root:not([data-theme="light"]) .wlake text { fill: rgba(160,200,235,.75); } }
 .wover { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; --mco: rgba(50, 64, 82, .32); --mst: rgba(25, 36, 52, .85); --mtx: #2a3546; --mhalo: rgba(238, 243, 248, .9); --mfz: #1f5aa6; --mfzh: rgba(255, 255, 255, .8); }
@@ -3366,7 +3368,9 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       (st.low != null && st.high != null ? '<div class="row"><span>Likely range after it</span><b>' + stFmt(s + st.low) + ' – ' + stFmt(s + st.high) + ' in</b></div>' : "") +
       '<div class="row"><span>Normal by now (35 winters)</span><b>' + stFmt(Math.round(normalBy(todayIso) * 10) / 10) + ' in</b></div></div></div>';
     html += '</div>';
+    const putRadar = keepRadar(box);
     box.innerHTML = html;
+    putRadar();
     wireRadar(); wireSnowmap();
   }
 
@@ -3507,7 +3511,9 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
         (o.raw ? '<div class="raw">' + esc(o.raw) + '</div>' : "") + '</div>';
     }
     html += '</div>';
+    const putRadar = keepRadar(box);
     box.innerHTML = html;
+    putRadar();
     wireRadar(); wireSnowmap();
   }
   // Map overlay shared by the radar (and later the snowfall map): state and county lines, towns and a scale bar,
@@ -3640,7 +3646,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   const RADAR_TWEEN = new Map();
   function expandRadar(r) {
     const steps = r.interp || 8, fl = r.flows;
-    if (!fl || !fl.d || fl.d.length !== r.frames.length - 1) return;
+    if (!fl || !fl.d || fl.d.length !== r.frames.length - 1) { r._expFail = true; return; }
     // in-between steps for a pair: `steps` per 10 minutes, so the short last gap of the live radar (the newest scan) glides at the same speed
     const nsteps = (p) => Math.max(2, Math.round(steps * (new Date(r.frames[p + 1].t) - new Date(r.frames[p].t)) / 600000));
     const pkey = (p) => r.frames[p].t + "|" + r.frames[p + 1].t + "|" + nsteps(p);
@@ -3719,15 +3725,30 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
         radarIdx = radarIdx >= 0 ? Math.min(exp.length - 1, radarIdx * steps) : -1;
         renderWatch();
       }
-    }).catch(() => {});
+    }).catch(() => { r._expFail = true; });
   }
   function showRadarSwap() {
     const sl = $("radarSlider"), fr = radarFrames();
     if (!sl || !fr) return false;
     radar._shadow = null;
     sl.max = fr.length - 1;
+    const wr = document.querySelector(".wradar"); if (wr) wr.__radar = radar;   // the same element now plays the new loop
     showRadar(radarIdx);
     return true;
+  }
+  function keepRadar(box) {   // the watch box is redrawn every minute: carry the playing radar across so it does not flash
+    const old = box.querySelector(".wradar");
+    if (!old || old.__radar !== radar || !radarFrames()) return () => { const n = box.querySelector(".wradar"); if (n) n.__radar = radar; };
+    return () => {
+      const n = box.querySelector(".wradar");
+      if (!n) return;
+      const ni = n.querySelector(".rinfo"), oi = old.querySelector(".rinfo");
+      if (ni && oi && ni.innerHTML !== oi.innerHTML) oi.innerHTML = ni.innerHTML;   // the text (updated time, note) still refreshes
+      n.replaceWith(old);
+      const sl = old.querySelector("#radarSlider"), fr = radarFrames();
+      if (sl && fr) sl.max = fr.length - 1;   // the smooth loop may have just replaced the plain frames
+      showRadar(radarIdx);
+    };
   }
   function radarHtml() {
     const fr = radarFrames();
@@ -3738,15 +3759,37 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       '<div class="rctl"><button type="button" id="radarPlay" aria-label="' + (radarPlay ? "Pause" : "Play") + ' radar loop">' + (radarPlay ? "Pause" : "Play") + '</button>' +
       '<input type="range" id="radarSlider" min="0" max="' + (fr.length - 1) + '" value="' + radarIdx + '" aria-label="Radar frame">' +
       '<span id="radarTime">' + esc(clock(new Date(f.t))) + '</span></div></div>' +
-      '<div class="wmap"><div class="wframe">'+lakeLayer()+'<img id="radarImg" alt="Radar around State College at ' + esc(clock(new Date(f.t))) + '" src="' + rsrc(f) + '">' + mapOverlay(!!radar.bare, freezeSvg(radar.freeze, fzLinesAt(fr, radarIdx))) + '</div></div>' +
+      '<div class="wmap"><div class="wframe">'+lakeLayer()+'<canvas class="rcv" id="radarCv" aria-hidden="true"></canvas><img id="radarImg" alt="Radar around State College at ' + esc(clock(new Date(f.t))) + '" src="' + rsrc(f) + '">' + mapOverlay(!!radar.bare, freezeSvg(radar.freeze, fzLinesAt(fr, radarIdx))) + '</div></div>' +
       '<div class="rinfo"><div class="rleg"><span><i style="width:28px;background:linear-gradient(90deg,#cde6fc,#78aff3 35%,#1e4bc8 62%,#16329f 80%,#5523af)"></i>Snow (purple = very heavy)</span><span><i style="background:#f7982f"></i>Sleet</span><span><i style="background:#ec64be"></i>Freezing rain</span><span><i style="background:#aa6ee1"></i>Mix / borderline</span><span><i style="width:28px;background:linear-gradient(90deg,#b9ebaf,#3caf4b 45%,#3caf4b 55%,#f5e13c 68%,#f8cd32 79%,#d72323 81%,#b90f28)"></i>Rain (red = very heavy)</span><span>Darker = heavier</span>' + freezeKey(radar.freeze) + '</div>' +
       (radar.note ? '<p class="rnote">' + esc(radar.note) + '</p>' : "") +
-      '<div class="rsub">NOAA MRMS radar, frames every 10 minutes plus the newest scan; snow or rain from radar plus model temperature, terrain and the HRRR model precip type (which supplies sleet and freezing rain; older data shows freezing rain as rain onto a surface at or below 32°F, with no sleet). Updated ' + (radar.updatedAt ? esc(clock(new Date(radar.updatedAt))) + " (" + esc(ago(radar.updatedAt)) + ")" : "") + '.</div></div></div>';
+      '<div class="rsub">NOAA MRMS radar (lowest scan, nearest the ground), frames every 10 minutes plus the newest scan; snow or rain from radar plus model temperature corrected to live airport readings, terrain and the HRRR model precip type (which supplies sleet and freezing rain; older data shows freezing rain as rain onto a surface at or below 32°F, with no sleet). Updated ' + (radar.updatedAt ? esc(clock(new Date(radar.updatedAt))) + " (" + esc(ago(radar.updatedAt)) + ")" : "") + '.</div></div></div>';
   }
+  // Frames are drawn on a canvas from images that are already decoded, so a frame change can never show a blank
+  // (switching an <img> source leaves it empty until the new picture decodes, which flickers on phones).
+  const RIMG = new WeakMap();
+  function frameImg(f) {
+    let im = RIMG.get(f);
+    if (!im) {
+      im = new Image(); im.decoding = "async";
+      im.onload = () => { im._ok = true; const fr = radarFrames(); if (fr && fr[radarIdx] === f) drawRadar(f); };
+      im.src = rsrc(f); RIMG.set(f, im);
+    }
+    return im;
+  }
+  function drawRadar(f) {
+    const c = $("radarCv"); if (!c) return false;
+    const im = frameImg(f); if (!im._ok) return false;   // not ready: keep the picture already on screen
+    if (c.width !== im.naturalWidth || c.height !== im.naturalHeight) { c.width = im.naturalWidth; c.height = im.naturalHeight; }
+    const x = c.getContext("2d"); x.clearRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0);
+    if (c.parentNode && !c.parentNode.classList.contains("cv")) c.parentNode.classList.add("cv");
+    return true;
+  }
+  function preloadRadar(fr, i, n) { for (let k = 1; k <= n; k++) frameImg(fr[(i + k) % fr.length]); }
   function showRadar(i) {
     const fr = radarFrames(); if (!fr) return;
     radarIdx = (i + fr.length) % fr.length;
     const img = $("radarImg"), sl = $("radarSlider"), tl = $("radarTime");
+    drawRadar(fr[radarIdx]); preloadRadar(fr, radarIdx, 6);
     if (img) { img.src = rsrc(fr[radarIdx]); img.alt = "Radar around State College at " + clock(new Date(fr[radarIdx].t)); }
     if (sl) sl.value = radarIdx;
     if (tl) tl.textContent = clock(new Date(fr[radarIdx].t));
@@ -3758,12 +3801,14 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   function wireRadar() {
     clearInterval(radarTimer); radarTimer = null;
     const fr = radarFrames(); if (!fr || !$("radarImg")) return;
+    if (radarIdx >= 0 && radarIdx < fr.length) { drawRadar(fr[radarIdx]); preloadRadar(fr, radarIdx, 6); }
     const btn = $("radarPlay"), sl = $("radarSlider");
     btn.onclick = () => { radarPlay = !radarPlay; btn.textContent = radarPlay ? "Pause" : "Play"; btn.setAttribute("aria-label", (radarPlay ? "Pause" : "Play") + " radar loop"); wireRadar(); };
     sl.oninput = () => { radarPlay = false; btn.textContent = "Play"; clearInterval(radarTimer); radarTimer = null; showRadar(+sl.value); };
     if (radarPlay && !reduced) {
       let hold = 0;
       radarTimer = setInterval(() => {
+        if (radar && radar.flows && !radar._exp && !radar._shadow && !radar._expFail && !reduced) return;   // smooth frames still being made: hold the newest scan rather than jump through the raw 10-minute frames
         const n = (radarFrames() || fr).length;   // the list can grow under a running loop when the live radar refreshes
         if (radarIdx === n - 1 && hold < 14) { hold++; return; }  // linger on the latest frame
         hold = 0; showRadar(radarIdx + 1);
