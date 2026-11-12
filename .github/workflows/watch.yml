@@ -2,7 +2,7 @@ name: Hourly snow watch
 on:
   workflow_dispatch:
 concurrency: { group: data, cancel-in-progress: false }
-permissions: { contents: write }
+permissions: { contents: write, actions: write }
 jobs:
   watch:
     runs-on: ubuntu-latest
@@ -33,6 +33,11 @@ jobs:
           P
       - if: steps.gate.outputs.run == 'true'
         run: pip install -r pipeline/requirements.txt
+      - name: Start the live radar (every scan, about every 2 minutes, for the next hour)
+        if: steps.gate.outputs.live == 'true'
+        continue-on-error: true
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh workflow run radar.yml -R "${{ github.repository }}" -f minutes=56
       - name: Radar loop
         if: steps.gate.outputs.live == 'true'
         continue-on-error: true

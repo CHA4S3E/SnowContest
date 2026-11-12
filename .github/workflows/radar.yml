@@ -1,0 +1,21 @@
+name: Live radar
+# Started by the hourly snow watch while a watch is live. Rebuilds the radar with every new MRMS scan (about every
+# 2 minutes) for just under an hour and publishes it to the "radar" branch; the next hourly run starts the next hour.
+on:
+  workflow_dispatch:
+    inputs:
+      minutes: { description: "How long to run (minutes)", default: "56" }
+concurrency: { group: radar, cancel-in-progress: false }
+permissions: { contents: write }
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r pipeline/requirements.txt
+      - run: bash pipeline/ci/data_checkout.sh
+      - name: Radar with every scan
+        run: python pipeline/radar.py data/radar_live.json --loop ${{ inputs.minutes || '56' }} --publish

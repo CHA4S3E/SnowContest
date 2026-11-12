@@ -136,6 +136,13 @@ def main():
         print("snow window close; going live")
     cmd = [sys.executable, os.path.join(HERE, "watch.py"), now_s, P("lamp.json"), P("nbs.json"), P("metars.txt"), P("prev.json"), P("out.json")]
     radar = load(os.path.join(D_, "radar.json"))
+    try:   # the live radar loop publishes every scan to the "radar" branch; use it when it is newer
+        subprocess.run(["git", "-C", D_, "fetch", "-q", "origin", "radar"], timeout=60, capture_output=True)
+        r2 = json.loads(subprocess.run(["git", "-C", D_, "show", "FETCH_HEAD:radar.json"], timeout=60, capture_output=True, text=True).stdout or "null")
+        if r2 and not r2.get("error") and (not radar or str(r2.get("updatedAt")) > str(radar.get("updatedAt"))):
+            radar = r2
+    except Exception:
+        pass
     if radar and not radar.get("error"):
         save(P("radar.json"), {"summary": radar.get("summary")})
         cmd += ["--radar", P("radar.json")]

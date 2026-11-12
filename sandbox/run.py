@@ -70,6 +70,11 @@ for scen, today in (("quiet", "2026-11-06"), ("snowy", "2026-11-07"), ("frost", 
 w = J(D + "/watch.json")
 if w and w.get("stage") == "ondeck":
     fxq = tempfile.mkdtemp()  # dry guidance: the on-deck day stays on deck
+    _today_real = dt.datetime.now(dt.timezone.utc).date()   # the fixture's on-deck days may be in the past by now: keep them ahead
+    if str(w.get("until", "")) < str(_today_real + dt.timedelta(days=1)):
+        w["until"] = str(_today_real + dt.timedelta(days=2))
+        w["baseDays"] = {str(_today_real + dt.timedelta(days=2)): 30.0}
+        json.dump(w, open(D + "/watch.json", "w"))
     json.dump([[(dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=h)).strftime("%Y-%m-%d %H:00"), 45, 5, 5, "R"] for h in range(1, 12)], open(fxq + "/lamp.json", "w"))
     json.dump([[(dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=6 * k)).strftime("%Y-%m-%d %H:00"), 45, 5, 5] for k in range(1, 8)], open(fxq + "/nbs.json", "w"))
     open(fxq + "/metars.txt", "w").write("")

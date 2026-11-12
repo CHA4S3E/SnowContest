@@ -4413,7 +4413,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   const fp = (t) => { let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return t.length + ":" + h; };
   let shownSig = {};
   const getJSON = (f) => fetch(DATA_BASE + f + "?t=" + Math.floor(Date.now() / 300000)).then((r) => r.ok ? r.text() : Promise.reject(r.status)).then((t) => { shownSig[f] = fp(t); return JSON.parse(t); });
-  const WATCHED = ["updates.json", "watch.json", "radar.json", "config.json", "weather.json", "season.json", "snowmap.json"];
+  const WATCHED = ["updates.json", "watch.json", "config.json", "weather.json", "season.json", "snowmap.json"];
   let toastUp = false, checking = false;
   function showUpdateToast() {
     if (toastUp) return;
@@ -4448,7 +4448,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       getJSON("snowmap.json").then((x) => { snowmap = x; }),
       getJSON("watchlib.json").then((x) => { watchlib = x; }),
       getJSON("seasonfc.json").then((x) => { seasonfc = x; }),
-      getJSON("radar.json").then((x) => { radar = x; radarIdx = -1; }),
+      loadRadar(),
       getJSON("updates.json").then((x) => { rawUpdates = (x || []).slice().sort(byOrd); })
     ];
     // Missing files (a 404 before a job has written them) are fine; keep whatever the page already has.
@@ -4462,6 +4462,27 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       } else $("status").textContent = "Couldn't load the pool";
     });
   }
+  // The live radar (every scan, about every 2 minutes, while a watch is live) is published on its own "radar" branch;
+  // the hourly copy on the data branch is the fallback. It refreshes quietly, without the update pop-up.
+  const RADAR_LIVE = "https://raw.githubusercontent.com/CHA4S3E/SnowContest/radar/radar.json";
+  let radarSig = null;
+  function loadRadar() {
+    const live = fetch(RADAR_LIVE + "?t=" + Math.floor(Date.now() / 60000)).then((r) => r.ok ? r.text() : null).catch(() => null);
+    const hourly = fetch(DATA_BASE + "radar.json?t=" + Math.floor(Date.now() / 300000)).then((r) => r.ok ? r.text() : null).catch(() => null);
+    return Promise.all([live, hourly]).then(([a, b]) => {
+      const pa = a ? JSON.parse(a) : null, pb = b ? JSON.parse(b) : null;
+      const best = pa && !pa.error && (!pb || String(pa.updatedAt) >= String(pb.updatedAt)) ? [pa, a] : pb ? [pb, b] : [null, null];
+      if (!best[0]) return false;
+      const sig = fp(best[1]);
+      if (sig === radarSig) return false;
+      radarSig = sig; radar = best[0]; radarIdx = -1;
+      return true;
+    });
+  }
+  setInterval(() => {
+    if (document.hidden || !watch || !watch.active) return;
+    loadRadar().then((changed) => { if (changed) renderWatch(); }).catch(() => {});
+  }, 60000);
   loadData();
   setInterval(checkForUpdate, 120000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) checkForUpdate(); });

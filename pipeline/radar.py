@@ -25,7 +25,7 @@ Output: {updatedAt, frames: [{t (ET ISO), png (base64), kf (true for a real rada
 The echoes are drawn smooth (OpenCV) and the motion between frames is saved too, so the page can glide the echoes from one frame to the next.
 OpenCV (opencv-python-headless) is optional: without it the plain three-shade frames are saved.
 """
-import base64, datetime as dt, gzip, io, json, math, re, sys, time, urllib.request
+import base64, os, datetime as dt, gzip, io, json, math, re, sys, time, urllib.request
 from zoneinfo import ZoneInfo
 
 import numpy as np
@@ -420,8 +420,12 @@ def to_f(tv):
     return tv * 9 / 5 + 32 if np.nanmedian(tv) < 60 else (tv - 273.15) * 9 / 5 + 32  # C or K -> F
 
 
-def main():
-    out_path = sys.argv[1]
+def main(out_path=None, step=10, cache=None):
+    """One radar build. step = minutes between frames over the last hour (10 for the hourly job, 2 for the live loop,
+    which is every MRMS scan); cache (the live loop) keeps frames, model fields and motion already worked out."""
+    out_path = out_path or sys.argv[1]
+    cache = {} if cache is None else cache
+    TIMING.clear()
     now = dt.datetime.now(dt.timezone.utc)
     dirs = product_dirs()
     p_refl = pick(dirs, "MergedReflectivityQCComposite")
@@ -455,10 +459,10 @@ def main():
         raise SystemExit("no matching reflectivity / flag times: refl %s..%s, flag %s..%s" % (min(R), max(R), min(F), max(F)))
     latest = common[-1]
     frames_t = []
-    for k in range(6, -1, -1):  # every 10 minutes over the last hour
-        want = latest - dt.timedelta(minutes=10 * k)
+    for k in range(60 // step, -1, -1):  # every `step` minutes over the last hour
+        want = latest - dt.timedelta(minutes=step * k)
         best = min(common, key=lambda t: abs((t - want).total_seconds()))
-        if abs((best - want).total_seconds()) <= 240 and best not in frames_t:
+        if abs((best - want).total_seconds()) <= max(60, 24 * step) and best not in frames_t:
             frames_t.append(best)
     TIMING["list_s"] = round(time.time() - T0, 1)
     wb = sfc = sfc_prev = sfc_t = sfc_pt = None
@@ -466,10 +470,16 @@ def main():
         Tm = collect(p_temp)
         if Tm:
             tt = max(t for t in Tm if t <= latest) if any(t <= latest for t in Tm) else min(Tm)
-            tv, _, _ = grid(Tm[tt])
-            wb = to_f(tv)
+            if cache.get("wb_t") == tt:
+                wb = cache["wb"]
+            else:
+                tv, _, _ = grid(Tm[tt])
+                wb = to_f(tv)
+                cache["wb_t"], cache["wb"] = tt, wb
             out["temp_time"] = tt.astimezone(ET).isoformat(timespec="minutes")
-    if p_sfc:
+    if p_sfc and cache.get("sfc_key") and cache["sfc_key"][0] == latest.replace(minute=0, second=0, microsecond=0):
+        _, sfc, sfc_prev, sfc_t, sfc_pt, out["surface_time"] = cache["sfc_key"]
+    elif p_sfc:
         try:  # surface temperature for freezing rain; if it fails the rest still works
             Sm = collect(p_sfc)
             if Sm:
@@ -483,12 +493,19 @@ def main():
                     sfc_pt = max(older)
                     pv, _, _ = grid(Sm[sfc_pt])
                     sfc_prev = to_f(pv)
+            cache["sfc_key"] = (latest.replace(minute=0, second=0, microsecond=0), sfc, sfc_prev, sfc_t, sfc_pt, out.get("surface_time"))
         except Exception as e:
             out["surface_error"] = str(e)[:200]
     frames, series, rgbas = [], [], []
+    fc = cache.setdefault("frames", {})
     d = brg = mf = pt = None
     snowline = None
+    adjusted = False
     for t in frames_t:
+        if t in fc:   # the live loop already drew this scan
+            series.append(dict(fc[t][0]))
+            rgbas.append(fc[t][1])
+            continue
         refl, lats, lons = grid(R[t])
         flag, _, _ = grid(F[pairs[t]])
         if wb is not None and wb.shape != refl.shape:
@@ -497,12 +514,18 @@ def main():
             sfc = None
         if d is None:
             d, brg = dist_bearing(lats, lons)
-            try:   # model precip type + terrain; any failure leaves the radar-flag rules as they were
-                mf = model_fields(latest, lats, lons)
-            except Exception as e:
-                mf = None
-                out["model_error"] = str(e)[:200]
-            if mf is not None:
+            hr = latest.replace(minute=0, second=0, microsecond=0)
+            if cache.get("mf_hr") == hr:
+                mf = cache.get("mf")
+            else:
+                try:   # model precip type + terrain; any failure leaves the radar-flag rules as they were
+                    mf = model_fields(latest, lats, lons)
+                except Exception as e:
+                    mf = None
+                    out["model_error"] = str(e)[:200]
+                cache["mf_hr"], cache["mf"] = hr, mf
+            if mf is not None and not adjusted:
+                adjusted = True
                 pt = mf["pt"]
                 snowline = snow_line_ft(wb, mf["elev_model"], d)
                 wb = terrain_adjust(wb, mf["elev"], mf["elev_model"], LAPSE_WB)
@@ -514,6 +537,12 @@ def main():
         s["t"] = t.astimezone(ET).isoformat(timespec="minutes")
         series.append(s)
         rgbas.append(render(cls, refl))
+        fc[t] = (dict(s), rgbas[-1])
+    for t in [x for x in fc if x not in frames_t]:   # forget scans that have left the hour
+        fc.pop(t, None)
+    if cache.get("snowline") is not None and snowline is None:
+        snowline = cache["snowline"]
+    cache["snowline"] = snowline
     if sfc is not None:
         try:
             fz = dict(freeze_lines(sfc), t=out.get("surface_time"))
@@ -527,20 +556,28 @@ def main():
     # The page slides the echoes between the real frames itself (8 steps per 10 minutes) from the motion found here.
     # Saved documents are limited to 256 KB, so the palette is shrunk until the whole thing fits.
     fzb = len(json.dumps(out.get("freeze", {})))
-    cap = 225000 - fzb
+    cap = (225000 if step >= 10 else 3000000) - fzb   # the hourly job keeps the old size; the live loop has room for every scan
     frames = []
     try:
         if cv2 is None or len(rgbas) < 2:
             raise RuntimeError("OpenCV not available" if cv2 is None else "too few frames")
-        flows = [pack_flow(rgbas[i], rgbas[i + 1]) for i in range(len(rgbas) - 1)]
+        flc = cache.setdefault("flows", {})
+        flows = []
+        for i in range(len(rgbas) - 1):
+            key = (series[i]["t"], series[i + 1]["t"])
+            if key not in flc:
+                flc[key] = pack_flow(rgbas[i], rgbas[i + 1])
+            flows.append(flc[key])
+        for k in [k for k in flc if k[0] not in {x["t"] for x in series}]:
+            flc.pop(k, None)
         for colors in (96, 64, 48, 32):
             frames = [{"t": series[i]["t"], "png": encode(im, colors), "kf": True} for i, im in enumerate(rgbas)]
             if sum(len(f["png"]) for f in frames) + sum(len(x) for x in flows) <= cap:
                 break
-        if sum(len(f["png"]) for f in frames) + sum(len(x) for x in flows) + fzb > 245000:
+        if sum(len(f["png"]) for f in frames) + sum(len(x) for x in flows) + fzb > cap + 20000:
             raise RuntimeError("frames too large even with a small palette")
         out["flows"] = {"w": 46, "h": 44, "s": 4, "d": flows}
-        out["interp"] = 8
+        out["interp"] = 8 if step >= 10 else max(2, step)   # in-between steps the page slides per frame gap
         out["colors"] = colors
     except Exception as e:  # keep the real frames if the motion step fails
         frames = [{"t": series[i]["t"], "png": encode(im, 48), "kf": True} for i, im in enumerate(rgbas)]
@@ -582,5 +619,40 @@ def main():
     print(out["note"], json.dumps(TIMING), "frames", len(frames), "json bytes", len(json.dumps(out)))
 
 
+def loop(out_path, minutes, commit_cmd, watch_path=None, step=2):
+    """The live radar: rebuild with every new MRMS scan (about every 2 minutes) for `minutes`, committing each time;
+    stops early when the watch is no longer live."""
+    import subprocess
+    end = time.time() + minutes * 60
+    cache, last = {}, None
+    while time.time() < end:
+        if watch_path:
+            try:
+                subprocess.run(["git", "-C", os.path.dirname(os.path.abspath(watch_path)), "pull", "-q", "--rebase", "origin", "data"], timeout=60)
+                w = json.load(open(watch_path))
+                if not w.get("active"):
+                    print("watch is not live; radar loop stops")
+                    return
+            except Exception:
+                pass
+        try:
+            main(out_path, step, cache)
+            stamp = json.load(open(out_path))["frames"][-1]["t"]
+            if stamp != last:
+                last = stamp
+                subprocess.run(commit_cmd + ["Radar " + stamp], timeout=120)
+        except SystemExit as e:
+            print("radar build skipped:", e)
+        except Exception as e:  # noqa
+            print("radar build failed:", repr(e)[:300])
+        time.sleep(max(20, 75 - (time.time() % 60)))
+
+
 if __name__ == "__main__":
-    main()
+    import os
+    if "--loop" in sys.argv:
+        i = sys.argv.index("--loop")
+        pub = ["bash", "pipeline/ci/radar_publish.sh", sys.argv[1]] if "--publish" in sys.argv else ["bash", "pipeline/ci/data_commit.sh"]
+        loop(sys.argv[1], float(sys.argv[i + 1]), pub, watch_path=os.path.join(os.path.dirname(sys.argv[1]), "watch.json"))
+    else:
+        main()
