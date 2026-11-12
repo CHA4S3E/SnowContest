@@ -179,6 +179,9 @@ def solid(sel):
     return sel & (n >= 4)
 
 
+EDGE_PX = 60   # about 60 square miles of echo: smaller patches are too spotty to track
+
+
 def stats(cls, refl, d, brg):
     out = {}
     for name, sel in (("snow", cls == 1), ("fzra", cls == 4), ("borderline", cls == 2), ("rain", cls == 3), ("sleet", cls == 5), ("snowish", (cls == 1) | (cls == 2))):
@@ -188,6 +191,9 @@ def stats(cls, refl, d, brg):
             i = np.argmin(np.where(sel, d, 1e9))
             s["nearest_mi"] = round(float(d.flat[i]), 1)
             s["nearest_dir"] = COMPASS[int((brg.flat[i] + 11.25) // 22.5) % 16]
+            dv = d[sel]
+            if dv.size >= EDGE_PX:   # the near edge of a real area (the EDGE_PX-th closest pixel), not a stray speck
+                s["edge_mi"] = round(float(np.partition(dv, EDGE_PX - 1)[EDGE_PX - 1]), 1)
         for r in (25, 50, 100):
             ring = d <= r
             s["cover%d" % r] = round(100.0 * float(sel[ring].sum()) / float(ring.sum()), 1)
@@ -624,12 +630,14 @@ def main(out_path=None, step=10, cache=None):
             continue
         refl, lats, lons = grid(R[t])
         flag, _, _ = grid(F[pairs[t]])
+        cache.setdefault("raw", {})[t] = (refl.astype(np.float32), np.round(flag).astype(np.int8))
         if wb is not None and wb.shape != refl.shape:
             wb = None
         if sfc is not None and sfc.shape != refl.shape:
             sfc = None
         if d is None:
             d, brg = dist_bearing(lats, lons)
+            cache["geo"] = (d, brg)
             hr = latest.replace(minute=0, second=0, microsecond=0)
             if cache.get("mf_hr") == hr:
                 mf = cache.get("mf")
@@ -686,6 +694,8 @@ def main(out_path=None, step=10, cache=None):
         fc[t] = (dict(s), rgbas[-1])
     for t in [x for x in fc if x not in frames_t]:   # forget scans that have left the hour
         fc.pop(t, None)
+    for t in [x for x in cache.get("raw", {}) if x not in frames_t]:
+        cache["raw"].pop(t, None)
     if cache.get("snowline") is not None and snowline is None:
         snowline = cache["snowline"]
     cache["snowline"] = snowline
@@ -732,12 +742,36 @@ def main(out_path=None, step=10, cache=None):
     first, last = series[0], series[-1]
     mins = max(1.0, (frames_t[-1] - frames_t[0]).total_seconds() / 60)
     summ = {"latest": last, "first": first, "minutes": round(mins)}
+    # Movement: every frame re-checked with the same (current) temperatures and model, so a fresher temperature
+    # cannot pass for motion; the near edge of a real area, fitted across all frames rather than first vs last.
+    trend = series
+    geo, raw = cache.get("geo"), cache.get("raw", {})
+    if geo is not None and wb is not None and all(t in raw for t in frames_t):
+        try:
+            trend = []
+            for t in frames_t:
+                rf, fg = raw[t]
+                wbt = sfc_at(wb, wb_prev if (wb_prev is not None and wb_prev.shape == wb.shape) else None, wb_t, wb_pt, t)
+                trend.append(stats(classify(rf, fg.astype(int), wbt, sfc_at(sfc, sfc_prev, sfc_t, sfc_pt, t), pt), rf, geo[0], geo[1]))
+        except Exception as e:
+            trend = series
+            out["trend_error"] = str(e)[:200]
+    tm = np.array([(t - frames_t[0]).total_seconds() / 3600 for t in frames_t])
     for k in ("snow", "snowish", "rain", "fzra", "sleet"):
-        a, b = first[k].get("nearest_mi"), last[k].get("nearest_mi")
-        if a is not None and b is not None:
-            summ[k + "_closing_mph"] = round((a - b) / mins * 60, 1)
-            if summ[k + "_closing_mph"] >= 5 and b > 2:
-                summ[k + "_eta"] = (frames_t[-1] + dt.timedelta(hours=b / summ[k + "_closing_mph"])).astimezone(ET).isoformat(timespec="minutes")
+        pts = [(tm[i], x[k]["edge_mi"]) for i, x in enumerate(trend) if "edge_mi" in x[k]]
+        if len(pts) < 4 or pts[-1][0] - pts[0][0] < 0.5 or "edge_mi" not in trend[-1][k]:
+            continue   # too few frames with a real area to call a trend
+        x, y = np.array(pts).T
+        slope, icpt = np.polyfit(x, y, 1)
+        fit = slope * x + icpt
+        r2 = 1 - float(((y - fit) ** 2).sum()) / max(1e-6, float(((y - y.mean()) ** 2).sum()))
+        mph = round(float(-slope), 1)
+        if abs(mph) >= 5 and r2 < 0.6:
+            mph = 0.0   # it jumps around rather than moving steadily: no call
+        summ[k + "_closing_mph"] = mph
+        b = trend[-1][k]["edge_mi"]
+        if mph >= 5 and b > 2 and b / mph <= 8:
+            summ[k + "_eta"] = (frames_t[-1] + dt.timedelta(hours=b / mph)).astimezone(ET).isoformat(timespec="minutes")
     out["summary"] = summ
     # plain-language note
     parts = []
@@ -747,7 +781,9 @@ def main(out_path=None, step=10, cache=None):
             txt = "%s %s" % (label, "over town" if s["nearest_mi"] <= 3 else "%d miles %s" % (round(s["nearest_mi"]), s["nearest_dir"]))
             ck = {"snow": "snow", "sleet": "sleet", "fzra": "fzra", "borderline": "snowish", "rain": "rain"}[k]
             mph = summ.get(ck + "_closing_mph")
-            if mph is not None and s["nearest_mi"] > 3:
+            if "edge_mi" not in s:
+                txt += " (a few scattered spots)"
+            elif mph is not None and s["nearest_mi"] > 3:
                 txt += ", closing about %d mph" % round(mph) if mph >= 5 else (", moving away" if mph <= -5 else ", not getting closer")
                 if summ.get(ck + "_eta"):
                     txt += " (reaches town around %s if it holds)" % dt.datetime.fromisoformat(summ[ck + "_eta"]).strftime("%-I:%M %p")
