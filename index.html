@@ -5021,15 +5021,18 @@ function wind() {   // px/s sideways push (positive = east), from the motion the
   return Math.max(-30, Math.min(30, Math.sin(to) * Math.min(40, m.mph) * .7));
 }
 
-/* ---------- particles ---------- */
-var P = [], ripples = [], sparks = [];
-function seed(n) {
-  while (P.length < n) P.push({ x: Math.random(), y: Math.random(), z: Math.random(), th: Math.random(), ph: Math.random() * 6.283,
-    ang: Math.random() * 6.283, spin: rnd(-1.4, 1.4), v: rnd(.85, 1.15), floor: rnd(.15, 1.05), morph: Math.random() < .35, b: 0 });
-  P.length = n;
+/* ---------- particles ----------
+   One set of particles per kind, each moving at its own steady speed everywhere on the map and wrapping around, so
+   they stay evenly spread; a particle shows only where the radar has its kind, and more of them show (bigger, brighter)
+   where it is heavier. Landed drops and bounced pellets hide until they come round again. */
+var SETS = { f: [], m: [], r: [], d: [], s: [] }, DENS = { f: 60, m: 110, r: 80, d: 140, s: 130 }, KIND = { f: 1, m: 2, r: 3, d: 4, s: 5 };
+var ripples = [], sparks = [];
+function seed(list, n) {
+  while (list.length < n) list.push({ x: Math.random(), y: Math.random(), z: Math.random(), th: Math.random(), ph: Math.random() * 6.283,
+    ang: Math.random() * 6.283, spin: rnd(-1.4, 1.4), v: rnd(.85, 1.15), floor: rnd(.1, .98), morph: Math.random() < .35, b: 0, hid: false });
+  list.length = n;
 }
-function respawn(p) { p.y = -.02 - Math.random() * .05; p.x = Math.random(); p.floor = rnd(.15, 1.05); p.b = 0; p.th = Math.random(); }
-
+function wrapY(p) { if (p.y > 1.03) { p.y -= 1.06; p.floor = rnd(.1, .98); p.hid = false; p.b = 0; } }
 function size() {
   var w = cv.clientWidth, h = cv.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
   if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); layer.width = cv.width; layer.height = cv.height; }
@@ -5064,49 +5067,45 @@ function frame(ts) {
     lx.globalCompositeOperation = "destination-in"; lx.drawImage(ice, 0, 0, W, H); lx.globalCompositeOperation = "source-over";
     cx.globalAlpha = 1; cx.setTransform(1, 0, 0, 1, 0, 0); cx.drawImage(layer, 0, 0); cx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
-  seed(Math.min(2600, Math.round(area / 55)));
   cx.lineCap = "round";
-  for (var i = 0; i < P.length; i++) {
-    var p = P[i], here = at(p.x, p.y), c = here | 0, v = here - c;
-    // what kind of particle this is depends on where it is; heavier spots show more of them (a particle shows when the
-    // intensity beats its own threshold) and make them bigger and faster
-    var on = c && (v + .18 >= p.th * .95);
-    var spd, drift = 0;
-    if (c === 1) { spd = 14 + 22 * p.z * (.7 + v * .6); drift = Math.sin(p.ph + tsec * (.6 + p.z)) * (6 + 10 * p.z) + wx * .5; }
-    else if (c === 2) { spd = 26 + 20 * p.z; drift = Math.sin(p.ph + tsec) * 5 + wx * .6; }
-    else if (c === 3) { spd = 120 + 120 * v + 60 * p.z; drift = wx; }
-    else if (c === 4) { spd = 55 + 25 * p.z; drift = wx * .7; }
-    else if (c === 5) { spd = 95 + 50 * p.z; drift = wx * .8; }
-    else { spd = 40; }
-    if (p.b > 0) {   // a sleet pellet bouncing back up after it hits
-      p.b -= dt; p.y -= (p.b * 3.2) * dt * 60 / H; p.x += wx * .3 * dt / W;
-      if (p.b <= 0) respawn(p);
-    } else {
-      p.y += spd * p.v * dt / H; p.x += drift * dt / W;
-    }
-    p.ph += dt * .5; p.ang += p.spin * dt;
-    if (p.x > 1) p.x -= 1; else if (p.x < 0) p.x += 1;
-    if (p.y > 1.03) { respawn(p); continue; }
-    if (!on) continue;
-    var X = p.x * W, Y = p.y * H;
-    if (c === 1) { drawFlake(p, X, Y, v, p.z > .45); }
-    else if (c === 2) {   // mix: drops and flakes together; some drops turn into flakes on the way down
-      var asFlake = p.morph ? (p.y > p.floor * .8) : (p.z > .5);
-      if (asFlake) drawFlake(p, X, Y, v * .7, p.z > .7);
-      else { cx.strokeStyle = "rgba(235,240,255,.9)"; cx.lineWidth = 1.1; drawDrop(X, Y, 4 + 3 * v, .65, slant * .6); }
-    }
-    else if (c === 3) {   // rain: streaks lean with the wind, longer and denser when heavy; splashes where it pours
-      cx.strokeStyle = "#eaf4ff"; cx.lineWidth = .8 + .6 * v; drawDrop(X, Y, 6 + 10 * v + 3 * p.z, .32 + .35 * v, slant);
-      if (v > .62 && Math.random() < .012 && ripples.length < 90) ripples.push({ x: X, y: Y, t: 0 });
-    }
-    else if (c === 4) {   // freezing rain: drops that freeze where they land
-      cx.fillStyle = "#f2fbff"; cx.globalAlpha = .8; cx.beginPath(); cx.ellipse(X, Y, 1, 2, -slant, 0, 6.283); cx.fill();
-      if (p.y > p.floor) { if (sparks.length < 120) sparks.push({ x: X, y: Y, t: 0, s: SPARK_ICE }); respawn(p); }
-    }
-    else if (c === 5) {   // sleet: fast icy pellets that bounce and glint
-      cx.fillStyle = "#fff6e6"; cx.globalAlpha = .9; cx.beginPath(); cx.arc(X, Y, 1.25, 0, 6.283); cx.fill();
-      cx.strokeStyle = "rgba(160,80,0,.45)"; cx.lineWidth = .5; cx.stroke();
-      if (p.b <= 0 && p.y > p.floor) { p.b = rnd(.14, .24); if (sparks.length < 120 && Math.random() < .5) sparks.push({ x: X, y: Y, t: 0, s: SPARK_SLEET }); }
+  for (var key in SETS) {
+    var list = SETS[key], kind = KIND[key];
+    if (!has[kind]) { list.length = 0; continue; }   // nothing of this kind on the map: no particles to move
+    seed(list, Math.min(2200, Math.round(area / DENS[key])));
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i], spd, drift = wx * .6;
+      if (key === "f") { spd = 14 + 24 * p.z; drift += Math.sin(p.ph + tsec * (.6 + p.z)) * (6 + 10 * p.z); }
+      else if (key === "m") { spd = 26 + 20 * p.z; drift += Math.sin(p.ph + tsec) * 5; }
+      else if (key === "r") { spd = 150 + 110 * p.z; }
+      else if (key === "d") { spd = 55 + 25 * p.z; }
+      else { spd = 95 + 50 * p.z; }
+      if (p.b > 0) { p.b -= dt; p.y -= p.b * 3.2 * dt * 60 / H; if (p.b <= 0) p.hid = true; }   // a sleet pellet bouncing back up
+      else p.y += spd * p.v * dt / H;
+      p.x += drift * dt / W; p.ph += dt * .5; p.ang += p.spin * dt;
+      if (p.x > 1) p.x -= 1; else if (p.x < 0) p.x += 1;
+      wrapY(p);
+      if (p.hid || p.y < 0) continue;
+      var here = at(p.x, p.y), c = here | 0, v = here - c;
+      if (c !== kind || v + .18 < p.th * .95) continue;   // not this kind here, or too light here for this one to show
+      var X = p.x * W, Y = p.y * H;
+      if (key === "f") drawFlake(p, X, Y, v, p.z > .45);
+      else if (key === "m") {   // mix: drops and flakes together; some drops turn into flakes on the way down
+        if (p.morph ? (p.y > p.floor * .8) : (p.z > .5)) drawFlake(p, X, Y, v * .7, p.z > .7);
+        else { cx.strokeStyle = "rgba(235,240,255,.9)"; cx.lineWidth = 1.1; drawDrop(X, Y, 4 + 3 * v, .65, slant * .6); }
+      }
+      else if (key === "r") {   // rain: streaks lean with the wind, longer and brighter when heavy; splashes where it pours
+        cx.strokeStyle = "#eaf4ff"; cx.lineWidth = .8 + .6 * v; drawDrop(X, Y, 6 + 10 * v + 3 * p.z, .32 + .35 * v, slant);
+        if (v > .62 && Math.random() < .015 && ripples.length < 90) ripples.push({ x: X, y: Y, t: 0 });
+      }
+      else if (key === "d") {   // freezing rain: drops that freeze where they land
+        cx.fillStyle = "#f2fbff"; cx.globalAlpha = .8; cx.beginPath(); cx.ellipse(X, Y, 1, 2, -slant, 0, 6.283); cx.fill();
+        if (p.y > p.floor) { if (sparks.length < 120) sparks.push({ x: X, y: Y, t: 0, s: SPARK_ICE }); p.hid = true; }
+      }
+      else {   // sleet: fast icy pellets that bounce and glint
+        cx.fillStyle = "#fff6e6"; cx.globalAlpha = .9; cx.beginPath(); cx.arc(X, Y, 1.25, 0, 6.283); cx.fill();
+        cx.strokeStyle = "rgba(160,80,0,.45)"; cx.lineWidth = .5; cx.stroke();
+        if (p.b <= 0 && p.y > p.floor) { p.b = rnd(.14, .24); if (sparks.length < 120 && Math.random() < .5) sparks.push({ x: X, y: Y, t: 0, s: SPARK_SLEET }); }
+      }
     }
   }
   for (var r = ripples.length - 1; r >= 0; r--) {   // rain splashes: small rings that spread and fade
