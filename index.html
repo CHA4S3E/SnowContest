@@ -3641,7 +3641,9 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   function expandRadar(r) {
     const steps = r.interp || 8, fl = r.flows;
     if (!fl || !fl.d || fl.d.length !== r.frames.length - 1) return;
-    const pkey = (p) => r.frames[p].t + "|" + r.frames[p + 1].t + "|" + steps;
+    // in-between steps for a pair: `steps` per 10 minutes, so the short last gap of the live radar (the newest scan) glides at the same speed
+    const nsteps = (p) => Math.max(2, Math.round(steps * (new Date(r.frames[p + 1].t) - new Date(r.frames[p].t)) / 600000));
+    const pkey = (p) => r.frames[p].t + "|" + r.frames[p + 1].t + "|" + nsteps(p);
     Promise.all(r.frames.map((f) => new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = "data:image/png;base64," + f.png; }))).then(async (ims) => {
       const W = ims[0].naturalWidth, H = ims[0].naturalHeight, N = W * H;
       const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
@@ -3682,8 +3684,9 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
           }
         }
         const t0 = new Date(r.frames[p].t).getTime(), t1 = new Date(r.frames[p + 1].t).getTime();
-        for (let k = 1; k < steps; k++) {
-          const t = k / steps, D = img.data;
+        const ns = nsteps(p);
+        for (let k = 1; k < ns; k++) {
+          const t = k / ns, D = img.data;
           for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
             const i = y * W + x, fx = FX[i], fy = FY[i];
             sample(P[p], x - t * fx, y - t * fy, sa); sample(P[p + 1], x + (1 - t) * fx, y + (1 - t) * fy, sb);
@@ -3738,7 +3741,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       '<div class="wmap"><div class="wframe">'+lakeLayer()+'<img id="radarImg" alt="Radar around State College at ' + esc(clock(new Date(f.t))) + '" src="' + rsrc(f) + '">' + mapOverlay(!!radar.bare, freezeSvg(radar.freeze, fzLinesAt(fr, radarIdx))) + '</div></div>' +
       '<div class="rinfo"><div class="rleg"><span><i style="width:28px;background:linear-gradient(90deg,#cde6fc,#78aff3 35%,#1e4bc8 62%,#16329f 80%,#5523af)"></i>Snow (purple = very heavy)</span><span><i style="background:#f7982f"></i>Sleet</span><span><i style="background:#ec64be"></i>Freezing rain</span><span><i style="background:#aa6ee1"></i>Mix / borderline</span><span><i style="width:28px;background:linear-gradient(90deg,#b9ebaf,#3caf4b 45%,#3caf4b 55%,#f5e13c 68%,#e84b19 84%,#c81419)"></i>Rain (red = very heavy)</span><span>Darker = heavier</span>' + freezeKey(radar.freeze) + '</div>' +
       (radar.note ? '<p class="rnote">' + esc(radar.note) + '</p>' : "") +
-      '<div class="rsub">NOAA MRMS radar, frames every ' + (radar.interp && radar.interp < 8 ? "2 minutes (every scan)" : "10 minutes") + '; snow or rain from radar plus model temperature, terrain and the HRRR model precip type (which supplies sleet and freezing rain; older data shows freezing rain as rain onto a surface at or below 32°F, with no sleet). Updated ' + (radar.updatedAt ? esc(clock(new Date(radar.updatedAt))) + " (" + esc(ago(radar.updatedAt)) + ")" : "") + '.</div></div></div>';
+      '<div class="rsub">NOAA MRMS radar, frames every 10 minutes plus the newest scan; snow or rain from radar plus model temperature, terrain and the HRRR model precip type (which supplies sleet and freezing rain; older data shows freezing rain as rain onto a surface at or below 32°F, with no sleet). Updated ' + (radar.updatedAt ? esc(clock(new Date(radar.updatedAt))) + " (" + esc(ago(radar.updatedAt)) + ")" : "") + '.</div></div></div>';
   }
   function showRadar(i) {
     const fr = radarFrames(); if (!fr) return;

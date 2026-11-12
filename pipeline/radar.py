@@ -461,11 +461,25 @@ def main(out_path=None, step=10, cache=None):
         raise SystemExit("no matching reflectivity / flag times: refl %s..%s, flag %s..%s" % (min(R), max(R), min(F), max(F)))
     latest = common[-1]
     frames_t = []
-    for k in range(60 // step, -1, -1):  # every `step` minutes over the last hour
-        want = latest - dt.timedelta(minutes=step * k)
-        best = min(common, key=lambda t: abs((t - want).total_seconds()))
-        if abs((best - want).total_seconds()) <= max(60, 24 * step) and best not in frames_t:
-            frames_t.append(best)
+    if step >= 10:
+        for k in range(6, -1, -1):  # every 10 minutes over the last hour
+            want = latest - dt.timedelta(minutes=10 * k)
+            best = min(common, key=lambda t: abs((t - want).total_seconds()))
+            if abs((best - want).total_seconds()) <= 240 and best not in frames_t:
+                frames_t.append(best)
+    else:
+        # The live loop: frames on the clock's 10-minute marks (the scan nearest each), plus the newest scan at the end.
+        # MRMS refreshes each radar site on its own schedule, so scans 2 minutes apart move one part of the map, then
+        # another; 10-minute frames hide that, and fixed marks keep earlier frames (and their glide) the same between
+        # refreshes. The newest scan keeps the loop current.
+        mark = latest.replace(second=0, microsecond=0) - dt.timedelta(minutes=latest.minute % 10)
+        for k in range(6, -1, -1):
+            want = mark - dt.timedelta(minutes=10 * k)
+            best = min(common, key=lambda t: abs((t - want).total_seconds()))
+            if abs((best - want).total_seconds()) <= 240 and best not in frames_t:
+                frames_t.append(best)
+        if latest not in frames_t and (not frames_t or (latest - frames_t[-1]).total_seconds() >= 90):
+            frames_t.append(latest)
     TIMING["list_s"] = round(time.time() - T0, 1)
     wb = sfc = sfc_prev = sfc_t = sfc_pt = None
     if p_temp:
@@ -558,7 +572,7 @@ def main(out_path=None, step=10, cache=None):
     # The page slides the echoes between the real frames itself (8 steps per 10 minutes) from the motion found here.
     # Saved documents are limited to 256 KB, so the palette is shrunk until the whole thing fits.
     fzb = len(json.dumps(out.get("freeze", {})))
-    cap = (225000 if step >= 10 else 3000000) - fzb   # the hourly job keeps the old size; the live loop has room for every scan
+    cap = (225000 if step >= 10 else 600000) - fzb
     frames = []
     try:
         if cv2 is None or len(rgbas) < 2:
@@ -579,7 +593,7 @@ def main(out_path=None, step=10, cache=None):
         if sum(len(f["png"]) for f in frames) + sum(len(x) for x in flows) + fzb > cap + 20000:
             raise RuntimeError("frames too large even with a small palette")
         out["flows"] = {"w": 46, "h": 44, "s": 4, "d": flows}
-        out["interp"] = 8 if step >= 10 else max(2, step)   # in-between steps the page slides per frame gap
+        out["interp"] = 8   # in-between steps per 10 minutes (the page uses fewer for a shorter last gap)
         out["colors"] = colors
     except Exception as e:  # keep the real frames if the motion step fails
         frames = [{"t": series[i]["t"], "png": encode(im, 48), "kf": True} for i, im in enumerate(rgbas)]
