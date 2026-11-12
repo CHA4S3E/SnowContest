@@ -4500,11 +4500,28 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   // The live radar (every scan, about every 2 minutes, while a watch is live) is published on its own "radar" branch;
   // the hourly copy on the data branch is the fallback. It refreshes quietly, without the update pop-up.
   const RADAR_LIVE = "https://raw.githubusercontent.com/CHA4S3E/SnowContest/radar/radar.json";
-  let radarSig = null;
+  let radarSig = null, radarSha = null, apiPausedUntil = 0;
+  // raw.githubusercontent.com resolves a branch name to its newest commit only every few minutes, so the live radar
+  // (a new commit every ~2 minutes) can look frozen. GitHub's API names the newest commit right away; a file addressed
+  // by its commit never goes stale. The API allows 60 calls an hour per network, and unchanged answers (the browser
+  // revalidates them) do not count; if it says no, the page falls back to the branch name for half an hour.
+  function liveRadarUrl() {
+    if (Date.now() < apiPausedUntil) return Promise.resolve(RADAR_LIVE + "?t=" + Math.floor(Date.now() / 60000));
+    return fetch("https://api.github.com/repos/CHA4S3E/SnowContest/commits/radar", { headers: { Accept: "application/vnd.github.sha" } })
+      .then((r) => {
+        if (!r.ok) { apiPausedUntil = Date.now() + 30 * 60000; return RADAR_LIVE + "?t=" + Math.floor(Date.now() / 60000); }
+        return r.text().then((sha) => /^[0-9a-f]{40}$/.test(sha.trim()) ? "https://raw.githubusercontent.com/CHA4S3E/SnowContest/" + sha.trim() + "/radar.json" : RADAR_LIVE);
+      })
+      .catch(() => RADAR_LIVE + "?t=" + Math.floor(Date.now() / 60000));
+  }
   function loadRadar() {
-    const live = fetch(RADAR_LIVE + "?t=" + Math.floor(Date.now() / 60000)).then((r) => r.ok ? r.text() : null).catch(() => null);
+    const live = liveRadarUrl().then((u) => {
+      if (u.indexOf("/radar/radar.json") < 0 && u === radarSha) return "same";   // same commit as last time: nothing to download
+      return fetch(u).then((r) => r.ok ? r.text() : null).then((t) => { if (t && u.indexOf("/radar/radar.json") < 0) radarSha = u; return t; });
+    }).catch(() => null);
     const hourly = fetch(DATA_BASE + "radar.json?t=" + Math.floor(Date.now() / 300000)).then((r) => r.ok ? r.text() : null).catch(() => null);
     return Promise.all([live, hourly]).then(([a, b]) => {
+      if (a === "same") return false;
       const pa = a ? JSON.parse(a) : null, pb = b ? JSON.parse(b) : null;
       const best = pa && !pa.error && (!pb || String(pa.updatedAt) >= String(pb.updatedAt)) ? [pa, a] : pb ? [pb, b] : [null, null];
       if (!best[0]) return false;
