@@ -3628,25 +3628,33 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     const age = radar.updatedAt ? Date.now() - new Date(radar.updatedAt).getTime() : Infinity;
     if (age > 150 * 60000) return null;  // hide a loop that's more than ~2.5 hours old
     if (radar._exp) return radar._exp;
+    if (radar._shadow) return radar._shadow;   // the previous loop, shown while the refreshed one is prepared
     if (radar.flows && !radar._expTried && !reduced) { radar._expTried = true; expandRadar(radar); }
     return radar.frames;
   }
   const rsrc = (f) => f.url || ("data:image/png;base64," + f.png);
   // The radar document carries the real frames plus the motion between them (a coarse grid, 1/4-pixel steps). The page slides the
   // echoes along that motion to make the in-between frames, so the loop glides without the saved data growing.
+  // In-between frames already made, by the pair of scan times they join: the live radar refreshes every couple of
+  // minutes, and only the newest pair needs new in-betweens; older ones are reused.
+  const RADAR_TWEEN = new Map();
   function expandRadar(r) {
     const steps = r.interp || 8, fl = r.flows;
     if (!fl || !fl.d || fl.d.length !== r.frames.length - 1) return;
+    const pkey = (p) => r.frames[p].t + "|" + r.frames[p + 1].t + "|" + steps;
     Promise.all(r.frames.map((f) => new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = "data:image/png;base64," + f.png; }))).then(async (ims) => {
       const W = ims[0].naturalWidth, H = ims[0].naturalHeight, N = W * H;
       const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
       const cx = cv.getContext("2d", { willReadFrequently: true });
-      const P = ims.map((im) => {   // premultiplied pixels
-        cx.clearRect(0, 0, W, H); cx.drawImage(im, 0, 0);
+      const PC = {};
+      const Pof = (k) => {   // premultiplied pixels, only for the frames a new pair needs
+        if (PC[k]) return PC[k];
+        cx.clearRect(0, 0, W, H); cx.drawImage(ims[k], 0, 0);
         const d = cx.getImageData(0, 0, W, H).data, o = new Float32Array(N * 4);
         for (let i = 0; i < d.length; i += 4) { const a = d[i + 3] / 255; o[i] = d[i] * a; o[i + 1] = d[i + 1] * a; o[i + 2] = d[i + 2] * a; o[i + 3] = d[i + 3]; }
-        return o;
-      });
+        return (PC[k] = o);
+      };
+      const P = new Proxy({}, { get: (_, k) => Pof(+k) });
       const sample = (A, x, y, out) => {   // bilinear, transparent outside the frame
         const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0;
         out[0] = out[1] = out[2] = out[3] = 0;
@@ -3660,6 +3668,9 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       const img = cx.createImageData(W, H);
       for (let p = 0; p < ims.length - 1; p++) {
         exp.push(Object.assign({}, r.frames[p], { kf: true, fp: p, fk: 0 }));
+        const done = RADAR_TWEEN.get(pkey(p));
+        if (done) { for (const x of done) exp.push(Object.assign({}, x, { fp: p })); continue; }
+        const made = [];
         const raw = atob(fl.d[p]), gw = fl.w, gh = fl.h, FX = new Float32Array(N), FY = new Float32Array(N);
         const g = (u, v, c) => { const b = raw.charCodeAt((v * gw + u) * 2 + c); return (b > 127 ? b - 256 : b) / fl.s; };
         for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {   // smooth the coarse grid up to full size
@@ -3684,16 +3695,36 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
           cx.putImageData(img, 0, 0);
           const url = await new Promise((ok) => cv.toBlob((b) => ok(b ? URL.createObjectURL(b) : null), "image/png"));
           if (!url) return;
-          exp.push({ t: new Date(t0 + (t1 - t0) * t).toISOString(), url, kf: false, fp: p, fk: k });
+          const fr_ = { t: new Date(t0 + (t1 - t0) * t).toISOString(), url, kf: false, fp: p, fk: k };
+          exp.push(fr_); made.push(fr_);
           await new Promise((ok) => setTimeout(ok, 0));   // let the page breathe between frames
         }
+        RADAR_TWEEN.set(pkey(p), made);
       }
+      const keep = new Set(r.frames.slice(0, -1).map((_, p) => pkey(p)));
+      for (const [k, v] of RADAR_TWEEN) if (!keep.has(k)) { RADAR_TWEEN.delete(k); for (const x of v) { try { URL.revokeObjectURL(x.url); } catch (e) {} } }
       exp.push(Object.assign({}, r.frames[ims.length - 1], { kf: true, fp: ims.length - 1, fk: 0 }));
       if (radar !== r) return;
       r._exp = exp;
-      radarIdx = radarIdx >= 0 ? Math.min(exp.length - 1, radarIdx * steps) : -1;
-      renderWatch();
+      if (r._resumeT) {   // a quiet refresh: carry on from the same moment in the loop
+        const want = new Date(r._resumeT).getTime();
+        let bi = exp.length - 1, bd = Infinity;
+        exp.forEach((x, i) => { const dd = Math.abs(new Date(x.t).getTime() - want); if (dd < bd) { bd = dd; bi = i; } });
+        radarIdx = bi;
+        if (!showRadarSwap()) renderWatch();
+      } else {
+        radarIdx = radarIdx >= 0 ? Math.min(exp.length - 1, radarIdx * steps) : -1;
+        renderWatch();
+      }
     }).catch(() => {});
+  }
+  function showRadarSwap() {
+    const sl = $("radarSlider"), fr = radarFrames();
+    if (!sl || !fr) return false;
+    radar._shadow = null;
+    sl.max = fr.length - 1;
+    showRadar(radarIdx);
+    return true;
   }
   function radarHtml() {
     const fr = radarFrames();
@@ -3707,7 +3738,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       '<div class="wmap"><div class="wframe">'+lakeLayer()+'<img id="radarImg" alt="Radar around State College at ' + esc(clock(new Date(f.t))) + '" src="' + rsrc(f) + '">' + mapOverlay(!!radar.bare, freezeSvg(radar.freeze, fzLinesAt(fr, radarIdx))) + '</div></div>' +
       '<div class="rinfo"><div class="rleg"><span><i style="width:28px;background:linear-gradient(90deg,#cde6fc,#78aff3 35%,#1e4bc8 62%,#16329f 80%,#5523af)"></i>Snow (purple = very heavy)</span><span><i style="background:#f7982f"></i>Sleet</span><span><i style="background:#ec64be"></i>Freezing rain</span><span><i style="background:#aa6ee1"></i>Mix / borderline</span><span><i style="width:28px;background:linear-gradient(90deg,#b9ebaf,#3caf4b 45%,#3caf4b 55%,#f5e13c 68%,#e84b19 84%,#c81419)"></i>Rain (red = very heavy)</span><span>Darker = heavier</span>' + freezeKey(radar.freeze) + '</div>' +
       (radar.note ? '<p class="rnote">' + esc(radar.note) + '</p>' : "") +
-      '<div class="rsub">NOAA MRMS radar, frames every 10 minutes; snow or rain from radar plus model temperature, terrain and the HRRR model precip type (which supplies sleet and freezing rain; older data shows freezing rain as rain onto a surface at or below 32°F, with no sleet). Updated ' + (radar.updatedAt ? esc(clock(new Date(radar.updatedAt))) + " (" + esc(ago(radar.updatedAt)) + ")" : "") + '.</div></div></div>';
+      '<div class="rsub">NOAA MRMS radar, frames every ' + (radar.interp && radar.interp < 8 ? "2 minutes (every scan)" : "10 minutes") + '; snow or rain from radar plus model temperature, terrain and the HRRR model precip type (which supplies sleet and freezing rain; older data shows freezing rain as rain onto a surface at or below 32°F, with no sleet). Updated ' + (radar.updatedAt ? esc(clock(new Date(radar.updatedAt))) + " (" + esc(ago(radar.updatedAt)) + ")" : "") + '.</div></div></div>';
   }
   function showRadar(i) {
     const fr = radarFrames(); if (!fr) return;
@@ -3730,7 +3761,8 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     if (radarPlay && !reduced) {
       let hold = 0;
       radarTimer = setInterval(() => {
-        if (radarIdx === fr.length - 1 && hold < 14) { hold++; return; }  // linger on the latest frame
+        const n = (radarFrames() || fr).length;   // the list can grow under a running loop when the live radar refreshes
+        if (radarIdx === n - 1 && hold < 14) { hold++; return; }  // linger on the latest frame
         hold = 0; showRadar(radarIdx + 1);
       }, 95);
     }
@@ -4475,7 +4507,18 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       if (!best[0]) return false;
       const sig = fp(best[1]);
       if (sig === radarSig) return false;
-      radarSig = sig; radar = best[0]; radarIdx = -1;
+      const old = radar, cur = old && radarFrames() && radarFrames()[radarIdx];
+      radarSig = sig;
+      if (old && old._exp && best[0].flows && !reduced) {   // keep the current loop playing until the new one is ready
+        best[0]._resumeT = cur ? cur.t : null;
+        best[0]._expTried = true;
+        radar = best[0];
+        radar._exp = null;
+        radar._shadow = old._exp;
+        expandRadar(radar);
+        return false;
+      }
+      radar = best[0]; radarIdx = -1;
       return true;
     });
   }
