@@ -4447,7 +4447,25 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   // Each data file is fingerprinted when it loads, so the page can tell later whether anything changed (the update pop-up).
   const fp = (t) => { let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return t.length + ":" + h; };
   let shownSig = {};
-  const getJSON = (f) => fetch(DATA_BASE + f + "?t=" + Math.floor(Date.now() / 300000)).then((r) => r.ok ? r.text() : Promise.reject(r.status)).then((t) => { shownSig[f] = fp(t); return JSON.parse(t); });
+  // raw.githubusercontent.com resolves a branch name to its newest commit only every few minutes, so new data could take
+  // up to 5 minutes to show. GitHub's API names each branch's newest commit right away (one call covers every branch),
+  // and a file addressed by its commit is never stale. 60 calls an hour per network; unchanged answers (the browser
+  // revalidates them) do not count. If the API says no, the page uses the branch names for half an hour.
+  let refsAt = 0, refsP = null, refs = {}, apiPausedUntil = 0;
+  function getRefs() {
+    if (Date.now() < apiPausedUntil) return Promise.resolve({});
+    if (refsP && Date.now() - refsAt < 25000) return refsP;
+    refsAt = Date.now();
+    refsP = fetch("https://api.github.com/repos/CHA4S3E/SnowContest/git/matching-refs/heads/")
+      .then((r) => { if (!r.ok) { apiPausedUntil = Date.now() + 30 * 60000; return {}; } return r.json(); })
+      .then((j) => { const o = {}; (Array.isArray(j) ? j : []).forEach((x) => { o[x.ref.replace("refs/heads/", "")] = x.object && x.object.sha; }); if (o.data) refs = o; return o; })
+      .catch(() => ({}));
+    return refsP;
+  }
+  const rawAt = (branch, sha) => "https://raw.githubusercontent.com/CHA4S3E/SnowContest/" + (sha || branch) + "/";
+  const dataUrl = (f, sha, bust) => sha ? rawAt("data", sha) + f : DATA_BASE + f + "?t=" + Math.floor(Date.now() / bust);
+  let dataSha = null;
+  const getJSON = (f) => fetch(dataUrl(f, dataSha, 300000)).then((r) => r.ok ? r.text() : Promise.reject(r.status)).then((t) => { shownSig[f] = fp(t); return JSON.parse(t); });
   const WATCHED = ["updates.json", "watch.json", "config.json", "weather.json", "season.json", "snowmap.json"];
   let toastUp = false, checking = false;
   function showUpdateToast() {
@@ -4465,11 +4483,17 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   function checkForUpdate() {
     if (checking || toastUp || document.hidden || Date.now() - dismissedAt < 600000) return;
     checking = true;
-    Promise.all(WATCHED.map((f) => fetch(DATA_BASE + f + "?t=" + Math.floor(Date.now() / 60000)).then((r) => r.ok ? r.text() : null).then((t) => [f, t == null ? null : fp(t)]).catch(() => [f, null])))
-      .then((rows) => { if (rows.some(([f, h]) => h && shownSig[f] && h !== shownSig[f])) showUpdateToast(); })
-      .finally(() => { checking = false; });
+    getRefs().then((o) => {
+      if (o.data && o.data === dataSha) return null;   // nothing new on the data branch: no files to download
+      const sha = o.data || null;
+      return Promise.all(WATCHED.map((f) => fetch(dataUrl(f, sha, 60000)).then((r) => r.ok ? r.text() : null).then((t) => [f, t == null ? null : fp(t)]).catch(() => [f, null])))
+        .then((rows) => { if (rows.some(([f, h]) => h && shownSig[f] && h !== shownSig[f])) { pendingSha = sha; showUpdateToast(); } });
+    }).finally(() => { checking = false; });
   }
+  let pendingSha = null;
   function loadData() {
+    dataSha = pendingSha || dataSha || (refs && refs.data) || null;
+    pendingSha = null;
     const tasks = [
       getJSON("config.json").then((c) => {
         setBase(c);
@@ -4500,26 +4524,16 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   // The live radar (every scan, about every 2 minutes, while a watch is live) is published on its own "radar" branch;
   // the hourly copy on the data branch is the fallback. It refreshes quietly, without the update pop-up.
   const RADAR_LIVE = "https://raw.githubusercontent.com/CHA4S3E/SnowContest/radar/radar.json";
-  let radarSig = null, radarSha = null, apiPausedUntil = 0;
-  // raw.githubusercontent.com resolves a branch name to its newest commit only every few minutes, so the live radar
-  // (a new commit every ~2 minutes) can look frozen. GitHub's API names the newest commit right away; a file addressed
-  // by its commit never goes stale. The API allows 60 calls an hour per network, and unchanged answers (the browser
-  // revalidates them) do not count; if it says no, the page falls back to the branch name for half an hour.
+  let radarSig = null, radarSha = null;
   function liveRadarUrl() {
-    if (Date.now() < apiPausedUntil) return Promise.resolve(RADAR_LIVE + "?t=" + Math.floor(Date.now() / 60000));
-    return fetch("https://api.github.com/repos/CHA4S3E/SnowContest/commits/radar", { headers: { Accept: "application/vnd.github.sha" } })
-      .then((r) => {
-        if (!r.ok) { apiPausedUntil = Date.now() + 30 * 60000; return RADAR_LIVE + "?t=" + Math.floor(Date.now() / 60000); }
-        return r.text().then((sha) => /^[0-9a-f]{40}$/.test(sha.trim()) ? "https://raw.githubusercontent.com/CHA4S3E/SnowContest/" + sha.trim() + "/radar.json" : RADAR_LIVE);
-      })
-      .catch(() => RADAR_LIVE + "?t=" + Math.floor(Date.now() / 60000));
+    return getRefs().then((o) => o.radar ? rawAt("radar", o.radar) + "radar.json" : RADAR_LIVE + "?t=" + Math.floor(Date.now() / 60000));
   }
   function loadRadar() {
     const live = liveRadarUrl().then((u) => {
       if (u.indexOf("/radar/radar.json") < 0 && u === radarSha) return "same";   // same commit as last time: nothing to download
       return fetch(u).then((r) => r.ok ? r.text() : null).then((t) => { if (t && u.indexOf("/radar/radar.json") < 0) radarSha = u; return t; });
     }).catch(() => null);
-    const hourly = fetch(DATA_BASE + "radar.json?t=" + Math.floor(Date.now() / 300000)).then((r) => r.ok ? r.text() : null).catch(() => null);
+    const hourly = fetch(dataUrl("radar.json", dataSha, 300000)).then((r) => r.ok ? r.text() : null).catch(() => null);
     return Promise.all([live, hourly]).then(([a, b]) => {
       if (a === "same") return false;
       const pa = a ? JSON.parse(a) : null, pb = b ? JSON.parse(b) : null;
@@ -4546,8 +4560,8 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     if (document.hidden || !watch || !watch.active) return;
     loadRadar().then((changed) => { if (changed) renderWatch(); }).catch(() => {});
   }, 60000);
-  loadData();
-  setInterval(checkForUpdate, 120000);
+  getRefs().then(() => loadData(), () => loadData());   // load the newest commit of the data, not a cached branch
+  setInterval(checkForUpdate, 60000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) checkForUpdate(); });
 
   // Owner mode (GitHub Pages build): the password unlocks it. Edits are committed to the data branch.
