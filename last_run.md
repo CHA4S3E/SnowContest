@@ -1,8 +1,8 @@
-# 2026-11-12
+# 2026-11-12-pm
 
-First Flakes Nov 12: Braeden leads Meteo at 32.8%; Layla leads Ritner Floor 2 at 57.8%. Median Nov. 13.
+First Flakes Nov 12: Maddie leads Meteo at 30.5%; Layla leads Ritner Floor 2 at 56.1%. Median Nov. 13.
 
-Headline (new): Same day, same odds: tomorrow remains the best shot at first flakes, at 47%. The median doesn't budge from Nov. 13.
+Headline (new): The European backs off tomorrow, down to 63%, but tomorrow barely moves, still near 46%. The median holds at Nov. 13.
 
 ## Input health
 

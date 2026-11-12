@@ -2,19 +2,15 @@
  "maps": {
   "t610": [
    "A",
-   "50-60"
+   "70-80"
   ],
   "p610": [
    "B",
-   "40-50"
+   "33-40"
   ],
   "t814": [
    "A",
    "60-70"
-  ],
-  "p814": [
-   "A",
-   "33-40"
   ],
   "t34": [
    "A",
@@ -28,14 +24,20 @@
  "changes": [
   {
    "what": "hazard dropped",
+   "kind": "cold",
+   "start": "2026-11-23",
+   "miles": 909
+  },
+  {
+   "what": "hazard dropped",
    "kind": "snow",
-   "start": "2026-11-19",
+   "start": "2026-11-20",
    "miles": 1345
   },
   {
    "what": "hazard dropped",
    "kind": "snow",
-   "start": "2026-11-19",
+   "start": "2026-11-22",
    "miles": 2140
   }
  ]

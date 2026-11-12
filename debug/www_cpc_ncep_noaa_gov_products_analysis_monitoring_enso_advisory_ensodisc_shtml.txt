@@ -13,28 +13,30 @@
 
 	<body leftmargin="0" background="/nwscwi/background-white.gif" topmargin="0" marginheight="0" marginwidth="0">
 
-		<table cellspacing="0" cellpadding="0" width="100%" border="0" background="/nwscwi/topbanner.jpg" >
+		
+<table cellspacing="0" cellpadding="0" width="100%" border="0" background="/nwscwi/topbanner.jpg" >
 	<tbody>
 		<tr>
 			<td align="right" height="19">
 				<a href="#contents"><img height="1" alt="skip navigation links" src="/nwscwi/skipgraphic.gif" width="1" border="0"></a>
-				<a href="http://www.nws.noaa.gov/" class="homepagelinks"><span class="nwslink">www.nws.noaa.gov</span></a>&nbsp;
+				<a href="https://www.weather.gov/" class="homepagelinks"><span class="nwslink">www.weather.gov</span></a>&nbsp;
 			</td>
 		</tr>
 	</tbody>
-</table><table cellspacing="0" cellpadding="0" width="100%" border="0">
+</table>
+<table cellspacing="0" cellpadding="0" width="100%" border="0">
 	<tbody>
 		<tr>
 			<td rowspan="2">
-				<a href="http://www.noaa.gov/">
-				<img height="77" alt="NOAA logo - Click to go to the NOAA home page" src="/nwscwi/noaaleft.jpg" width="85" border="0"></a>
+				<a href="https://www.noaa.gov/">
+				<img height="78" alt="NOAA logo - Click to go to the NOAA home page" src="/nwscwi/noaaleft.jpg" width="85" border="0"></a>
 			</td>
 			<td align="left">
 				<img height="20" alt="National Weather Service" src="/nwscwi/nws_title.jpg" width="500" border="0">
 			</td>
-			<td rowspan="2" width="100%" height="77" background="/nwscwi/ncep_bkgrnd2.jpg">&nbsp;</td>
+			<td rowspan="2" width="100%" background="/nwscwi/ncep_bkgrnd.jpg">&nbsp;</td>
 			<td rowspan="2" align="right">
-				<a href="http://www.nws.noaa.gov/"><img height="77" alt="NWS logo - Click to go to the NWS home page" src="/nwscwi/nwsright.jpg" width="85" border="0"></a>
+				<a href="https://www.weather.gov/"><img height="78" alt="NWS logo - Click to go to the NWS home page" src="/nwscwi/nwsright.jpg" width="85" border="0"></a>
 			</td>
 		</tr>
 		<tr>
@@ -43,7 +45,8 @@
 			</td>
 		</tr>
 	</tbody>
-</table><table cellspacing="0" cellpadding="0" width="100%" background="/nwscwi/navbkgrnd.gif" border="0">
+</table>
+<table cellspacing="0" cellpadding="0" width="100%" background="/nwscwi/navbkgrnd.gif" border="0">
 	<tbody>
 		<tr>
 			<td align="left" width="135">
@@ -53,16 +56,16 @@
 				<a href="/" class="menu" title="to the Climate Prediction Center home page">Home</a>
 			</td>
 			<td class="nav" align="center" width="10%">
-				<a href="/products/site_index.shtml" class="menu" title="to Climate Prediction Center site map">Site Map</a>
+				<a href="/products/site_index.shtml" class="menu" title="to site map">Site Map</a>
 			</td> 
 			<td class="nav" align="right" width="10%">
-				<a href="http://www.nws.noaa.gov/pa/" class="menu" title="to National Weather Service news page">News</a>
+				<a href="https://www.nws.noaa.gov/pa/" class="menu" title="to National Weather Service news page">News</a>
 			</td>
 			<td class="nav" align="right" width="19%">
-				<a href="http://www.weather.gov/organization.php" class="menu">Organization</a>
+				<a href="https://www.weather.gov/organization.php" class="menu">Organization</a>
 			</td>
 			<td class="searchinput" align="right" width="30%">
-				<form method="get" action="http://search.usa.gov/search" style="margin-bottom:0; margin-top:0;">
+				<form method="get" action="https://search.usa.gov/search" style="margin-bottom:0; margin-top:0;">
 					<label for="search"><span class="yellow">Search</span>&nbsp;&nbsp;</label>
 					<input type="hidden" name="affiliate" value="nws.noaa.gov" />
 					<input type="hidden" name="v:project" value="firstgov" />
@@ -90,48 +93,37 @@
 
 <tr>
 	<td class="searchinput" align="left">
-		<form action="http://www.firstgov.gov/fgsearch/index.jsp" name="query">
-			<label for="search"><span class="yellow">Search the CPC</span></label>
+		<form action="https://www.firstgov.gov/fgsearch/index.jsp" name="query">
+			<label for="search"><span class="yellow">Search the EPD</span></label>
 			<input type="hidden" name="parsed" value="true">
 			<input type="hidden" name="rn" value="3">
 			<input type="hidden" name="in0" value="domain">
 			<input type="hidden" name="dom0" value="www.cpc.ncep.noaa.gov">
-			<input type="text" name="mw0" id="search"  size="10" maxLength="256" value="CPC search">&nbsp;
+			<input type="text" name="mw0" id="search"  size="10" maxLength="256" value="Search">&nbsp;
 			<input type="submit" name="Go2" value="Go">
 		</form>
 	</td>
-</tr><!-- 	Climate Prediction About Us Menu
-	Programmer: Jonathan Hoopingarner
-	
-	RZDM:
--->
-<tr>
+</tr><tr>
 	<td class="white" colSpan="2">
-		<span class="yellow"><br>About Us</span><br>
-		&nbsp;&nbsp;&nbsp;<a href="/information/who_we_are/mission.shtml" class="menu">Our Mission</a><br>
-		&nbsp;&nbsp;&nbsp;<a href="/information/who_we_are/index.shtml" class="menu">Who We Are</a><br>
+		<font color="#F0E68C">About Us</font>
+		<ul style="list-style-type: none; margin: 0;">
+			<li style="margin-left: -25px;"><a href="/information/who_we_are/mission.shtml" class="menu">Vision &amp; Mission</a></li>
+			<li style="margin-left: -25px;"><a href="/information/who_we_are/" class="menu">Who We Are</a></li>
+		</ul>
+		<br>
 	</td>
-</tr><!-- 	Climate Prediction Contact Us Menu
-	Programmer: Jonathan Hoopingarner
-	
-	RZDM:
--->
-
-<tr>
+</tr><tr>
 	<td class="white" colSpan="2">
-		<span class="yellow"><br>Contact Us</span><br>
-		&nbsp;&nbsp;&nbsp;<a href="/information/personnel/contacts.shtml" class="menu">CPC Information</a><br>
-		&nbsp;&nbsp;&nbsp;<a href="/comment-form.html" class="menu">CPC Web Team</a><br>
+		<font color="#F0E68C">Contact Us</font>
+		<ul style="list-style-type: none; margin: 0;">
+			<!--<li style="margin-left: -25px;"><a href="/information/personnel/contacts.shtml" class="menu">CPC Information</a></li>-->
+			<li style="margin-left: -25px;"><a href="/comment-form.php" class="menu">Contact Us</a></li>
+		</ul>
+		<br>
 	</td>
-</tr><!-- 	Climate Prediction First Gov Menu
-	Programmer: Jonathan Hoopingarner
-	
-	RZDM:
--->
-
-<tr>
-	<td align="center" class="white" id="menuitem">
-		<br><a href="http://www.firstgov.gov/"><img src="http://www.cpc.ncep.noaa.gov/nwscwi/usagov_logo_color_110wb.gif" alt="FirstGov.gov is the U.S. Government's official Web portal to all Federal, state and local government Web resources and services." width="110" height="30" border="0"></a>
+</tr><tr>
+	<td align='center' class='white' id='menuitem'><br>
+		<a href='https://www.firstgov.gov/'><img src='https://www.cpc.ncep.noaa.gov/nwscwi/firstgov_logo_color_110w.gif' alt="FirstGov.gov is the U.S. Government's official Web portal to all Federal, state, and local government Web resources and services" width='110' height='30' border='0'></a><br>
 	</td>
 </tr>							</tbody>
 						</table>
@@ -178,7 +170,7 @@
 							<tr>
 								<td align="center">
 									<font face="verdana,arial,serif" size="4">
-									8 October 2026									</font>
+									12 November 2026									</font>
 								</td>
 							</tr>
 							<tr>								
@@ -200,14 +192,15 @@
 								<td align="justify">
 									<p align="justify"><font face="verdana,arial" size="2">
 <u>Synopsis:</u>&nbsp;<strong>
-El Ni&ntilde;o continues to strengthen, with a strong-to-very strong El Ni&ntilde;o likely through January-March 2027 (remaining greater than an 83&#37; chance).
+El Ni&ntilde;o continues to strengthen, with a strong-to-very strong El Ni&ntilde;o likely through January-March 2027 (remaining greater than a 79&#37; chance).
 </strong></font></p>
 									<font face="verdana,arial" size="2">
-									<p>El Ni&ntilde;o strengthened further last month, with sea surface temperature anomalies exceeding +4.0&deg;C in portions of the eastern equatorial Pacific <a href="./figure01.gif">[Fig. 1]</a>. Most Ni&ntilde;o indices increased in the past month, reaching +2.1&deg;C in Ni&ntilde;o-3.4, +3.0&deg;C in Ni&ntilde;o-3, and +3.9&deg;C in Ni&ntilde;o-1+2 <a href="./figure02.gif">[Fig. 2]</a>. The equatorial subsurface temperature index (average from 180&deg;-100&deg;W) was well above average <a href="./figure03.gif">[Fig. 3]</a>, reflecting a deeper-than-average thermocline. Subsurface temperatures remained in excess of +10.0&deg;C at depth in the eastern Pacific Ocean <a href="./figure04.gif">[Fig. 4]</a>. Low-level westerly wind anomalies and upper-level easterly wind anomalies stretched from the western to the east-central equatorial Pacific. Enhanced convection and rainfall persisted from the central to the eastern Pacific, while anomalies remained suppressed over Indonesia <a href="./figure05.gif">[Fig. 5]</a>. The traditional and equatorial Southern Oscillation indices were significantly negative. Collectively, the coupled ocean-atmosphere system reflected a strengthening El Ni&ntilde;o.</p>
-<p>The <a href="https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso/roni/outlook/">CPC Official ENSO outlook</a>, which synthesizes multiple models from North America and abroad, indicates El Ni&ntilde;o will continue to strengthen through the end of the year <a href="./figure06.gif">[Figs. 6</a><a href="./figure07.gif">-7</a><a href="./figure08.gif">-8]</a>. Chances remain high for a historic event that would exceed the strength of previous El Ni&ntilde;o events dating back to 1950 (+2.5&deg;C or more for a <a href="https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso/roni/">3-month RONI value</a>): the chance is 54&#37; for September-November, 83&#37; for October-December, and 70&#37; for November-January. With an event of this magnitude, the chances of experiencing impacts consistent with El Ni&ntilde;o are larger, though not guaranteed (see <a href="https://www.cpc.ncep.noaa.gov/products/predictions/long_range/">CPC outlooks</a> for probabilities of seasonal anomalies). In summary, El Ni&ntilde;o continues to strengthen, with a strong-to-very strong El Ni&ntilde;o likely through January-March 2027 (remaining greater than an 83&#37; chance).</p>
+									<p>Compared to last month, El Ni&ntilde;o strengthened as sea surface temperature anomalies exceeded 4.0&deg;C, extending farther westward across the eastern equatorial Pacific Ocean <a href="./figure01.gif">[Fig. 1]</a>. The Ni&ntilde;o indices increased, reaching +2.5&deg;C in Ni&ntilde;o-3.4, +3.6&deg;C in Ni&ntilde;o-3, and +4.4&deg;C in Ni&ntilde;o-1+2 <a href="./figure02.gif">[Fig. 2]</a>. The equatorial subsurface temperature index (average from 180&deg;-100&deg;W) remained significantly above average <a href="./figure03.gif">[Fig. 3]</a>, associated with a deeper-than-average thermocline and anomalies exceeding +10.0&deg;C at depth in the eastern Pacific Ocean <a href="./figure04.gif">[Fig. 4]</a>. Low-level westerly and upper-level easterly wind anomalies extended from the western to the east-central equatorial Pacific. Convection and rainfall remained enhanced from the central to the eastern Pacific, while suppressed conditions persisted over Indonesia <a href="./figure05.gif">[Fig. 5]</a>. The traditional and equatorial Southern Oscillation indices were consistently negative. Collectively, the coupled ocean-atmosphere system reflected the ongoing evolution of El Ni&ntilde;o.</p>
+<p>The <a href="https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso/roni/outlook/">CPC Official ENSO outlook</a>, which synthesizes multiple models from North America and abroad, indicates El Ni&ntilde;o will continue to strengthen before beginning to weaken in early 2027 <a href="./figure06.gif">[Figs. 6</a><a href="./figure07.gif">-7</a><a href="./figure08.gif">-8]</a>. Chances for a historic event exceeding previous El Ni&ntilde;os dating back to 1950 (+2.5&deg;C or more for a <a href="https://www.cpc.ncep.noaa.gov/products/analysis_m
+onitoring/enso/roni/">3-month RONI value</a>) are now ~60&#37; for the October-December and November-January periods, remaining at better than even odds. Even with a very strong El Ni&ntilde;o, the chances of experiencing impacts consistent with El Ni&ntilde;o are higher, though not guaranteed (see <a href="https://www.cpc.ncep.noaa.gov/products/predictions/long_range/">CPC outlooks</a> for probabilities of seasonal anomalies). In summary, El Ni&ntilde;o continues to strengthen, with a strong-to-very strong El Ni&ntilde;o likely through January-March 2027 (remaining greater than a 79&#37; chance).</p>
 										
 									<p align="justify">
-									This discussion is a consolidated effort of the National Oceanic and Atmospheric Administration (NOAA), NOAA's National Weather Service, and their funded institutions. Oceanic and atmospheric conditions are updated weekly on the Climate Prediction Center web site (<a href="http://www.cpc.ncep.noaa.gov/products/precip/CWlink/MJO/enso.shtml" title="Weekly ENSO Update page">El Ni&ntilde;o/La Ni&ntilde;a Current Conditions and Expert Discussions</a>). A probabilistic strength forecast is <a href="https://cpc.ncep.noaa.gov/products/analysis_monitoring/enso/roni/strengths/">available here</a>. The next ENSO Diagnostics Discussion is scheduled for 12 November 2026.  <br><br>To receive an e-mail notification when the monthly ENSO Diagnostic Discussions are released, please send an e-mail message to: <a href="mailto:ncep.list.enso-update@noaa.gov">ncep.list.enso-update@noaa.gov</a>.									 
+									This discussion is a consolidated effort of the National Oceanic and Atmospheric Administration (NOAA), NOAA's National Weather Service, and their funded institutions. Oceanic and atmospheric conditions are updated weekly on the Climate Prediction Center web site (<a href="http://www.cpc.ncep.noaa.gov/products/precip/CWlink/MJO/enso.shtml" title="Weekly ENSO Update page">El Ni&ntilde;o/La Ni&ntilde;a Current Conditions and Expert Discussions</a>). A probabilistic strength forecast is <a href="https://cpc.ncep.noaa.gov/products/analysis_monitoring/enso/roni/strengths/">available here</a>. The next ENSO Diagnostics Discussion is scheduled for 10 December 2026.  <br><br>To receive an e-mail notification when the monthly ENSO Diagnostic Discussions are released, please send an e-mail message to: <a href="mailto:ncep.list.enso-update@noaa.gov">ncep.list.enso-update@noaa.gov</a>.									 
 									</p>
 									</font>
 								</td>
@@ -218,7 +211,7 @@ El Ni&ntilde;o continues to strengthen, with a strong-to-very strong El Ni&ntild
 									<font face="verdana,arial,serif" size="2">
 									Climate Prediction Center<br>
 5830 University Research Court<br>
-College Park, Maryland  20740<br>									</font> 
+Riverdale Park, MD 20737<br>									</font> 
 								</td>
 							</tr>
 							
@@ -252,34 +245,34 @@ College Park, Maryland  20740<br>									</font>
 		</tr>
 		<tr vAlign="top">
 			<td class="gray">
-				<a href="http://www.noaa.gov/" class="homepagelinks">
+				<a href="https://www.noaa.gov/" class="homepagelinks">
 				<span class="gray">NOAA/</span></a>
-				<a href="http://www.nws.noaa.gov/" class="homepagelinks">
+				<a href="https://www.weather.gov/" class="homepagelinks">
 				<span class="gray">National Weather Service</span></a><br>
-				<a href="http://www.ncep.noaa.gov/" class="homepagelinks">
+				<a href="https://www.weather.gov/ncep/" class="homepagelinks">
 				<span class="gray">National Centers for Environmental Prediction</span></a><br>
 				Climate Prediction Center<br>
 5830 University Research Court<br>
-College Park, Maryland  20740<br>				Page Author:<a href="http://www.cpc.ncep.noaa.gov/comment-form.html" class="homepagelinks">
+Riverdale Park, MD 20737<br>				Page Author:<a href="https://www.cpc.ncep.noaa.gov/comment-form.html" class="homepagelinks">
 				<span class="gray"> Climate Prediction Center Internet Team</span></a><br>
-				Page last modified:			</td>
+				Page last modified: 			</td>
 			<td>
-				<a href="http://weather.gov/disclaimer.php" class="homepagelinks">
+				<a href="https://weather.gov/disclaimer.php" class="homepagelinks">
 				<span class="gray">Disclaimer</span></a><br>
-				<a href="http://www.noaanews.noaa.gov/stories/iq.htm" class="homepagelinks">
+				<a href="https://www.noaa.gov/information-technology" class="homepagelinks">
 				<span class="gray">Information Quality</span></a><br>
-				<a href="http://www.nws.noaa.gov/credits.php" class="homepagelinks">
+				<a href="https://www.weather.gov/credits.php" class="homepagelinks">
 				<span class="gray">Credits</span></a><br>
-				<a href="http://www.nws.noaa.gov/glossary/" class="homepagelinks">
+				<a href="https://www.weather.gov/glossary/" class="homepagelinks">
 				<span class="gray">Glossary</span></a><br>
 			</td>
-			<td align="right"><a href="http://weather.gov/privacy.php" class="homepagelinks">
+			<td align="right"><a href="https://weather.gov/privacy.php" class="homepagelinks">
 				<span class="gray">Privacy Policy</span></a><br>
-				<a href="http://www.rdc.noaa.gov/%7Efoia/" class="homepagelinks">
+				<a href="https://www.foia.gov/" class="homepagelinks">
 				<span class="gray">Freedom of Information Act (FOIA)</span></a><br>
-				<a href="http://www.nws.noaa.gov/admin.php" class="homepagelinks">
+				<a href="https://www.weather.gov/admin.php" class="homepagelinks">
 				<span class="gray">About Us</span></a><br>
-				<a href="http://www.nws.noaa.gov/careers.php" class="homepagelinks">
+				<a href="https://www.weather.gov/careers.php" class="homepagelinks">
 				<span class="gray">Career Opportunities</span></a><br>
 			</td>
 		</tr>

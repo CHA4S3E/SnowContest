@@ -13,7 +13,79 @@
     <name>Temperature</name>
     <snippet></snippet>
     <description><![CDATA[Temp_KMZ_Generation]]></description>
+    <Placemark id="ID_10000">
+      <name>Slight Risk of Much Below Normal Temperatures</name>
+      <snippet></snippet>
+      <description><![CDATA[<html xmlns:fo="http://www.w3.org/1999/XSL/Format" xmlns:msxsl="urn:schemas-microsoft-com:xslt">
+<head>
+<META http-equiv="Content-Type" content="text/html">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+</head>
+<body style="margin:0px 0px 0px 0px;overflow:auto;background:#FFFFFF;">
+<table style="font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-collapse:collapse;padding:3px 3px 3px 3px">
+<tr style="text-align:center;font-weight:bold;background:#9CBCE2">
+<td>Slight Risk of Much Below Normal Temperatures</td>
+</tr>
+<tr>
+<td>
+<table style="font-family:Arial,Verdana,Times;font-size:12px;text-align:left;width:100%;border-spacing:0px; padding:3px 3px 3px 3px">
+<tr>
+<td>FID</td>
+<td>0</td>
+</tr>
+<tr bgcolor="#D4E4F3">
+<td>Label</td>
+<td>Slight Risk of Much Below Normal Temperatures</td>
+</tr>
+<tr>
+<td>Start_Date</td>
+<td>11/23/2026</td>
+</tr>
+<tr bgcolor="#D4E4F3">
+<td>End_Date</td>
+<td>11/24/2026</td>
+</tr>
+<tr>
+<td>Start_Dt2</td>
+<td>&lt;Null&gt;</td>
+</tr>
+<tr bgcolor="#D4E4F3">
+<td>End_Dt2</td>
+<td>&lt;Null&gt;</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body><script type="text/javascript">
+				function changeImage(attElement, nameElement) {
+				document.getElementById('imageAttachment').src = attElement;
+				document.getElementById('imageName').innerHTML = nameElement;}
+			</script></html>
+]]></description>
+      <styleUrl>#PolyStyle10</styleUrl>
+      <MultiGeometry>
+        <Polygon>
+          <extrude>0</extrude><altitudeMode>clampToGround</altitudeMode>
+          <outerBoundaryIs><LinearRing><coordinates> -97.56943428815848,31.66582687879546,0 -97.0088542961023,32.07188121294714,0 -96.02362556254633,32.64267319408567,0 -95.03801960111662,33.03706892640118,0 -94.33436322940874,33.45559756753524,0 -93.64152493666165,33.92894627964327,0 -93.43511959135938,34.57554749185839,0 -93.65555644275815,35.3313302942864,0 -94.11495570968775,35.89360474657558,0 -94.70109389904111,36.2052137924224,0 -95.66084897083019,36.40971962059736,0 -96.84597076107228,36.38072214543293,0 -97.82217923023204,36.25493220995798,0 -99.17349829202806,36.09240365046535,0 -100.2256812292836,35.88989374627847,0 -101.4756819745734,35.55374967727066,0 -102.2764261214351,35.13064768878478,0 -102.9169823353912,34.51736580687783,0 -103.5032952268668,33.53156939865126,0 -104.3777301403501,32.7472676581499,0 -105.5967495366526,31.8089729128873,0 -105.9599016096235,31.35634320753978,0 -105.7695524587809,31.17053838472975,0 -105.603038561806,31.08618891843899,0 -105.554203686471,30.9980498467665,0 -105.4088843772212,30.90227760547518,0 -105.3901309247541,30.85285019287076,0 -105.3135992850746,30.81627741654853,0 -105.2874156604145,30.83171911693549,0 -105.2580032659791,30.79742449337957,0 -105.2141569044656,30.81185612855626,0 -105.060375917098,30.68764425926707,0 -104.9973559318904,30.68410812247556,0 -104.986742274413,30.64110161167863,0 -104.8904881470688,30.57033525995334,0 -104.8648873367967,30.44929443762337,0 -103.5361869089814,30.1593103073777,0 -102.1637569883923,30.19130844269901,0 -100.7837648263658,30.2868834498355,0 -99.50266534510112,30.53217099928913,0 -98.71931746888342,30.84176822360415,0 -98.16089482331731,31.22964428821015,0 -97.56943428815848,31.66582687879546,0</coordinates></LinearRing></outerBoundaryIs>
+        </Polygon>
+      </MultiGeometry>
+    </Placemark>
   </Folder>
   </Folder>
+  <Style id="PolyStyle10">
+    <LabelStyle>
+      <color>00000000</color>
+      <scale>0.000000</scale>
+    </LabelStyle>
+    <LineStyle>
+      <color>b2000000</color>
+      <width>1.000000</width>
+    </LineStyle>
+    <PolyStyle>
+      <color>b2ffb273</color>
+      <outline>1</outline>
+    </PolyStyle>
+  </Style>
 </Document>
 </kml>

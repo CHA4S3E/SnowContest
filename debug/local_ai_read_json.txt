@@ -1,8 +1,8 @@
 {
- "model": "gemini-3.5-flash",
+ "model": "gemini-3.5-flash-lite",
  "answer": {
   "afd_snow": "elevation_only",
-  "afd_quote": "The main game in town across central Pennsylvania over the next week will be the potential for the first accumulating snowfall mainly for the higher elevations of central Pennsylvania.",
+  "afd_quote": "The lake effect and upslope snow is expected to produce a coating to one inch of snow across the Laurels and the northwest mountains with localized amounts pushing closer to two inches in the favored snowbelts and summits.",
   "afd_snow_dates": [],
   "t610": {
    "cat": "A",
@@ -17,7 +17,7 @@
    "soft": false
   },
   "p814": {
-   "cat": "A",
+   "cat": "N",
    "soft": false
   },
   "t34": {
@@ -30,5 +30,18 @@
   },
   "hazards": []
  },
- "changes": []
+ "changes": [
+  {
+   "what": "hazards",
+   "parser": [
+    [
+     "cold",
+     "2026-11-23",
+     "2026-11-24",
+     false
+    ]
+   ],
+   "ai": []
+  }
+ ]
 }

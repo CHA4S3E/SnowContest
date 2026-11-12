@@ -532,7 +532,7 @@
 
       <h4>For 3-7 day hazards see Weather Prediction Center's: <a href="https://www.wpc.ncep.noaa.gov/threats/threats.php" target="_blank" rel="noopener">WPC 3-7 Day Hazards</a></h4>
 
-      <center><h3>  U.S. Week-2 Hazards Outlook - Made November 11, 2026 | <a href="./week2_us_hazards_info.pdf" target="_blank">About the Hazards Outlook</a></h3></center>
+      <center><h3>  U.S. Week-2 Hazards Outlook - Made November 12, 2026 | <a href="./week2_us_hazards_info.pdf" target="_blank">About the Hazards Outlook</a></h3></center>
       <form name="hazards">
         <table border='1' width="805">
           <tr>
@@ -550,7 +550,7 @@
 
           <tr>
             <td>Probabilistic Days 8-14 Map</td>
-              <td align='center'>No Hazards</td><td align='center'><input type='checkbox' name='haztype' id='prcp_prob' value='precipp' onclick='displaykmls(this.id)' checked></td><td align='center'><input type='checkbox' name='haztype' id='snow_prob' value='snowp' onclick='displaykmls(this.id)' checked></td><td align='center'><input type='checkbox' name='haztype' id='wind_prob' value='windp' onclick='displaykmls(this.id)' checked></td>          </tr>
+              <td align='center'><input type='checkbox' name='haztype' id='temp_prob' value='tempp' onclick='displaykmls(this.id)' checked></td><td align='center'><input type='checkbox' name='haztype' id='prcp_prob' value='precipp' onclick='displaykmls(this.id)' checked></td><td align='center'><input type='checkbox' name='haztype' id='snow_prob' value='snowp' onclick='displaykmls(this.id)' checked></td><td align='center'><input type='checkbox' name='haztype' id='wind_prob' value='windp' onclick='displaykmls(this.id)' checked></td>          </tr>
         </table>
       </form>
 
@@ -585,78 +585,90 @@
       </div><!-- end .tablesel -->
 
       <div id="discDiv">
-          <h2>Valid Thursday November 19, 2026 to Wednesday November 25, 2026</h2>US Hazards Outlook<br>NWS Climate Prediction Center College Park MD<br>300 PM 
-EST November 11 2026<br><br><u>Synopsis</u>: Mid-level low pressure is forecast 
+          <h2>Valid Friday November 20, 2026 to Thursday November 26, 2026</h2>US Hazards Outlook<br>NWS Climate Prediction Center College Park MD<br>300 PM 
+EST November 12 2026<br><br><u>Synopsis</u>: Mid-level low pressure is forecast 
 to extend from the Aleutians southeastward to the West Coast during mid to late 
-November. An active pattern is likely across the southern and central 
+November. An active pattern is likely across the southwestern and central 
 Contiguous U.S. (CONUS) as multiple low pressure systems track eastward from 
-Nov 19-25. The enhanced Pacific flow favors above-normal temperatures for a 
-majority of the CONUS with no sign of any early season outbreaks of anomalous 
-cold. <br><br><u>Hazards</u> <ul><li>Moderate risk of heavy precipitation for 
-eastern portions of the Southern Plains and the Lower Mississippi Valley, 
-Fri-Sat, Nov 20-21.<li>Slight risk of heavy precipitation for the Southern and Central Plains, 
-Lower and Middle Mississippi Valley, Lower Ohio Valley, western and central 
-Tennessee, Alabama, and western parts of the Florida Panhandle, Fri-Mon, Nov 
-20-23.<li>Slight risk of heavy precipitation for parts of California, and 
-southwestern Oregon, Thu, Nov 19, and Sun-Wed, Nov 22-25.<li>Slight risk of heavy precipitation for parts of Arizona, Thu-Sat, Nov 19-21.<li>Slight risk of heavy snow for higher elevations of the Klamath and Sierra 
-Nevada Mountains, Thu, Nov 19, and Sun-Wed, Nov 22-25.<li>Slight risk of heavy snow for the Wasatch Mountains in Utah, western and 
-central Colorado (including the Front Range area), and adjacent parts of 
-northern New Mexico and southeast Wyoming, Thu-Sat, Nov 19-21.<li>Slight risk of high winds for much of California and Nevada, the Four 
-Corners states, southern Wyoming, the Southern and Central Plains (including 
-southeastern South Dakota), much of the Mississippi Valley, Tennessee, and 
-parts of the Southeast, Thu-Wed, Nov 19-25. </li></ul><u>Detailed 
-Summary</u><br><br>For Saturday November 14 - Wednesday November 18: <a 
-name='3-7days' href=https://www.wpc.ncep.noaa.gov/threats/threats.php> WPC Days 
-3-7 U.S. Hazards</a> <br><br><a name='8-14days' 
-href='/products/predictions/814day/index.php'> For Thursday November 19 - 
-Wednesday November 25: </a> During the first half of the outlook period, the 
-GEFS and ECENS remain consistent with a shortwave trough moving across the 
-southwestern quadrant of the contiguous U.S. (CONUS). There is a slight (20 
-percent) chance of heavy precipitation over Arizona, Nov 19-21, as the trough 
-moves across the region. There is a 20 percent chance of 3-day totals above an 
-inch and the 85th historical percentile. The uncalibrated ECENS and GEFS 
-solutions predict at least a 20 percent chance of greater than 6 inches of snow 
-over the Wasatch Range in Utah and the mountains of western Colorado during Nov 
-19-21 due to the passage of the shortwave trough, which is also forecast to 
-initiate leeside surface cyclogenesis near/over southeast Colorado. These model 
-ensembles also predict at least a 20 percent chance of 6 inches of snow near 
-the Front Range of the Rockies, from the Sangre de Cristo mountains of far 
-northern New Mexico to the Laramie mountains of southeast Wyoming, Nov 19-21. 
-This could include more populated cities like Denver and Cheyenne. Localized 
-amounts of a foot of snow are possible. This is associated with the proximity 
-of the mid-level trough and the forecasted development of a leeside cyclone.<br><br>Return flow associated with surface high pressure over the Mid-Atlantic 
-region will steer significant Atlantic and Gulf moisture into the central 
-CONUS, where it will interact with the mid-level trough and surface cyclone. A 
-moderate risk of heavy precipitation is depicted for eastern portions of the 
-Southern Plains and the Lower Mississippi Valley, Nov 20-21. This is based on 
-the ECENS PET, and uncalibrated ECENS (with maximum 60-70 percent chances 
-indicated just west of the Ark-La-Tex. The ECENS PET predicts at least a 20 
-percent chance of 3-day precipitation totals exceeding 1.5 inches and the 85th 
-percentile. Instability should be sufficient to support thunderstorms. 
-According to the U.S. Drought Monitor valid on Nov 10, 82 percent of Arkansas 
-is designed with D3 to D4. This wet latter half of November will be largely 
-beneficial and bring much needed drought relief to the Ozarks, Middle to Lower 
-Mississippi Valley, and Southern Great Plains. A much larger slight risk of 
-heavy precipitation is depicted for portions of the Central and Southern 
-Plains, the Middle and Lower Mississippi Valley, Lower Ohio Valley, western and 
-central Tennessee, Alabama, and western portions of the Florida Panhandle, Nov 
-20-23. This is consistent with the PETs and uncalibrated precipitation guidance.<br><br>From southwestern Oregon southward through California, the shortwave trough 
-noted earlier and accompanying onshore flow are likely to bring periods of rain 
-and mountain snowfall through late November. A slight risk of heavy 
-precipitation is indicated for this region on Nov 19, and then again from Nov 
-22-25 as yet another mid-level trough approaches the region from the eastern 
-Pacific. For the higher elevations of the Klamath and Sierra Nevada Ranges, a 
-slight risk of heavy snow is indicated for the same time periods. According to 
-the GEFS and ECENS PETs, 3-day precipitation amounts are expected to exceed 
-1-inch for much of this area. The uncalibrated tools favor at least a 20 
-percent chance of precipitation probabilities exceeding an inch. The 
-uncalibrated tools also support a 20 percent chance of snowfall exceeding 6 
-inches in the higher elevations of the Klamath and Sierra Nevada Mountains.<br><br>The ECENS wind PET supports a widespread area of wind speeds exceeding the 
-85th climatological percentile during week-2. The 0z ECENS 10-meter wind gusts 
-were also viewed, and the overall evolution follows the eastward progression of 
-the storminess described earlier, from the West Coast and Great Basin into the 
-Central CONUS, with 20-25+ mph winds overspreading the Southeast later in 
-week-2.<br><br>Although the persistent longwave trough over the North Pacific is likely to 
+Nov 20-26. The enhanced Pacific flow favors above-normal temperatures for a 
+majority of the CONUS. During week-2, portions of the Southern Plains, however, 
+may receive their first freeze this season. <br><br><u>Hazards</u> 
+<ul><li>Moderate risk of heavy precipitation for eastern portions of the 
+Southern Plains and the Lower Mississippi Valley, Sat-Sun, Nov 21-22.<li>Slight risk of heavy precipitation for much of the eastern Plains and 
+Mississippi Valley, southwestern Great Lakes region, Lower Ohio Valley, 
+Tennessee Valley, Alabama, and western parts of the Southeastern CONUS, 
+Fri-Sun, Nov 20-22.<li>Slight risk of heavy precipitation for parts of California, southwestern 
+Oregon, and adjacent parts of western Nevada, Sun-Thu, Nov 22-26.<li>Slight risk of heavy snow for portions of the central and southern Rockies 
+and adjacent parts of the central High Plains (including the Front Range area), 
+Fri-Sun, Nov 20-22.<li>Slight risk of heavy snow for higher elevations of the Klamath and Sierra 
+Nevada Mountains, <li>Sun-Thu, Nov 22-26.<li>Slight risk of much below normal temperatures (and possible first freeze) 
+for much of the Southern Plains and parts of adjacent states, Mon-Tue, Nov 
+23-24.<li>Slight risk of high winds from the Four Corners region eastward across the 
+Central and Southern Rockies, most of the Plains and Mississippi Valley, 
+western Great Lakes region, western Tennessee Valley, and western parts of the 
+Southeastern CONUS, Fri-Mon, Nov 20-23.<li>Slight risk of high winds for California and southwestern Oregon, Mon-Thu, 
+Nov 23-26. </li></ul><u>Detailed Summary</u><br><br>For Sunday November 15 - 
+Thursday November 19: <a name='3-7days' 
+href=https://www.wpc.ncep.noaa.gov/threats/threats.php> WPC Days 3-7 U.S. 
+Hazards</a> <br><br><a name='8-14days' 
+href='/products/predictions/814day/index.php'> For Friday November 20 - 
+Thursday November 26: </a> Early in week-2, a mid-level trough is predicted to 
+move across the Four Corners states and into the Great Plains. During this 
+time, lee cyclogenesis is forecast in the general vicinity of southeast 
+Colorado, with the surface low expected to track northeastward towards the 
+western or central Great Lakes region. North of the surface low, easterly flow 
+is anticipated across the north-central Plains, becoming northeasterly over 
+eastern portions of Wyoming and Colorado. The uncalibrated ECENS depicts a 
+20-30 percent of 6 inches or more of upslope snow over portions of the Central 
+Rockies, including the more populated areas along the eastern foothills of the 
+Front Range such as Denver, Fort Collins, and Cheyenne. The uncalibrated GEFS 
+depicts only a 10-20 percent chance of exceeding the 6-inch threshold at this 
+time, which may be a bit underdone. A slight risk of heavy snow is posted for 
+western and central Colorado, extending northward into the Laramie Mountains of 
+southeast Wyoming and southward into the Sangre de Cristo Mountains of far 
+northern New Mexico, from Nov 20-22.<br><br>Surface high pressure moving across the northern Mid-Atlantic region will 
+steer significant Atlantic and Gulf return moisture into the Central CONUS, 
+where it will interact with the mid-level trough and surface cyclone. The 
+uncalibrated GEFS and ECENS tools, as well as their calibrated versions (the 
+Probabilistic Extremes Tools, or PETs) support a slight risk of heavy 
+precipitation that encompasses much of the eastern Plains, the Mississippi 
+Valley, and points eastward into the Lower Ohio Valley, and western parts of 
+the Southeastern CONUS, Nov 20-22. Embedded within this widespread area is a 
+moderate risk of heavy precipitation that includes the eastern Southern Plains 
+and adjacent Lower Mississippi Valley, Nov 21-22. This moderate risk is 
+supported by 50-60 percent chances of heavy precipitation predicted by the 
+uncalibrated ECENS, and at least a 20 percent chance of 3-day totals exceeding 
+1.5 inches and the 85th percentile (PET). The uncalibrated GEFS depicts a 30-40 
+percent chance of heavy precipitation within the designated moderate risk area, 
+while the PET only depicts a 20 percent chance of 3-day totals exceeding 1-inch 
+and the 85th percentile. Adequate Gulf moisture increases the chance for 
+thunderstorms in this general region. According to the U.S. Drought Monitor 
+valid on Nov 10, 85 percent of Arkansas is designed with D3 to D4. This wet 
+latter half of November will be largely beneficial and bring much needed 
+drought relief to the Ozarks, Middle to Lower Mississippi Valley, and Southern 
+Great Plains.<br><br>0z ECENS 10-meter wind gusts (and to a lesser extent, the PETs) favor wind 
+speeds of 20 knots or greater from the Four Corners region and southern Wyoming 
+eastward across most of the Plains and Mississippi Valley, the western Great 
+Lakes region and into parts of the Southeast, Nov 20-23. Though the designated 
+high wind area may be overdone in terms of spatial coverage, the broadbrushed 
+pattern aligns with the expected track of the mid-level trough, surface 
+cyclone, and the associated cold front.<br><br>On Nov 23-24, colder air drawn in behind the storm system moving across the 
+Central and Eastern CONUS may result in the first light freeze (32 deg F) of 
+the season for northern and central sections of the Southern Plains. This is 
+consistent with ECENS and GEFS temperature PET tools. According to the 
+Midwestern Regional Climate Center, areas north of here have already 
+experienced their first light freeze of the season. Therefore, a slight risk of 
+much below normal temperatures is designated for the area denoted above from 
+Nov 23-24.<br><br>California and southwestern Oregon may see a brief break in the active 
+weather pattern early in the week-2 outlook period. After this, there is 
+significant uncertainty as to how much Pacific moisture may reach this area. A 
+subjective consensus of calibrated and uncalibrated ECENS and GEFS guidance 
+warrants a slight risk of heavy precipitation for southwestern Oregon and much 
+of California, Nov 22-26. A slight risk of heavy snow (6 inches or more) is 
+also designated for the higher elevations of the Klamath and Sierra Nevada 
+Mountains for the same period. Finally, a slight risk of high winds is posted 
+for this same general area from Nov 23-26. Given the uncertainty involved, only 
+slight risks were posted today along the West Coast.<br><br>Although the persistent longwave trough over the North Pacific is likely to 
 result in periods of enhanced winds and precipitation to southwestern Alaska, 
 hazardous thresholds are not expected to be reached.<br><br>Forecaster: Anthony 
 Artusa<br><br>$$
