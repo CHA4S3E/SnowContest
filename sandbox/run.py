@@ -352,6 +352,26 @@ if _RD is not None:
     _pt2 = {"snow": _z, "rain": _o, "fzra": _o, "pellets": _z}
     check("radar: rain flag on a frozen surface with a model warm layer stays freezing rain",
           _RD.classify(_np.full((1, 1), 30.0), _np.full((1, 1), 10), _np.full((1, 1), 33.0), _np.full((1, 1), 31.0), _pt2)[0, 0] == 4)
+    import nowcast as _NC, nowcast_log as _NL
+    check("nowcast: wet-bulb grid matches the single-point formula", abs(float(_NC.wet_bulb_grid(_np.array([35.0]), _np.array([34.0]))[0]) - _RD.wet_bulb_f(35, 34)) < 0.05)
+    check("nowcast: 33 F wet-bulb with model rain is a mix", _NC.kind_at(33.0, snow=False, rain=True, pellets=False, fzra=False) == "mix")
+    check("nowcast: 31 F wet-bulb is snow", _NC.kind_at(31.0, snow=True, rain=False, pellets=False, fzra=False) == "snow")
+    check("nowcast: 40 F wet-bulb is rain even with a stray model snow flag", _NC.kind_at(40.0, snow=True, rain=True, pellets=False, fzra=False) == "rain")
+    check("nowcast: model freezing rain on a cold surface is freezing rain", _NC.kind_at(32.5, snow=False, rain=False, pellets=False, fzra=True) == "fzra")
+    _hrs = [{"t": "2026-11-12T%02d:00-05:00" % h, "wb": w, "kind": _NC.kind_at(w, False, True, False, False), "falling": True, "mmh": .3, "line": {"mi": 50.0, "dir": "N"}}
+            for h, w in ((18, 40.0), (19, 37.0), (20, 35.0), (21, 33.6), (22, 32.0))]
+    _n = {"line": {"mi": 60.0, "dir": "N"}, "outlook": {"hours": _hrs, "bias_f": -2.0}, "mix_at": _hrs[3]["t"], "mix_falling": True, "snow_at": _hrs[4]["t"]}
+    _s = _NC.sentence(_n)
+    check("nowcast: the note gives the changeover times and that it is still falling", "mix around 9 PM" in _s and "snow by 10 PM" in _s and "still falling" in _s, _s)
+    check("nowcast: the note says how the HRRR was adjusted", "2°F colder" in _s, _s)
+    _n2 = {"line": {"mi": 99.0, "dir": "N"}, "outlook": {"hours": [dict(h, wb=max(h["wb"], 34.4), kind="rain") for h in _hrs], "bias_f": 0.4}, "low_wb": 34.4, "low_at": _hrs[4]["t"]}
+    check("nowcast: a near miss reads as a close call, not as staying rain", "Close call" in _NC.sentence(_n2), _NC.sentence(_n2))
+    _gl = _np.linspace(42.5, 39.1, 120); _go = _np.linspace(-80.2, -75.5, 160)
+    _d, _b = _RD.dist_bearing(_gl, _go)
+    _wbg = _np.where(_np.meshgrid(_gl, _go, indexing="ij")[0] > 41.6, 31.0, 40.0)
+    _ln = _NC.line_from(_wbg, _d, _b)
+    check("nowcast: the line is found north of town from temperature alone", _ln and _ln.get("dir", "").startswith("N") and 50 < _ln["mi"] < 70, _ln)
+    check("nowcast log: airport weather codes map to kinds", (_NL.kind_of("-RA BR"), _NL.kind_of("-RASN"), _NL.kind_of("SN"), _NL.kind_of("FZRA"), _NL.kind_of("BR")) == ("rain", "mix", "snow", "fzra", None))
 
 print("\n%d failed" % len(FAILS) if FAILS else "\nALL PASSED")
 print("data dir:", D)

@@ -146,6 +146,11 @@ def main():
     if radar and not radar.get("error"):
         save(P("radar.json"), {"summary": radar.get("summary")})
         cmd += ["--radar", P("radar.json")]
+        try:   # keep score on the changeover nowcast against the State College airport
+            import nowcast_log
+            nowcast_log.record(D_, radar.get("nowcast"))
+        except Exception as e:
+            print("nowcast log failed:", e)
     if cams:
         cmd += ["--cam"] + cams
     r = subprocess.run(cmd, capture_output=True, text=True)

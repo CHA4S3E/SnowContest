@@ -638,6 +638,7 @@ def main(out_path=None, step=10, cache=None):
         if d is None:
             d, brg = dist_bearing(lats, lons)
             cache["geo"] = (d, brg)
+            cache["grid"] = (lats, lons)
             hr = latest.replace(minute=0, second=0, microsecond=0)
             if cache.get("mf_hr") == hr:
                 mf = cache.get("mf")
@@ -745,6 +746,7 @@ def main(out_path=None, step=10, cache=None):
     # Movement: every frame re-checked with the same (current) temperatures and model, so a fresher temperature
     # cannot pass for motion; the near edge of a real area, fitted across all frames rather than first vs last.
     trend = series
+    cls_last = None
     geo, raw = cache.get("geo"), cache.get("raw", {})
     if geo is not None and wb is not None and all(t in raw for t in frames_t):
         try:
@@ -752,7 +754,8 @@ def main(out_path=None, step=10, cache=None):
             for t in frames_t:
                 rf, fg = raw[t]
                 wbt = sfc_at(wb, wb_prev if (wb_prev is not None and wb_prev.shape == wb.shape) else None, wb_t, wb_pt, t)
-                trend.append(stats(classify(rf, fg.astype(int), wbt, sfc_at(sfc, sfc_prev, sfc_t, sfc_pt, t), pt), rf, geo[0], geo[1]))
+                cls_last = classify(rf, fg.astype(int), wbt, sfc_at(sfc, sfc_prev, sfc_t, sfc_pt, t), pt)
+                trend.append(stats(cls_last, rf, geo[0], geo[1]))
         except Exception as e:
             trend = series
             out["trend_error"] = str(e)[:200]
@@ -773,10 +776,29 @@ def main(out_path=None, step=10, cache=None):
         if mph >= 5 and b > 2 and b / mph <= 8:
             summ[k + "_eta"] = (frames_t[-1] + dt.timedelta(hours=b / mph)).astimezone(ET).isoformat(timespec="minutes")
     out["summary"] = summ
+    nc = None
+    if geo is not None and cache.get("grid") is not None:
+        try:   # the changeover outlook for town: temperature line, HRRR forecast, echo motion (see nowcast.py)
+            import nowcast
+            glats, glons = cache["grid"]
+            tk = None
+            if cls_last is not None:
+                ti, tj = nowcast.town_index(glats, glons)
+                c = cls_last[max(0, ti - 2):ti + 3, max(0, tj - 2):tj + 3].ravel()
+                c = c[c > 0]
+                tk = {1: "snow", 2: "mix", 3: "rain", 4: "fzra", 5: "sleet"}.get(int(np.bincount(c).argmax())) if c.size else None
+            t0 = time.time()
+            nc = nowcast.build(now, glats, glons, geo[0], geo[1], wb, cache.get("obs") or [], cache.get("mf"), raw, frames_t, tk, cache)
+            TIMING["nowcast_s"] = round(time.time() - t0, 1)
+            out["nowcast"] = nc
+        except Exception as e:
+            out["nowcast_error"] = str(e)[:200]
     # plain-language note
     parts = []
     for k, label in (("snow", "Snow"), ("sleet", "Sleet"), ("fzra", "Freezing rain"), ("borderline", "Borderline snow/rain"), ("rain", "Rain")):
         s = last[k]
+        if k == "borderline" and nc and nc.get("note"):
+            continue   # the rain/snow line is tracked from temperature (the nowcast sentence), not from where the purple echoes are
         if "nearest_mi" in s and s["nearest_mi"] <= 120:
             txt = "%s %s" % (label, "over town" if s["nearest_mi"] <= 3 else "%d miles %s" % (round(s["nearest_mi"]), s["nearest_dir"]))
             ck = {"snow": "snow", "sleet": "sleet", "fzra": "fzra", "borderline": "snowish", "rain": "rain"}[k]
@@ -791,6 +813,8 @@ def main(out_path=None, step=10, cache=None):
     if snowline is not None and 300 <= snowline <= 4500 and parts:
         out["snowline_ft"] = snowline
         parts.append("Model snow line near %s ft: higher ground is colder than the valleys." % format(snowline, ","))
+    if nc and nc.get("note"):
+        parts.append(nc["note"])
     out["note"] = " ".join(parts) or "Nothing on radar within about 120 miles."
     out["frames"] = frames
     out["bare"] = True  # frames carry echoes only (no rings, towns or time stamp)
