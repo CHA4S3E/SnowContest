@@ -13,11 +13,12 @@ so the rain/snow/ice line follows what the ground is actually reporting.
 Each file is the whole country (a few MB, gzipped); it is cut to ~120 miles around State College right away.
 
 Echo classes (reflectivity >= 5 dBZ with precipitation flagged):
-  snow          flag = snow and wet-bulb <= 32 F
+  snow          flag = snow and wet-bulb <= 33.5 F (35 F when the model also says snow)
   freezing rain flag = rain and surface temperature <= 32 F (an estimate: rain falling onto a subfreezing surface; shown pink)
-  rain          flag = rain and wet-bulb >= 36 F
+  rain          flag = rain and wet-bulb >= 35 F (34 F when the model says rain only)
   sleet         the HRRR model says ice pellets (shown orange)
-  borderline    wet-bulb 33-35 F, or flag and temperature disagree (shown purple)
+  borderline    the radar flag, the temperature and the model disagree (shown purple); the wet-bulb is blended between
+                the last two model hours by each frame's time, so the band can shift across the loop
 Two upgrades on top of the radar flag (both optional; without them the older rules above still run):
   HRRR precip type   the model's own rain / snow / ice pellets / freezing rain fields (CRAIN, CSNOW, CICEP, CFRZR) from the newest
                      hourly run, which add sleet and sharpen snow vs rain where the radar flag and temperature disagree
@@ -134,13 +135,16 @@ def classify(refl, flag, wb_f, sfc_f=None, pt=None):
         cls[echo & is_rain] = 3
         cls[echo & ~is_snow & ~is_rain] = 2
     else:
-        snow = echo & is_snow & (wb_f <= 32)
-        rain = echo & is_rain & (wb_f >= 36)
+        # The radar's own call (it changes scan by scan) decides inside the 32-36 F band; purple is kept for where the
+        # radar, the temperature and the model really disagree. Wet-bulb here is already corrected to airport readings.
+        snow = echo & is_snow & (wb_f <= 33.5)
+        rain = echo & is_rain & (wb_f >= 35)
         if pt is not None:  # radar flag and model agree: trust them a degree further; the model alone can tip a disagreeing flag
-            snow |= echo & is_snow & pt["snow"] & (wb_f <= 34)
-            rain |= echo & is_rain & pt["rain"] & (wb_f >= 35)
+            snow |= echo & is_snow & pt["snow"] & (wb_f <= 35)
+            rain |= echo & is_rain & pt["rain"] & ~pt["snow"] & (wb_f >= 34)
             snow |= echo & ~is_rain & pt["snow"] & (wb_f <= 32)
             rain |= echo & ~is_snow & pt["rain"] & (wb_f >= 36)
+            snow |= echo & is_rain & pt["snow"] & ~pt["rain"] & (wb_f <= 31.5)   # cold air and model snow: the radar flag lagged
         cls[echo] = 2
         cls[snow] = 1
         cls[rain] = 3
@@ -566,16 +570,27 @@ def main(out_path=None, step=10, cache=None):
             frames_t.append(latest)
     TIMING["list_s"] = round(time.time() - T0, 1)
     wb = sfc = sfc_prev = sfc_t = sfc_pt = None
+    wb_prev = wb_pt = wb_t = None
     if p_temp:
         Tm = collect(p_temp)
         if Tm:
             tt = max(t for t in Tm if t <= latest) if any(t <= latest for t in Tm) else min(Tm)
             if cache.get("wb_t") == tt:
-                wb = cache["wb"]
+                wb, wb_prev, wb_pt = cache["wb"], cache.get("wb_prev"), cache.get("wb_pt")
             else:
                 tv, _, _ = grid(Tm[tt])
                 wb = to_f(tv)
-                cache["wb_t"], cache["wb"] = tt, wb
+                wb_prev = wb_pt = None
+                older = [t for t in Tm if t < tt and (tt - t).total_seconds() <= 3 * 3600]
+                if older:   # the model hour before, so the rain/snow band can shift across the loop
+                    try:
+                        wb_pt = max(older)
+                        pv, _, _ = grid(Tm[wb_pt])
+                        wb_prev = to_f(pv)
+                    except Exception:
+                        wb_prev = wb_pt = None
+                cache["wb_t"], cache["wb"], cache["wb_prev"], cache["wb_pt"] = tt, wb, wb_prev, wb_pt
+            wb_t = tt
             out["temp_time"] = tt.astimezone(ET).isoformat(timespec="minutes")
     if p_sfc and cache.get("sfc_key") and cache["sfc_key"][0] == latest.replace(minute=0, second=0, microsecond=0):
         _, sfc, sfc_prev, sfc_t, sfc_pt, out["surface_time"] = cache["sfc_key"]
@@ -631,6 +646,7 @@ def main(out_path=None, step=10, cache=None):
                 snowline = snow_line_ft(wb, mf["elev_model"], d)
                 wb_raw = wb
                 wb = terrain_adjust(wb, mf["elev"], mf["elev_model"], LAPSE_WB)
+                wb_prev = terrain_adjust(wb_prev, mf["elev"], mf["elev_model"], LAPSE_WB)
                 sfc = terrain_adjust(sfc, mf["elev"], mf["elev_model"], LAPSE_SFC)
                 sfc_prev = terrain_adjust(sfc_prev, mf["elev"], mf["elev_model"], LAPSE_SFC)
                 out["model"] = {"run": mf["run"], "terrain": True}
@@ -650,6 +666,8 @@ def main(out_path=None, step=10, cache=None):
                         if mf is not None:
                             snowline = snow_line_ft(wb_raw + cw, mf["elev_model"], d)
                         wb = wb + cw
+                        if wb_prev is not None and wb_prev.shape == cw.shape:
+                            wb_prev = wb_prev + cw
                         out["obs_wetbulb"] = sw
                     cs, ss = obs_correction(obs, lats, lons, sfc, 3)
                     if cs is not None:
@@ -659,7 +677,8 @@ def main(out_path=None, step=10, cache=None):
                         out["obs_surface"] = ss
                 except Exception as e:
                     out["obs_error"] = str(e)[:200]
-        cls = classify(refl, np.round(flag).astype(int), wb, sfc_at(sfc, sfc_prev, sfc_t, sfc_pt, t), pt)   # freezing rain follows the same blended surface as the 32 F line
+        wb_f = sfc_at(wb, wb_prev if (wb_prev is not None and wb is not None and wb_prev.shape == wb.shape) else None, wb_t, wb_pt, t)   # wet-bulb at this frame's time
+        cls = classify(refl, np.round(flag).astype(int), wb_f, sfc_at(sfc, sfc_prev, sfc_t, sfc_pt, t), pt)   # freezing rain follows the same blended surface as the 32 F line
         s = stats(cls, refl, d, brg)
         s["t"] = t.astimezone(ET).isoformat(timespec="minutes")
         series.append(s)
