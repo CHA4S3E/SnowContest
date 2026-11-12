@@ -426,6 +426,8 @@ def main(out_path=None, step=10, cache=None):
     out_path = out_path or sys.argv[1]
     cache = {} if cache is None else cache
     TIMING.clear()
+    global T0
+    T0 = time.time()
     now = dt.datetime.now(dt.timezone.utc)
     dirs = product_dirs()
     p_refl = pick(dirs, "MergedReflectivityQCComposite")

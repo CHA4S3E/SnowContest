@@ -20,11 +20,15 @@ def part_of_day(iso, now):
     n = dt.datetime.fromisoformat(now)
     h = t.hour
     day = ("tonight" if h >= 18 or h < 5 else "this morning" if h < 12 else "this afternoon")
-    if t.date() != n.date():
-        if h >= 18 or h < 5:
-            day = "tomorrow night" if t.date() > n.date() and h >= 18 else "after midnight" if h < 5 and (t.date() - n.date()).days == 1 and n.hour >= 12 else "late tomorrow night"
-        else:
-            day = "tomorrow morning" if h < 12 else "tomorrow afternoon"
+    gap = (t.date() - n.date()).days
+    if gap == 1 and h < 5:
+        day = "late tonight"          # the small hours after tonight's midnight belong to tonight
+    elif gap == 1:
+        day = "tomorrow night" if h >= 18 else "tomorrow morning" if h < 12 else "tomorrow afternoon"
+    elif gap == 2 and h < 5:
+        day = "late tomorrow night"
+    elif gap >= 2:
+        day = t.strftime("%A") + (" night" if h >= 18 or h < 5 else " morning" if h < 12 else " afternoon")
     return day
 
 
