@@ -3610,6 +3610,13 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   function freezeKey(fz) {
     if (!fz) return "";
     const tw = typeof fz.town_f === "number" ? " · town about " + fz.town_f + "°F" : "";
+    if (fz.b && fz.gw) {   // drawn on the page from the grid: say so when there is no line on the map right now
+      const fr = radarFrames(), ln = fr ? fzLinesAt(fr, Math.max(0, radarIdx)) : null;
+      if (!ln || !ln.length) {
+        const G = fz._B || fzGrid(fz.b, fz.gw * fz.gh); let lo = Infinity, hi = -Infinity; for (let i = 0; i < G.length; i++) { if (G[i] < lo) lo = G[i]; if (G[i] > hi) hi = G[i]; }
+        return '<span>' + (lo > 32.5 ? "No 32°F line: surface above freezing across the map" : hi <= 32 ? "Surface at or below 32°F across the map" : "No 32°F line: only tiny cold pockets") + tw + '</span>';
+      }
+    }
     if (fz.b || (fz.lines && fz.lines.length)) return '<span><svg class="fzk" width="22" height="8" aria-hidden="true"><line x1="1" y1="4" x2="21" y2="4"/></svg>32°F line (model surface)' + tw + '</span>';
     return '<span>' + (fz.side === "above" ? "Surface above 32°F everywhere" : "Surface at or below 32°F everywhere") + tw + '</span>';
   }
@@ -5040,7 +5047,7 @@ function seed(list, n) {
 }
 function wrapY(p) { if (p.y > 1.03) { p.y -= 1.06; p.floor = rnd(.1, .98); p.hid = false; p.b = 0; } }
 function size() {
-  var w = cv.clientWidth, h = cv.clientHeight, dpr = Math.min(2, window.devicePixelRatio || 1);
+  var w = cv.clientWidth, h = cv.clientHeight, dpr = Math.min(1.5, window.devicePixelRatio || 1);   // soft particles do not need full retina
   if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); layer.width = cv.width; layer.height = cv.height; }
   W = w; H = h; return dpr;
 }
@@ -5145,6 +5152,12 @@ function frame(ts) {
   }
   cx.globalAlpha = 1;
 }
+var lastBuild = 0, buildT = 0;
+function soon() {   // reading the picture is the heavy part: at most about 5 times a second, always ending on the newest
+  var wait = 200 - (performance.now() - lastBuild);
+  if (wait <= 0) { lastBuild = performance.now(); build(); return; }
+  if (!buildT) buildT = setTimeout(function () { buildT = 0; lastBuild = performance.now(); build(); }, wait);
+}
 function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; cv = null; img = null; if (io) { io.disconnect(); io = null; } }
 function sync() {
   var im = document.getElementById("radarImg");
@@ -5163,8 +5176,8 @@ function sync() {
     io = new IntersectionObserver(function (es) { visible = es[0].isIntersecting; }, { rootMargin: "100px" });
     io.observe(c);
   }
-  if (!im.__rfx) { im.__rfx = 1; im.addEventListener("load", function () { build(); }); }
-  if (fresh || im.src !== im.__rsrc) { im.__rsrc = im.src; if (im.complete) build(); }
+  if (!im.__rfx) { im.__rfx = 1; im.addEventListener("load", function () { soon(); }); }
+  if (fresh || im.src !== im.__rsrc) { im.__rsrc = im.src; if (im.complete) soon(); }
   if (!raf) raf = requestAnimationFrame(frame);
 }
 new MutationObserver(function () { sync(); }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["src"] });

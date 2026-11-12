@@ -16,7 +16,7 @@ Echo classes (reflectivity >= 5 dBZ with precipitation flagged):
   snow          flag = snow and wet-bulb <= 33.5 F (35 F when the model also says snow)
   freezing rain flag = rain and surface temperature <= 32 F (an estimate: rain falling onto a subfreezing surface; shown pink)
   rain          flag = rain and wet-bulb >= 35 F (34 F when the model says rain only)
-  sleet         the HRRR model says ice pellets (shown orange)
+  sleet         the HRRR model says ice pellets and wet-bulb <= 33.5 F, as a solid area, or an airport reports it (orange)
   borderline    the radar flag, the temperature and the model disagree (shown purple); the wet-bulb is blended between
                 the last two model hours by each frame's time, so the band can shift across the loop
 Two upgrades on top of the radar flag (both optional; without them the older rules above still run):
@@ -124,7 +124,7 @@ def grid(key):
     return v, lats, lons
 
 
-def classify(refl, flag, wb_f, sfc_f=None, pt=None):
+def classify(refl, flag, wb_f, sfc_f=None, pt=None, ov=None):
     """pt: optional model precip type {"snow","rain","fzra","pellets"} as boolean grids on the same grid"""
     echo = (refl >= 5) & (flag > 0)
     is_snow = np.isin(flag, [SNOW])
@@ -156,10 +156,71 @@ def classify(refl, flag, wb_f, sfc_f=None, pt=None):
             fz &= ~sn
         cls[fz] = 4
     if pt is not None:
-        cold = np.ones(refl.shape, bool) if wb_f is None else (wb_f <= 37)
-        cls[echo & pt["fzra"] & cold] = 4
-        cls[echo & pt["pellets"] & cold] = 5
+        # the model's ice types only where it is really cold enough for them, and only as solid areas, not speckles
+        if sfc_f is not None:
+            cold_fz = sfc_f <= 32.5
+        else:
+            cold_fz = np.ones(refl.shape, bool) if wb_f is None else (wb_f <= 34)
+        cold_pl = np.ones(refl.shape, bool) if wb_f is None else (wb_f <= 33.5)   # warmer than this, an airport has to report sleet (ov)
+        cls[patch(echo & pt["fzra"] & cold_fz)] = 4
+        cls[patch(echo & pt["pellets"] & cold_pl)] = 5
+    if ov:   # what the airports are actually reporting decides the type right around them (see obs_ptype)
+        for k, m in ov.items():
+            cls[echo & m] = k
     return cls
+
+
+OBS_PT_KM = 14.0   # Gaussian reach (km) of an airport's present weather on the type around it
+
+
+def obs_kind(wx):
+    w = " ".join(wx) if isinstance(wx, list) else str(wx or "")
+    if "FZRA" in w or "FZDZ" in w:
+        return 4
+    if "PL" in w:
+        return 5
+    if "SN" in w and ("RA" in w or "DZ" in w):
+        return 2
+    if "SN" in w or "SG" in w:
+        return 1
+    if "RA" in w or "DZ" in w:
+        return 3
+    return None
+
+
+def obs_ptype(obs, lats, lons, wb):
+    """{class: bool grid} where nearby airports' present weather should set the type. Reports vote with weights that
+    fade with distance (Gaussian, OBS_PT_KM), so the result has smooth edges rather than circles, and the wet-bulb
+    still has to allow it (no snow painted onto clearly warm ground). Applied in the order rain, mix, snow, sleet,
+    freezing rain, so the colder and icier reports win where they meet."""
+    if not obs:
+        return None
+    step = 4
+    la, lo = np.meshgrid(lats[::step], lons[::step], indexing="ij")
+    kx = 111.0 * math.cos(math.radians(LAT0))
+    votes = {k: np.zeros(la.shape, np.float32) for k in (1, 2, 3, 4, 5)}
+    tot = np.full(la.shape, 0.35, np.float32)   # the prior: far from any report, nobody decides
+    n = 0
+    for o in obs:
+        k = obs_kind(o[5])
+        if not k or not (lats.min() - 0.6 <= o[1] <= lats.max() + 0.6 and lons.min() - 0.6 <= o[2] <= lons.max() + 0.6):
+            continue
+        w = np.exp(-(((la - o[1]) * 111.0) ** 2 + ((lo - o[2]) * kx) ** 2) / (2 * OBS_PT_KM ** 2)).astype(np.float32)
+        votes[k] += w
+        tot += w
+        n += 1
+    if not n:
+        return None
+    import cv2 as _cv
+    full = lambda a: _cv.resize(a, (len(lons), len(lats)), interpolation=_cv.INTER_LINEAR) if _cv is not None else np.kron(a, np.ones((step, step), np.float32))[:len(lats), :len(lons)]
+    share = {k: full(v / tot) for k, v in votes.items()}
+    W = wb if wb is not None else np.full((len(lats), len(lons)), 33.0, np.float32)
+    out = {}
+    for k, need, ok in ((3, .6, W >= 32), (2, .5, W <= 38), (1, .5, W <= 35.5), (5, .5, W <= 36), (4, .5, W <= 35)):
+        m = (share[k] >= need) & ok
+        if m.any():
+            out[k] = m
+    return out or None
 
 
 def dist_bearing(lats, lons):
@@ -170,6 +231,14 @@ def dist_bearing(lats, lons):
 
 
 COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+
+
+def patch(sel, size=7, need=25):
+    """keep only real patches: pixels with at least `need` set in the size x size block around them"""
+    if cv2 is None:
+        return solid(sel)
+    n = cv2.boxFilter(sel.astype(np.float32), -1, (size, size), normalize=False)
+    return sel & (n >= need)
 
 
 def solid(sel):
@@ -365,7 +434,7 @@ def _hrrr_msgs(url, want):
     out = {}
     for i, l in enumerate(lines):
         p = l.split(":")
-        if len(p) > 4 and p[3] in want and p[4] == "surface" and p[3] not in out:
+        if len(p) > 4 and ((p[3], p[4]) in want or (p[3] in want and p[4] == "surface")) and p[3] not in out:
             end = int(lines[i + 1].split(":")[1]) - 1 if i + 1 < len(lines) else ""
             req = urllib.request.Request(url, headers={"Range": "bytes=%s-%s" % (p[1], end)})
             for k in range(4):
@@ -382,7 +451,8 @@ def model_fields(latest, lats, lons):
     """HRRR precip-type flags and terrain on the radar grid -> {"pt": {...bool grids}, "elev": metres, "elev_model": metres, "run": str} or None"""
     if cKDTree is None or cv2 is None:
         return None
-    want = ("CSNOW", "CRAIN", "CFRZR", "CICEP", "HGT")
+    need = ("CSNOW", "CRAIN", "CFRZR", "CICEP", "HGT")
+    want = need + (("TMP", "2 m above ground"), ("DPT", "2 m above ground"))   # temperatures: the stand-in when MRMS's go stale
     base = latest.replace(minute=0, second=0, microsecond=0)
     for back in range(0, 4):    # the newest hourly run that is already posted, read at the hour nearest to now
         run = base - dt.timedelta(hours=back)
@@ -391,7 +461,7 @@ def model_fields(latest, lats, lons):
             msgs = _hrrr_msgs(url, want)
         except Exception:
             msgs = None
-        if msgs and all(k in msgs for k in want):
+        if msgs and all(k in msgs for k in need):
             break
     else:
         return None
@@ -415,7 +485,23 @@ def model_fields(latest, lats, lons):
     elev = blur(field("HGT"), 1.5)
     eccodes.codes_release(g0)
     pt = {"snow": field("CSNOW") >= 0.5, "rain": field("CRAIN") >= 0.5, "fzra": field("CFRZR") >= 0.5, "pellets": field("CICEP") >= 0.5}
-    return {"pt": pt, "elev": elev, "elev_model": blur(elev, 5.0), "run": run.strftime("%Y-%m-%d %HZ") + " f%02d" % back}
+    out = {"pt": pt, "elev": elev, "elev_model": blur(elev, 5.0), "run": run.strftime("%Y-%m-%d %HZ") + " f%02d" % back,
+           "valid": run + dt.timedelta(hours=back)}
+    if "TMP" in msgs and "DPT" in msgs:
+        tf = (field("TMP") - 273.15) * 1.8 + 32
+        out["t2m"] = tf
+        out["wb2m"] = wet_bulb_arr(tf, (field("DPT") - 273.15) * 1.8 + 32)
+    return out
+
+
+def wet_bulb_arr(tf, tdf):
+    """vectorised Stull (2011) wet-bulb, F in and out"""
+    t = (tf - 32) / 1.8
+    td = np.minimum((tdf - 32) / 1.8, t)
+    rh = np.clip(100 * np.exp(17.625 * td / (243.04 + td)) / np.exp(17.625 * t / (243.04 + t)), 5, 99)
+    tw = (t * np.arctan(0.151977 * np.sqrt(rh + 8.313659)) + np.arctan(t + rh) - np.arctan(rh - 1.676331)
+          + 0.00391838 * rh ** 1.5 * np.arctan(0.023101 * rh) - 4.686035)
+    return (tw * 1.8 + 32).astype(np.float32)
 
 
 def terrain_adjust(f, elev, elev_model, lapse):
@@ -622,6 +708,7 @@ def main(out_path=None, step=10, cache=None):
     d = brg = mf = pt = None
     snowline = None
     adjusted = obs_done = False
+    ov = None
     wb_raw = wb
     for t in frames_t:
         if t in fc:   # the live loop already drew this scan
@@ -649,6 +736,17 @@ def main(out_path=None, step=10, cache=None):
                     mf = None
                     out["model_error"] = str(e)[:200]
                 cache["mf_hr"], cache["mf"] = hr, mf
+            if mf is not None and not adjusted and mf.get("wb2m") is not None:
+                # MRMS's model temperatures sometimes stop updating; past ~75 minutes old, use the HRRR's for this hour
+                stale = lambda tm: tm is None or (latest - tm).total_seconds() > 75 * 60
+                if stale(wb_t) and mf["wb2m"].shape == refl.shape:
+                    wb, wb_prev, wb_pt, wb_t = mf["wb2m"], None, None, mf["valid"]
+                    out["temp_time"] = wb_t.astimezone(ET).isoformat(timespec="minutes")
+                    out["temp_source"] = "HRRR (MRMS temperatures stale)"
+                if stale(sfc_t) and mf["t2m"].shape == refl.shape:
+                    sfc, sfc_prev, sfc_pt, sfc_t = mf["t2m"], None, None, mf["valid"]
+                    out["surface_time"] = sfc_t.astimezone(ET).isoformat(timespec="minutes")
+                    out["surface_source"] = "HRRR (MRMS temperatures stale)"
             if mf is not None and not adjusted:
                 adjusted = True
                 pt = mf["pt"]
@@ -686,8 +784,14 @@ def main(out_path=None, step=10, cache=None):
                         out["obs_surface"] = ss
                 except Exception as e:
                     out["obs_error"] = str(e)[:200]
+                try:
+                    ov = obs_ptype(obs, lats, lons, wb)
+                    if ov:
+                        out["obs_ptype"] = {str(k): int(v.sum()) for k, v in ov.items()}
+                except Exception as e:
+                    out["obs_error"] = str(e)[:200]
         wb_f = sfc_at(wb, wb_prev if (wb_prev is not None and wb is not None and wb_prev.shape == wb.shape) else None, wb_t, wb_pt, t)   # wet-bulb at this frame's time
-        cls = classify(refl, np.round(flag).astype(int), wb_f, sfc_at(sfc, sfc_prev, sfc_t, sfc_pt, t), pt)   # freezing rain follows the same blended surface as the 32 F line
+        cls = classify(refl, np.round(flag).astype(int), wb_f, sfc_at(sfc, sfc_prev, sfc_t, sfc_pt, t), pt, ov)   # freezing rain follows the same blended surface as the 32 F line
         s = stats(cls, refl, d, brg)
         s["t"] = t.astimezone(ET).isoformat(timespec="minutes")
         series.append(s)
@@ -754,7 +858,7 @@ def main(out_path=None, step=10, cache=None):
             for t in frames_t:
                 rf, fg = raw[t]
                 wbt = sfc_at(wb, wb_prev if (wb_prev is not None and wb_prev.shape == wb.shape) else None, wb_t, wb_pt, t)
-                cls_last = classify(rf, fg.astype(int), wbt, sfc_at(sfc, sfc_prev, sfc_t, sfc_pt, t), pt)
+                cls_last = classify(rf, fg.astype(int), wbt, sfc_at(sfc, sfc_prev, sfc_t, sfc_pt, t), pt, ov)
                 trend.append(stats(cls_last, rf, geo[0], geo[1]))
         except Exception as e:
             trend = series
