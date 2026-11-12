@@ -3586,7 +3586,8 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       }
       return l;
     };
-    return out.filter((l) => l.length >= 4).map((l) => smooth(l).map((p) => [p[0] / (gw - 1), p[1] / (gh - 1)]));
+    const len = (l) => { let s = 0; for (let i = 1; i < l.length; i++) s += Math.hypot(l[i][0] - l[i - 1][0], l[i][1] - l[i - 1][1]); return s; };
+    return out.filter((l) => l.length >= 4 && len(l) >= 6).map((l) => smooth(l).map((p) => [p[0] / (gw - 1), p[1] / (gh - 1)]));   // under ~15 miles is a speck, not a line
   }
   function fzLinesAt(fr, idx) {
     const fz = radar && radar.freeze; if (!fz) return null;
