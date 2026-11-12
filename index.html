@@ -4945,7 +4945,7 @@ var RAMP = [
   [5,15,255,215,160],[5,25,245,150,50],[5,35,190,90,10]];
 var cv = null, cx = null, img = null, raf = 0, last = 0, W = 0, H = 0, visible = true, io = null, t0 = performance.now();
 var gw = 0, gh = 0, CLS = null, INT = null, has = {1:0,2:0,3:0,4:0,5:0};
-var haze = null, ice = null;                          // soft glow over heavy snow; mask of freezing rain for the ice sheen
+var haze = null, ice = null, MASK = {};               // soft glow over heavy snow; mask of freezing rain for the ice sheen; each kind's area
 var src = document.createElement("canvas"), sx0 = src.getContext("2d", { willReadFrequently: true });
 var layer = document.createElement("canvas"), lx = layer.getContext("2d");
 function rnd(a, b) { return a + Math.random() * (b - a); }
@@ -4992,7 +4992,13 @@ function build() {
     if (c[0] === 4) { id[i * 4] = id[i * 4 + 1] = id[i * 4 + 2] = 255; id[i * 4 + 3] = 255; }
   }
   gw = w; gh = h; CLS = cls; INT = inten; has = cnt;
-  haze = null; ice = null;
+  haze = null; ice = null; MASK = {};
+  [1, 2, 3, 4, 5].forEach(function (k) {   // each kind's area, to clip its particles to: they fall behind the edge, never past it
+    if (cnt[k] < 12) return;
+    var md = new ImageData(w, h), dd = md.data;
+    for (var q = 0; q < w * h; q++) if (cls[q] === k) dd[q * 4 + 3] = 255;
+    var mc = document.createElement("canvas"); mc.width = w; mc.height = h; mc.getContext("2d").putImageData(md, 0, 0); MASK[k] = mc;
+  });
   if (cnt[1] > 20) {   // blurred once here by shrinking: drawn back at full size it comes out soft
     var hc = document.createElement("canvas"); hc.width = w; hc.height = h; hc.getContext("2d").putImageData(hz, 0, 0);
     var sm = document.createElement("canvas"); sm.width = Math.max(1, w / 6 | 0); sm.height = Math.max(1, h / 6 | 0);
@@ -5068,9 +5074,12 @@ function frame(ts) {
     cx.globalAlpha = 1; cx.setTransform(1, 0, 0, 1, 0, 0); cx.drawImage(layer, 0, 0); cx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
   cx.lineCap = "round";
+  var main = cx;
   for (var key in SETS) {
     var list = SETS[key], kind = KIND[key];
     if (!has[kind] && !list.some(function (q) { return q.a > .01; })) continue;   // none of this kind on the map and all faded out: nothing to move
+    lx.setTransform(1, 0, 0, 1, 0, 0); lx.clearRect(0, 0, layer.width, layer.height); lx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cx = lx; cx.lineCap = "round";
     seed(list, Math.min(2200, Math.round(area / DENS[key])));
     for (var i = 0; i < list.length; i++) {
       var p = list[i], spd, drift = wx * .6;
@@ -5089,10 +5098,13 @@ function frame(ts) {
       var here = at(p.x, p.y), c = here | 0, v = here - c;
       // never pop in or out: each particle eases toward showing (its kind is here and it is heavy enough for this one)
       // or not, so edges, lighter spots and the moving loop fade particles in and out instead of switching them
-      var show = !p.hid && p.y >= 0 && c === kind && v * .8 + .15 >= p.th;
+      // Outside its area a particle is clipped away at the edge (below), so it keeps its look there: crossing an edge
+      // it slides out of (or into) view instead of fading. Inside, it eases in or out with how heavy that spot is.
+      if (c === kind) p.lv = v; else v = p.lv == null ? .35 : p.lv;
+      var show = !p.hid && p.y >= 0 && v * .8 + .15 >= p.th, inside = c === kind;
       p.a = Math.max(0, Math.min(1, p.a + (show ? 2.2 : (p.hid ? -7 : -2.2)) * dt));
       if (p.a <= .01 || p.y < 0) continue;
-      FA = p.a; if (c !== kind) v = p.lv || 0; else p.lv = v;
+      FA = p.a;
       var X = p.x * W, Y = p.y * H;
       if (key === "f") drawFlake(p, X, Y, v, p.z > .6);
       else if (key === "m") {   // mix: a few flakes and drops together
@@ -5101,19 +5113,26 @@ function frame(ts) {
       }
       else if (key === "r") {   // rain: streaks lean with the wind, longer and brighter when heavy; splashes where it pours
         cx.strokeStyle = "#eaf4ff"; cx.lineWidth = .8 + .6 * v; drawDrop(X, Y, 6 + 9 * v + 3 * p.z, .24 + .26 * v, slant);
-        if (show && v > .62 && Math.random() < .008 && ripples.length < 40) ripples.push({ x: X, y: Y, t: 0 });
+        if (inside && show && v > .62 && Math.random() < .008 && ripples.length < 40) ripples.push({ x: X, y: Y, t: 0 });
       }
       else if (key === "d") {   // freezing rain: drops that freeze where they land
         cx.fillStyle = "#f2fbff"; cx.globalAlpha = .65 * FA; cx.beginPath(); cx.ellipse(X, Y, 1, 2, -slant, 0, 6.283); cx.fill();
-        if (show && p.y > p.floor) { if (sparks.length < 50 && Math.random() < .5) sparks.push({ x: X, y: Y, t: 0, s: SPARK_ICE }); p.hid = true; }
+        if (inside && show && p.y > p.floor) { if (sparks.length < 50 && Math.random() < .5) sparks.push({ x: X, y: Y, t: 0, s: SPARK_ICE }); p.hid = true; }
       }
       else {   // sleet: fast icy pellets that bounce and glint
         cx.fillStyle = "#fff6e6"; cx.globalAlpha = .75 * FA; cx.beginPath(); cx.arc(X, Y, 1.25, 0, 6.283); cx.fill();
         cx.strokeStyle = "rgba(160,80,0,.45)"; cx.lineWidth = .5; cx.stroke();
-        if (show && p.b <= 0 && p.y > p.floor) { p.b = rnd(.14, .24); if (sparks.length < 50 && Math.random() < .3) sparks.push({ x: X, y: Y, t: 0, s: SPARK_SLEET }); }
+        if (inside && show && p.b <= 0 && p.y > p.floor) { p.b = rnd(.14, .24); if (sparks.length < 50 && Math.random() < .3) sparks.push({ x: X, y: Y, t: 0, s: SPARK_SLEET }); }
       }
     }
+    cx = main;
+    if (MASK[kind]) {
+      lx.globalAlpha = 1; lx.setTransform(1, 0, 0, 1, 0, 0); lx.globalCompositeOperation = "destination-in";
+      lx.imageSmoothingEnabled = true; lx.drawImage(MASK[kind], 0, 0, layer.width, layer.height); lx.globalCompositeOperation = "source-over";
+      cx.globalAlpha = 1; cx.setTransform(1, 0, 0, 1, 0, 0); cx.drawImage(layer, 0, 0); cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
   }
+  cx = main;
   for (var r = ripples.length - 1; r >= 0; r--) {   // rain splashes: small rings that spread and fade
     var q = ripples[r]; q.t += dt; if (q.t > .45) { ripples.splice(r, 1); continue; }
     cx.globalAlpha = .5 * (1 - q.t / .45); cx.strokeStyle = "#ffffff"; cx.lineWidth = .8;
