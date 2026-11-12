@@ -5075,10 +5075,12 @@ function frame(ts) {
     for (var i = 0; i < list.length; i++) {
       var p = list[i], spd, drift = wx * .6;
       if (key === "f") { spd = 14 + 24 * p.z; drift += Math.sin(p.ph + tsec * (.6 + p.z)) * (6 + 10 * p.z); }
-      else if (key === "m") { spd = 26 + 20 * p.z; drift += Math.sin(p.ph + tsec) * 5; }
-      else if (key === "r") { spd = 150 + 110 * p.z; }
-      else if (key === "d") { spd = 55 + 25 * p.z; }
-      else { spd = 95 + 50 * p.z; }
+      else if (key === "m") {   // mix: the flakes drift down like snow, the drops fall like rain
+        if (p.z > .5) { spd = 18 + 20 * (p.z - .5); drift += Math.sin(p.ph + tsec) * 5; } else spd = 80 + 50 * p.z;
+      }
+      else if (key === "r") { spd = 90 + 60 * p.z; }
+      else if (key === "d") { spd = 72 + 30 * p.z; }
+      else { spd = 85 + 40 * p.z; }
       if (p.b > 0) { p.b -= dt; p.y -= p.b * 3.2 * dt * 60 / H; if (p.b <= 0) p.hid = true; }   // a sleet pellet bouncing back up
       else p.y += spd * p.v * dt / H;
       p.x += drift * dt / W; p.ph += dt * .5; p.ang += p.spin * dt;
