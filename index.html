@@ -5025,7 +5025,7 @@ function wind() {   // px/s sideways push (positive = east), from the motion the
    One set of particles per kind, each moving at its own steady speed everywhere on the map and wrapping around, so
    they stay evenly spread; a particle shows only where the radar has its kind, and more of them show (bigger, brighter)
    where it is heavier. Landed drops and bounced pellets hide until they come round again. */
-var SETS = { f: [], m: [], r: [], d: [], s: [] }, DENS = { f: 60, m: 110, r: 80, d: 140, s: 130 }, KIND = { f: 1, m: 2, r: 3, d: 4, s: 5 };
+var SETS = { f: [], m: [], r: [], d: [], s: [] }, DENS = { f: 175, m: 260, r: 150, d: 240, s: 230 }, KIND = { f: 1, m: 2, r: 3, d: 4, s: 5 };
 var ripples = [], sparks = [];
 function seed(list, n) {
   while (list.length < n) list.push({ x: Math.random(), y: Math.random(), z: Math.random(), th: Math.random(), ph: Math.random() * 6.283,
@@ -5040,8 +5040,8 @@ function size() {
 }
 function drawFlake(p, X, Y, v, near) {
   var seg = Math.PI / 3, ri = Math.floor((((p.ang % seg) + seg) % seg) / (seg / 12)) % 12;
-  var lay = near ? (p.z > .82 ? 2 : 1) : 0, s = FLAKES[lay][ri], k = .75 + v * .55;
-  cx.globalAlpha = (lay === 0 ? .45 : .82) * (.55 + v * .45);
+  var lay = near ? (p.z > .9 ? 2 : 1) : 0, s = FLAKES[lay][ri], k = .7 + v * .4;
+  cx.globalAlpha = (lay === 0 ? .35 : .7) * (.5 + v * .4);
   var sw = s.width * k; cx.drawImage(s, X - sw / 2, Y - sw / 2, sw, sw);
 }
 function drawDrop(X, Y, len, a, slant) {
@@ -5057,12 +5057,12 @@ function frame(ts) {
   var area = W * H; if (!area || !CLS) return;
   var tsec = (ts - t0) / 1000, wx = wind(), slant = wx / 90;
   // heavy snow glows softly, like a whiteout; freezing rain gets a slow icy sheen sweeping across it
-  if (haze) { cx.imageSmoothingEnabled = true; cx.globalAlpha = .2 + .08 * Math.sin(tsec * 1.3); cx.drawImage(haze, 0, 0, W, H); }
+  if (haze) { cx.imageSmoothingEnabled = true; cx.globalAlpha = .11 + .04 * Math.sin(tsec * 1.3); cx.drawImage(haze, 0, 0, W, H); }
   if (ice) {
     lx.setTransform(1, 0, 0, 1, 0, 0); lx.clearRect(0, 0, layer.width, layer.height); lx.setTransform(dpr, 0, 0, dpr, 0, 0);
     var sx = ((tsec * .12) % 1.6 - .3) * (W + H);
     var gr = lx.createLinearGradient(sx - 60, 0, sx + 60, H * .6);
-    gr.addColorStop(0, "rgba(255,255,255,0)"); gr.addColorStop(.5, "rgba(220,245,255,.55)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+    gr.addColorStop(0, "rgba(255,255,255,0)"); gr.addColorStop(.5, "rgba(220,245,255,.32)"); gr.addColorStop(1, "rgba(255,255,255,0)");
     lx.globalCompositeOperation = "source-over"; lx.fillStyle = gr; lx.fillRect(0, 0, W, H);
     lx.globalCompositeOperation = "destination-in"; lx.drawImage(ice, 0, 0, W, H); lx.globalCompositeOperation = "source-over";
     cx.globalAlpha = 1; cx.setTransform(1, 0, 0, 1, 0, 0); cx.drawImage(layer, 0, 0); cx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -5086,25 +5086,25 @@ function frame(ts) {
       wrapY(p);
       if (p.hid || p.y < 0) continue;
       var here = at(p.x, p.y), c = here | 0, v = here - c;
-      if (c !== kind || v + .18 < p.th * .95) continue;   // not this kind here, or too light here for this one to show
+      if (c !== kind || v * .8 + .15 < p.th) continue;   // not this kind here, or too light here for this one to show
       var X = p.x * W, Y = p.y * H;
-      if (key === "f") drawFlake(p, X, Y, v, p.z > .45);
-      else if (key === "m") {   // mix: drops and flakes together; some drops turn into flakes on the way down
-        if (p.morph ? (p.y > p.floor * .8) : (p.z > .5)) drawFlake(p, X, Y, v * .7, p.z > .7);
-        else { cx.strokeStyle = "rgba(235,240,255,.9)"; cx.lineWidth = 1.1; drawDrop(X, Y, 4 + 3 * v, .65, slant * .6); }
+      if (key === "f") drawFlake(p, X, Y, v, p.z > .6);
+      else if (key === "m") {   // mix: a few flakes and drops together
+        if (p.z > .5) drawFlake(p, X, Y, v * .6, p.z > .85);
+        else { cx.strokeStyle = "rgba(235,240,255,.9)"; cx.lineWidth = 1.1; drawDrop(X, Y, 4 + 3 * v, .5, slant * .6); }
       }
       else if (key === "r") {   // rain: streaks lean with the wind, longer and brighter when heavy; splashes where it pours
-        cx.strokeStyle = "#eaf4ff"; cx.lineWidth = .8 + .6 * v; drawDrop(X, Y, 6 + 10 * v + 3 * p.z, .32 + .35 * v, slant);
-        if (v > .62 && Math.random() < .015 && ripples.length < 90) ripples.push({ x: X, y: Y, t: 0 });
+        cx.strokeStyle = "#eaf4ff"; cx.lineWidth = .8 + .6 * v; drawDrop(X, Y, 6 + 9 * v + 3 * p.z, .24 + .26 * v, slant);
+        if (v > .62 && Math.random() < .008 && ripples.length < 40) ripples.push({ x: X, y: Y, t: 0 });
       }
       else if (key === "d") {   // freezing rain: drops that freeze where they land
-        cx.fillStyle = "#f2fbff"; cx.globalAlpha = .8; cx.beginPath(); cx.ellipse(X, Y, 1, 2, -slant, 0, 6.283); cx.fill();
-        if (p.y > p.floor) { if (sparks.length < 120) sparks.push({ x: X, y: Y, t: 0, s: SPARK_ICE }); p.hid = true; }
+        cx.fillStyle = "#f2fbff"; cx.globalAlpha = .65; cx.beginPath(); cx.ellipse(X, Y, 1, 2, -slant, 0, 6.283); cx.fill();
+        if (p.y > p.floor) { if (sparks.length < 50 && Math.random() < .5) sparks.push({ x: X, y: Y, t: 0, s: SPARK_ICE }); p.hid = true; }
       }
       else {   // sleet: fast icy pellets that bounce and glint
-        cx.fillStyle = "#fff6e6"; cx.globalAlpha = .9; cx.beginPath(); cx.arc(X, Y, 1.25, 0, 6.283); cx.fill();
+        cx.fillStyle = "#fff6e6"; cx.globalAlpha = .75; cx.beginPath(); cx.arc(X, Y, 1.25, 0, 6.283); cx.fill();
         cx.strokeStyle = "rgba(160,80,0,.45)"; cx.lineWidth = .5; cx.stroke();
-        if (p.b <= 0 && p.y > p.floor) { p.b = rnd(.14, .24); if (sparks.length < 120 && Math.random() < .5) sparks.push({ x: X, y: Y, t: 0, s: SPARK_SLEET }); }
+        if (p.b <= 0 && p.y > p.floor) { p.b = rnd(.14, .24); if (sparks.length < 50 && Math.random() < .3) sparks.push({ x: X, y: Y, t: 0, s: SPARK_SLEET }); }
       }
     }
   }
