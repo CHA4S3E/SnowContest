@@ -3801,7 +3801,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     lines = lines || (fz && fz.lines);
     if (!fz) return "";
     const d = lines && lines.length ? fzPath(lines) : "";
-    return '<path class="fzh" d="' + d + '"/><path class="fz" d="' + d + '"/>';
+    return '<g class="fzold"><path class="fzh" d=""/><path class="fz" d=""/></g><g class="fznow"><path class="fzh" d="' + d + '"/><path class="fz" d="' + d + '"/></g>';
   }
   function fzPath(lines) {
     const vb = BASEMAP.viewBox.split(" ").map(Number), W = vb[2], H = vb[3];
@@ -3862,9 +3862,9 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     let a = L[0], b = L[L.length - 1];
     if (t <= a._t) b = a; else if (t >= b._t) a = b;
     else for (let i = 0; i < L.length - 1; i++) if (L[i]._t <= t && L[i + 1]._t >= t) { a = L[i]; b = L[i + 1]; break; }
-    const w = b._t > a._t ? Math.min(1, Math.max(0, (t - a._t) / (b._t - a._t))) : 0, q = Math.round(w * 12), key = a.t + "|" + b.t + "|" + q;
+    const w = b._t > a._t ? Math.min(1, Math.max(0, (t - a._t) / (b._t - a._t))) : 0, q = Math.round(w * 60), key = a.t + "|" + b.t + "|" + q;
     if (!C[key]) {
-      const k = q / 12; let G = new Float32Array(n);
+      const k = q / 60; let G = new Float32Array(n);
       for (let i = 0; i < n; i++) G[i] = a._G[i] * (1 - k) + b._G[i] * k;
       for (let pass = 0; pass < smooth; pass++) {   // a forecast hovering near 32 F would draw dozens of squiggles: smooth it, keep the main line
         const S = new Float32Array(n);
@@ -4155,9 +4155,8 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     const bd = $("radarBadge");
     if (bd) { const fc = isFc(fr[radarIdx]); bd.hidden = radarView === "past"; bd.className = "rbadge" + (fc ? " fc" : ""); bd.textContent = fc ? "Forecast · " + clock(new Date(fr[radarIdx].t)) : "Now · " + clock(new Date(fr[radarIdx].t)); }
     window.__ffMotion = radar.nowcast && radar.nowcast.motion;   // the radar effects lean the rain with the storm
-    if (radar.freeze && radar.freeze.b) {
-      const d = fzPath(fzLinesAt(fr, radarIdx) || []), h = document.querySelector(".wframe .fzh"), z = document.querySelector(".wframe .fz");
-      if (h && z) { h.setAttribute("d", d); z.setAttribute("d", d); }
+    if ((radar.freeze && (radar.freeze.b || radar.freeze.hrs)) || (radarView === "future" && futDoc && futDoc.fz)) {
+      fzShow(fzPath(fzLinesAt(fr, radarIdx) || []));
     }
   }
   function setRadarView(v) {
@@ -4166,6 +4165,19 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     if (v === "future") ensureFuture();
     const fr = radarFrames(); radarIdx = v === "past" ? (fr ? fr.length - 1 : -1) : 0;
     renderWatch();
+  }
+  function fzShow(d) {   // the 32 F line crossfades into its new position instead of jumping
+    const now = document.querySelector(".wframe .fznow"), old = document.querySelector(".wframe .fzold");
+    if (!now || !old) return;
+    const cur = now.querySelector(".fz").getAttribute("d") || "";
+    if (cur === d) return;
+    old.querySelectorAll("path").forEach((p) => p.setAttribute("d", cur));
+    old.style.transition = "none"; old.style.opacity = "1";
+    now.style.transition = "none"; now.style.opacity = "0";
+    now.querySelectorAll("path").forEach((p) => p.setAttribute("d", d));
+    void now.getBoundingClientRect();
+    old.style.transition = "opacity .25s linear"; old.style.opacity = "0";
+    now.style.transition = "opacity .25s linear"; now.style.opacity = "1";
   }
   function wireRadar() {
     clearInterval(radarTimer); radarTimer = null;
