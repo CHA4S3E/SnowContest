@@ -750,6 +750,13 @@ body.alarm.holding #ffalarm { --spd: .55s; }
 .rctl { display: flex; align-items: center; gap: 8px; font: 500 .78rem/1 var(--mono); }
 .rctl button { appearance: none; border: 1px solid rgba(255,255,255,.45); background: rgba(255,255,255,.14); color: #fff; border-radius: 8px; padding: 5px 10px; font: inherit; cursor: pointer; }
 .rctl input[type=range] { width: 120px; min-width: 0; flex: 0 1 120px; accent-color: #fff; }
+.rview { display: inline-flex; border: 1px solid rgba(255,255,255,.4); border-radius: 9px; overflow: hidden; font: 600 .72rem/1 var(--mono); }
+.rview button { appearance: none; border: 0; background: transparent; color: #fff; padding: 6px 10px; font: inherit; letter-spacing: .03em; cursor: pointer; opacity: .75; }
+.rview button + button { border-left: 1px solid rgba(255,255,255,.3); }
+.rview button[aria-pressed="true"] { background: rgba(255,255,255,.22); opacity: 1; }
+.rbadge { position: absolute; top: 8px; left: 8px; z-index: 6; font: 700 .68rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: #fff; background: rgba(20,30,48,.82); padding: 5px 8px; border-radius: 6px; pointer-events: none; }
+.rbadge.fc { background: rgba(110,60,170,.9); }
+.rbadge[hidden] { display: none; }
 .rleg { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .8rem; opacity: .95; }
 .rleg i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; border: 1px solid rgba(255,255,255,.5); }
 .rnote { margin: 0; font-size: .95rem; font-weight: 600; }
@@ -1646,6 +1653,11 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   let db = null;
   let watch = null;
   let radar = null, radarIdx = -1, radarPlay = true, radarTimer = null;
+  // Radar views: "past" (the last hour, looping), "now" (the newest scan only), "future" (the newest scan, then the
+  // HRRR forecast every 15 minutes for 12 hours, from future.json on the radar branch, fetched only when shown).
+  let radarView = (() => { try { const v = localStorage.getItem("ff-radar-view"); return v === "now" || v === "future" ? v : "past"; } catch (_) { return "past"; } })();
+  let FUT = null, futDoc = null, futRun = null, futBusy = false, radarUrlLast = null;
+  const FUT_TWEEN = new Map();
   // Several pools share one forecast. pool/config holds the Meteo pool plus `subpools`
   // ({ritner: {name, picks}}); first snow is shared, so it always lives on pool/config.
   let baseConfig = null;
@@ -3543,7 +3555,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   // The page carries two coarse model temperature grids (the hour before and the newest). For any moment it blends them by time and
   // draws the 32F contour itself (marching squares, then rounded off), so the line glides smoothly with the radar.
   function fzGrid(b64, n) { const raw = atob(b64), o = new Float32Array(n); for (let i = 0; i < n; i++) { const c = raw.charCodeAt(i); o[i] = 32 + (c > 127 ? c - 256 : c) / 4; } return o; }
-  function fzContour(G, gw, gh) {
+  function fzContour(G, gw, gh, minLen) {
     const T = 32, ids = new Map(), adj = new Map(), pos = new Map();
     const px = (j, i) => G[i * gw + j];
     const edge = (kind, i, j) => {   // crossing point on the edge from (i,j) to its right (h) or lower (v) neighbour
@@ -3587,9 +3599,29 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       return l;
     };
     const len = (l) => { let s = 0; for (let i = 1; i < l.length; i++) s += Math.hypot(l[i][0] - l[i - 1][0], l[i][1] - l[i - 1][1]); return s; };
-    return out.filter((l) => l.length >= 4 && len(l) >= 6).map((l) => smooth(l).map((p) => [p[0] / (gw - 1), p[1] / (gh - 1)]));   // under ~15 miles is a speck, not a line
+    return out.filter((l) => l.length >= 4 && len(l) >= (minLen || 6)).map((l) => smooth(l).map((p) => [p[0] / (gw - 1), p[1] / (gh - 1)]));   // under ~15 miles is a speck, not a line
+  }
+  function fzFut(t) {   // the forecast hours' surface grids, blended by time
+    const L = futDoc.fz, n = futDoc.gw * futDoc.gh;
+    L.forEach((h) => { if (!h._G) { h._G = fzGrid(h.b, n); h._t = new Date(h.t).getTime(); } });
+    let a = L[0], b = L[L.length - 1];
+    for (let i = 0; i < L.length - 1; i++) if (L[i]._t <= t && L[i + 1]._t >= t) { a = L[i]; b = L[i + 1]; break; }
+    const w = b._t > a._t ? Math.min(1, Math.max(0, (t - a._t) / (b._t - a._t))) : 0, q = Math.round(w * 12), key = a.t + "|" + q;
+    futDoc._c = futDoc._c || {};
+    if (!futDoc._c[key]) {
+      const gw = futDoc.gw, gh = futDoc.gh, k = q / 12; let G = new Float32Array(n);
+      for (let i = 0; i < n; i++) G[i] = a._G[i] * (1 - k) + b._G[i] * k;
+      for (let pass = 0; pass < 2; pass++) {   // a forecast hovering near 32 F would draw dozens of squiggles: smooth it, keep the main line
+        const S = new Float32Array(n);
+        for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) { let t = 0, c = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const yy = y + dy, xx = x + dx; if (yy >= 0 && yy < gh && xx >= 0 && xx < gw) { t += G[yy * gw + xx]; c++; } } S[y * gw + x] = t / c; }
+        G = S;
+      }
+      futDoc._c[key] = fzContour(G, gw, gh, 12);
+    }
+    return futDoc._c[key];
   }
   function fzLinesAt(fr, idx) {
+    if (radarView === "future" && FUT && futDoc && futDoc.fz && futDoc.fz.length && idx > 0) return fzFut(new Date((fr[idx] || {}).t).getTime());
     const fz = radar && radar.freeze; if (!fz) return null;
     if (!fz.b || !fz.gw) return fz.lines;
     const n = fz.gw * fz.gh;
@@ -3638,6 +3670,49 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
 
   // Radar: the last hour of NOAA MRMS radar around town, saved hourly during a watch (models/radar).
   function radarFrames() {
+    const live = liveFrames(); if (!live) return null;
+    if (radarView === "now") return [live[live.length - 1]];
+    if (radarView === "future") { const f = futFrames(); if (f) return f; return [live[live.length - 1]]; }
+    return live;
+  }
+  function futFrames() {
+    if (!FUT) return null;
+    if (FUT._exp) return FUT._exp;
+    if (FUT.flows && !FUT._expTried && !reduced) { FUT._expTried = true; expandRadar(FUT); }
+    return FUT.frames;
+  }
+  function buildFut() {   // the newest real scan first, then the forecast steps after it
+    const live = radar && radar.frames; if (!futDoc || !live || !live.length) { FUT = null; return; }
+    const last = live[live.length - 1], t0 = new Date(last.t).getTime();
+    const k0 = futDoc.frames.findIndex((f) => new Date(f.t).getTime() > t0 + 60000);
+    if (k0 < 0) { FUT = null; return; }
+    if (FUT && FUT._first === last.t && FUT._run === futDoc.run) return;
+    const zero = btoa(String.fromCharCode.apply(null, new Uint8Array(46 * 44 * 2)));
+    const fl = futDoc.flows && futDoc.flows.d && futDoc.flows.d.length === futDoc.frames.length - 1
+      ? { w: futDoc.flows.w, h: futDoc.flows.h, s: futDoc.flows.s, d: [zero].concat(futDoc.flows.d.slice(k0)) } : null;
+    FUT = { frames: [Object.assign({}, last, { now: true })].concat(futDoc.frames.slice(k0)), flows: fl, interp: futDoc.interp || 2,
+      _tw: FUT_TWEEN, _first: last.t, _run: futDoc.run };
+    FUT._onExp = (exp) => {   // smooth frames ready: keep the same moment on screen
+      if (radarView !== "future") return;
+      const cur = (FUT.frames[Math.max(0, Math.min(FUT.frames.length - 1, radarIdx))] || {}).t;
+      const want = cur ? new Date(cur).getTime() : 0; let bi = 0, bd = Infinity;
+      exp.forEach((x, i) => { const dd = Math.abs(new Date(x.t).getTime() - want); if (dd < bd) { bd = dd; bi = i; } });
+      radarIdx = bi; renderWatch();
+    };
+  }
+  function ensureFuture() {   // fetch the forecast radar the first time it is shown, and again when a new model run is out
+    const run = radar && radar.future && radar.future.run;
+    if (!run || futBusy || (run === futRun && futDoc)) { buildFut(); return; }
+    if (!radarUrlLast) return;
+    futBusy = true;
+    fetch(radarUrlLast.replace(/radar\.json(\?.*)?$/, "future.json$1")).then((r) => r.ok ? r.json() : null).then((d) => {
+      futBusy = false;
+      if (!d || !d.frames || !d.frames.length) return;
+      futDoc = d; futRun = d.run; FUT = null; buildFut();
+      if (radarView === "future") { radarIdx = 0; renderWatch(); }
+    }).catch(() => { futBusy = false; });
+  }
+  function liveFrames() {
     if (!radar || !radar.frames || !radar.frames.length || radar.error) return null;
     const age = radar.updatedAt ? Date.now() - new Date(radar.updatedAt).getTime() : Infinity;
     if (age > 150 * 60000) return null;  // hide a loop that's more than ~2.5 hours old
@@ -3651,9 +3726,9 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   // echoes along that motion to make the in-between frames, so the loop glides without the saved data growing.
   // In-between frames already made, by the pair of scan times they join: the live radar refreshes every couple of
   // minutes, and only the newest pair needs new in-betweens; older ones are reused.
-  const RADAR_TWEEN = new Map();
+  const RADAR_TWEEN_LIVE = new Map();
   function expandRadar(r) {
-    const steps = r.interp || 8, fl = r.flows;
+    const steps = r.interp || 8, fl = r.flows, RADAR_TWEEN = r._tw || RADAR_TWEEN_LIVE;   // each loop keeps its own in-betweens
     if (!fl || !fl.d || fl.d.length !== r.frames.length - 1) { r._expFail = true; return; }
     // in-between steps for a pair: `steps` per 10 minutes, so the short last gap of the live radar (the newest scan) glides at the same speed
     const nsteps = (p) => Math.max(2, Math.round(steps * (new Date(r.frames[p + 1].t) - new Date(r.frames[p].t)) / 600000));
@@ -3721,16 +3796,18 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       const keep = new Set(r.frames.slice(0, -1).map((_, p) => pkey(p)));
       for (const [k, v] of RADAR_TWEEN) if (!keep.has(k)) { RADAR_TWEEN.delete(k); for (const x of v) { try { URL.revokeObjectURL(x.url); } catch (e) {} } }
       exp.push(Object.assign({}, r.frames[ims.length - 1], { kf: true, fp: ims.length - 1, fk: 0 }));
+      if (r._onExp) { r._exp = exp; r._onExp(exp); return; }
       if (radar !== r) return;
       r._exp = exp;
       if (r._resumeT) {   // a quiet refresh: carry on from the same moment in the loop
         const want = new Date(r._resumeT).getTime();
         let bi = exp.length - 1, bd = Infinity;
         exp.forEach((x, i) => { const dd = Math.abs(new Date(x.t).getTime() - want); if (dd < bd) { bd = dd; bi = i; } });
-        radarIdx = bi;
-        if (!showRadarSwap()) renderWatch();
+        if (radarView === "past") radarIdx = bi;   // the other views keep their own place
+        if (radarView === "future") buildFut();
+        if (radarView !== "past" || !showRadarSwap()) { radar._shadow = null; renderWatch(); }
       } else {
-        radarIdx = radarIdx >= 0 ? Math.min(exp.length - 1, radarIdx * steps) : -1;
+        if (radarView === "past") radarIdx = radarIdx >= 0 ? Math.min(exp.length - 1, radarIdx * steps) : -1;
         renderWatch();
       }
     }).catch(() => { r._expFail = true; });
@@ -3746,7 +3823,8 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   }
   function keepRadar(box) {   // the watch box is redrawn every minute: carry the playing radar across so it does not flash
     const old = box.querySelector(".wradar");
-    if (!old || old.__radar !== radar || !radarFrames()) return () => { const n = box.querySelector(".wradar"); if (n) n.__radar = radar; };
+    const tag = radarView + "|" + (radarView === "future" && FUT ? FUT._first + FUT._run + (FUT._exp ? "x" : "") : "");
+    if (!old || old.__radar !== radar || old.__view !== tag || !radarFrames()) return () => { const n = box.querySelector(".wradar"); if (n) { n.__radar = radar; n.__view = tag; } };
     return () => {
       const n = box.querySelector(".wradar");
       if (!n) return;
@@ -3758,18 +3836,34 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       showRadar(radarIdx);
     };
   }
+  function isFc(f) { return radarView === "future" && f && !f.now && FUT && new Date(f.t).getTime() > new Date(FUT._first).getTime() + 30000; }
+  function radarLabel(f) {
+    if (radarView === "now") return "Latest scan " + clock(new Date(f.t));
+    return (isFc(f) ? "Forecast " : "") + clock(new Date(f.t)) + (radarView === "future" && f.now ? " (now)" : "");
+  }
+  function futNote() {
+    if (radarView !== "future") return "";
+    if (!futDoc) return '<p class="rnote">' + (radar && radar.future ? "Loading the forecast radar…" : "The forecast radar is not available yet (it is made while the live watch is on).") + '</p>';
+    const c = futDoc.check, run = futDoc.run ? futDoc.run.slice(11) : "";
+    return '<p class="rnote">Forecast frames are the HRRR model (' + esc(run) + ' run), every 15 minutes, drawn with the same rain/snow rules as the live radar and adjusted to match airport readings. ' +
+      (c && c.overlap != null ? "Its first step matches about " + Math.round(c.overlap * 100) + "% of the live radar's precipitation area, so treat placement as approximate." : "Treat placement as approximate.") + '</p>';
+  }
   function radarHtml() {
     const fr = radarFrames();
     if (!fr) return "";
     if (radarIdx < 0 || radarIdx >= fr.length) radarIdx = fr.length - 1;
     const f = fr[radarIdx];
-    return '<div class="wradar"><div class="rtop"><h3>Radar · last hour</h3>' +
-      '<div class="rctl"><button type="button" id="radarPlay" aria-label="' + (radarPlay ? "Pause" : "Play") + ' radar loop">' + (radarPlay ? "Pause" : "Play") + '</button>' +
-      '<input type="range" id="radarSlider" min="0" max="' + (fr.length - 1) + '" value="' + radarIdx + '" aria-label="Radar frame">' +
-      '<span id="radarTime">' + esc(clock(new Date(f.t))) + '</span></div></div>' +
-      '<div class="wmap"><div class="wframe">'+lakeLayer()+'<canvas class="rcv" id="radarCv" aria-hidden="true"></canvas><img id="radarImg" alt="Radar around State College at ' + esc(clock(new Date(f.t))) + '" src="' + rsrc(f) + '">' + mapOverlay(!!radar.bare, freezeSvg(radar.freeze, fzLinesAt(fr, radarIdx))) + '</div></div>' +
+    const vb = (v, t) => '<button type="button" data-rv="' + v + '" aria-pressed="' + (radarView === v) + '">' + t + '</button>';
+    const title = { past: "Radar · last hour", now: "Radar · now", future: "Radar · now + next 12 hours" }[radarView];
+    const loop = radarView !== "now";
+    return '<div class="wradar"><div class="rtop"><h3>' + title + '</h3>' +
+      '<div class="rview" role="group" aria-label="Radar view">' + vb("past", "Past hour") + vb("now", "Now") + vb("future", "Now + forecast") + '</div>' +
+      '<div class="rctl">' + (loop ? '<button type="button" id="radarPlay" aria-label="' + (radarPlay ? "Pause" : "Play") + ' radar loop">' + (radarPlay ? "Pause" : "Play") + '</button>' +
+      '<input type="range" id="radarSlider" min="0" max="' + (fr.length - 1) + '" value="' + radarIdx + '" aria-label="Radar frame">' : '') +
+      '<span id="radarTime">' + esc(radarLabel(f)) + '</span></div></div>' +
+      '<div class="wmap"><div class="wframe">'+lakeLayer()+'<div class="rbadge" id="radarBadge" hidden></div><canvas class="rcv" id="radarCv" aria-hidden="true"></canvas><img id="radarImg" alt="Radar around State College at ' + esc(clock(new Date(f.t))) + '" src="' + rsrc(f) + '">' + mapOverlay(!!radar.bare, freezeSvg(radar.freeze, fzLinesAt(fr, radarIdx))) + '</div></div>' +
       '<div class="rinfo"><div class="rleg"><span><i style="width:28px;background:linear-gradient(90deg,#cde6fc,#78aff3 35%,#1e4bc8 62%,#16329f 80%,#5523af)"></i>Snow (purple = very heavy)</span><span><i style="background:#f7982f"></i>Sleet</span><span><i style="background:#ec64be"></i>Freezing rain</span><span><i style="background:#aa6ee1"></i>Mix / borderline</span><span><i style="width:28px;background:linear-gradient(90deg,#b9ebaf,#3caf4b 45%,#3caf4b 55%,#f5e13c 68%,#f8cd32 79%,#d72323 81%,#b90f28)"></i>Rain (red = very heavy)</span><span>Darker = heavier</span>' + freezeKey(radar.freeze) + '</div>' +
-      (radar.note ? '<p class="rnote">' + esc(radar.note) + '</p>' : "") +
+      (radar.note ? '<p class="rnote">' + esc(radar.note) + '</p>' : "") + futNote() +
       '<div class="rsub">NOAA MRMS radar (lowest scan, nearest the ground), frames every 10 minutes plus the newest scan; snow or rain from radar plus model temperature corrected to live airport readings, terrain and the HRRR model precip type (which supplies sleet and freezing rain; older data shows freezing rain as rain onto a surface at or below 32°F, with no sleet). Updated ' + (radar.updatedAt ? esc(clock(new Date(radar.updatedAt))) + " (" + esc(ago(radar.updatedAt)) + ")" : "") + '.</div></div></div>';
   }
   // Frames are drawn on a canvas from images that are already decoded, so a frame change can never show a blank
@@ -3800,26 +3894,40 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     drawRadar(fr[radarIdx]); preloadRadar(fr, radarIdx, 6);
     if (img) { img.src = rsrc(fr[radarIdx]); img.alt = "Radar around State College at " + clock(new Date(fr[radarIdx].t)); }
     if (sl) sl.value = radarIdx;
-    if (tl) tl.textContent = clock(new Date(fr[radarIdx].t));
+    if (tl) tl.textContent = radarLabel(fr[radarIdx]);
+    const bd = $("radarBadge");
+    if (bd) { const fc = isFc(fr[radarIdx]); bd.hidden = radarView === "past"; bd.className = "rbadge" + (fc ? " fc" : ""); bd.textContent = fc ? "Forecast · " + clock(new Date(fr[radarIdx].t)) : "Now · " + clock(new Date(fr[radarIdx].t)); }
     window.__ffMotion = radar.nowcast && radar.nowcast.motion;   // the radar effects lean the rain with the storm
     if (radar.freeze && radar.freeze.b) {
       const d = fzPath(fzLinesAt(fr, radarIdx) || []), h = document.querySelector(".wframe .fzh"), z = document.querySelector(".wframe .fz");
       if (h && z) { h.setAttribute("d", d); z.setAttribute("d", d); }
     }
   }
+  function setRadarView(v) {
+    if (v === radarView) return;
+    radarView = v; try { localStorage.setItem("ff-radar-view", v); } catch (_) {}
+    if (v === "future") ensureFuture();
+    const fr = radarFrames(); radarIdx = v === "past" ? (fr ? fr.length - 1 : -1) : 0;
+    renderWatch();
+  }
   function wireRadar() {
     clearInterval(radarTimer); radarTimer = null;
     const fr = radarFrames(); if (!fr || !$("radarImg")) return;
-    if (radarIdx >= 0 && radarIdx < fr.length) { drawRadar(fr[radarIdx]); preloadRadar(fr, radarIdx, 6); }
+    if (radarIdx >= 0 && radarIdx < fr.length) showRadar(radarIdx);   // picture, time, badge and 32 F line together
+    document.querySelectorAll(".rview button").forEach((b) => b.onclick = () => setRadarView(b.dataset.rv));
+    if (radarView === "future") ensureFuture();
     const btn = $("radarPlay"), sl = $("radarSlider");
+    if (!btn || !sl) { showRadar(0); return; }   // "now": one picture, nothing to play
     btn.onclick = () => { radarPlay = !radarPlay; btn.textContent = radarPlay ? "Pause" : "Play"; btn.setAttribute("aria-label", (radarPlay ? "Pause" : "Play") + " radar loop"); wireRadar(); };
     sl.oninput = () => { radarPlay = false; btn.textContent = "Play"; clearInterval(radarTimer); radarTimer = null; showRadar(+sl.value); };
     if (radarPlay && !reduced) {
       let hold = 0;
       radarTimer = setInterval(() => {
-        if (radar && radar.flows && !radar._exp && !radar._shadow && !radar._expFail && !reduced) return;   // smooth frames still being made: hold the newest scan rather than jump through the raw 10-minute frames
+        const R0 = radarView === "future" ? FUT : radar;
+        if (R0 && R0.flows && !R0._exp && !R0._shadow && !R0._expFail && !reduced) return;   // smooth frames still being made: hold rather than jump through the raw frames
         const n = (radarFrames() || fr).length;   // the list can grow under a running loop when the live radar refreshes
-        if (radarIdx === n - 1 && hold < 14) { hold++; return; }  // linger on the latest frame
+        if (radarIdx === n - 1 && hold < 14) { hold++; return; }  // linger on the last frame
+        if (radarView === "future" && radarIdx === 0 && hold < 10) { hold++; return; }   // and on "now" before the forecast runs
         hold = 0; showRadar(radarIdx + 1);
       }, 95);
     }
@@ -4584,6 +4692,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   }
   function loadRadar() {
     const live = liveRadarUrl().then((u) => {
+      radarUrlLast = u;
       if (u.indexOf("/radar/radar.json") < 0 && u === radarSha) return "same";   // same commit as last time: nothing to download
       return fetch(u).then((r) => r.ok ? r.text() : null).then((t) => { if (t && u.indexOf("/radar/radar.json") < 0) radarSha = u; return t; });
     }).catch(() => null);
@@ -4612,7 +4721,10 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   }
   setInterval(() => {
     if (document.hidden || !watch || !watch.active) return;
-    loadRadar().then((changed) => { if (changed) renderWatch(); }).catch(() => {});
+    loadRadar().then((changed) => {
+      if (radarView === "future") { const before = FUT && FUT._first; ensureFuture(); if (FUT && FUT._first !== before) { radarIdx = 0; changed = true; } }
+      if (changed) renderWatch();
+    }).catch(() => {});
   }, 60000);
   getRefs().then(() => loadData(), () => loadData());   // load the newest commit of the data, not a cached branch
   setInterval(checkForUpdate, 60000);

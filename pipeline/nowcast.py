@@ -152,7 +152,7 @@ def hrrr_hours(now, lats, lons, cache):
         K = lambda n: _values(m[n], src, shape)
         tf = (K("TMP") - 273.15) * 1.8 + 32
         tdf = (K("DPT") - 273.15) * 1.8 + 32
-        hours.append({"t": run + dt.timedelta(hours=f), "f": f, "wb": wet_bulb_grid(tf, tdf),
+        hours.append({"t": run + dt.timedelta(hours=f), "f": f, "wb": wet_bulb_grid(tf, tdf), "t2m": tf.astype(np.float32),
                       "snow": K("CSNOW") >= 0.5, "rain": K("CRAIN") >= 0.5, "pellets": K("CICEP") >= 0.5,
                       "fzra": K("CFRZR") >= 0.5, "prate": K("PRATE") * 3600.0})
     R.TIMING["nowcast_hrrr_bytes"] = sum(sum(len(v) for v in m.values()) for m in got if m)
@@ -181,6 +181,7 @@ def outlook(now, lats, lons, d, brg, obs, mf, cache):
     for h in hours:   # terrain, as for the radar's own temperatures
         if mf is not None and "_adj" not in h:
             h["wb"] = R.terrain_adjust(h["wb"], mf["elev"], mf["elev_model"], R.LAPSE_WB)
+            h["t2m"] = R.terrain_adjust(h["t2m"], mf["elev"], mf["elev_model"], R.LAPSE_SFC)
             h["_adj"] = True
     # the HRRR's miss right now, from the airports, fading over the forecast
     h0 = min(hours, key=lambda h: abs((h["t"] - now).total_seconds()))

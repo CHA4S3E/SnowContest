@@ -925,6 +925,22 @@ def main(out_path=None, step=10, cache=None):
     out["updatedAt"] = dt.datetime.now(ET).isoformat(timespec="minutes")
     TIMING["total_s"] = round(time.time() - T0, 1)
     out["timing"] = TIMING
+    if step < 10 and geo is not None and cache.get("grid") is not None:
+        try:   # the next 12 hours from the HRRR's 15-minute output (future.py), saved beside this file once per model run
+            import future
+            t0 = time.time()
+            glats, glons = cache["grid"]
+            doc, key = future.build(now, glats, glons, cache.get("mf"), cache.get("obs") or [], cache, rgbas[-1] if rgbas else None)
+            if doc:
+                fp = os.path.join(os.path.dirname(os.path.abspath(out_path)), "future.json")
+                if cache.get("future_written") != key or not os.path.exists(fp):
+                    json.dump(doc, open(fp, "w"), separators=(",", ":"))
+                    cache["future_written"] = key
+                out["future"] = {"run": doc["run"], "n": len(doc["frames"]), "first": doc["frames"][0]["t"],
+                                 "last": doc["frames"][-1]["t"], "check": doc.get("check")}
+            TIMING["future_s"] = round(time.time() - t0, 1)
+        except Exception as e:
+            out["future_error"] = str(e)[:200]
     json.dump(out, open(out_path, "w"))
     print(out["note"], json.dumps(TIMING), "frames", len(frames), "json bytes", len(json.dumps(out)))
 
