@@ -1499,7 +1499,8 @@ window.FFCinema = (() => {
     const sb = document.createElement("button");
     sb.type = "button"; sb.id = "sndtog";
     sb.style.cssText = "position:absolute;left:14px;top:14px;z-index:30;background:rgba(10,18,40,.55);color:#f6ecd2;border:1px solid rgba(246,236,210,.4);border-radius:999px;padding:7px 13px;font:600 12px/1 system-ui,sans-serif;letter-spacing:.04em;cursor:pointer;backdrop-filter:blur(4px)";
-    sb.onclick = () => { if (window.FFSnd) { if (FFSnd.on() && FFSnd.prime()) { FFSnd.set(false); } else { FFSnd.set(true); FFSnd.prime(); } sndLabel(); } };
+    sb.onclick = () => { if (!window.FFSnd) return; if (FFSnd.running()) FFSnd.set(false); else { FFSnd.set(true); FFSnd.unlock(); } sndLabel(); setTimeout(sndLabel, 250); setTimeout(sndLabel, 900); };
+
     stage.appendChild(sb);
     const wp = document.createElement("div"); wp.className = "wipe"; wp.id = "wipe"; stage.appendChild(wp);
     g("cont").onclick = close;
@@ -1598,7 +1599,10 @@ window.FFCinema = (() => {
 
 const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a); } catch (e) {} };
   const cap = () => g("cap");
-  function sndLabel() { const b = g("sndtog"); if (!b || !window.FFSnd) return; const run = FFSnd.on() && FFSnd.prime(); b.textContent = run ? "Sound on" : (FFSnd.on() ? "Tap for sound" : "Sound off"); }
+  let sndHooked = false;
+  function sndLabel() { const b = g("sndtog"); if (!b || !window.FFSnd) return;
+    if (!sndHooked && FFSnd.onState) { sndHooked = true; FFSnd.onState(sndLabel); }   // the label follows the sound engine once iPhone lets it start
+    const run = FFSnd.running ? FFSnd.running() : (FFSnd.on() && FFSnd.prime()); b.textContent = run ? "Sound on" : (FFSnd.on() ? "Tap for sound" : "Sound off"); }
   function say(text) { cap().classList.remove("on"); timers.push(setTimeout(() => { cap().innerHTML = "<span>" + esc(text) + "</span>"; if (text) cap().classList.add("on"); }, text ? 250 : 0)); }
   function setScene(n) { stage.className = "stage " + Array.from({ length: n }, (_, i) => "s" + (i + 1)).join(" "); }
   const GLY = {A:"01110 10001 10001 11111 10001 10001 10001",B:"11110 10001 10001 11110 10001 10001 11110",C:"01110 10001 10000 10000 10000 10001 01110",D:"11110 10001 10001 10001 10001 10001 11110",E:"11111 10000 10000 11110 10000 10000 11111",F:"11111 10000 10000 11110 10000 10000 10000",G:"01110 10001 10000 10111 10001 10001 01111",H:"10001 10001 10001 11111 10001 10001 10001",I:"11111 00100 00100 00100 00100 00100 11111",J:"00111 00010 00010 00010 00010 10010 01100",K:"10001 10010 10100 11000 10100 10010 10001",L:"10000 10000 10000 10000 10000 10000 11111",M:"10001 11011 10101 10101 10001 10001 10001",N:"10001 11001 10101 10011 10001 10001 10001",O:"01110 10001 10001 10001 10001 10001 01110",P:"11110 10001 10001 11110 10000 10000 10000",Q:"01110 10001 10001 10001 10101 10010 01101",R:"11110 10001 10001 11110 10100 10010 10001",S:"01111 10000 10000 01110 00001 00001 11110",T:"11111 00100 00100 00100 00100 00100 00100",U:"10001 10001 10001 10001 10001 10001 01110",V:"10001 10001 10001 10001 10001 01010 00100",W:"10001 10001 10001 10101 10101 11011 10001",X:"10001 10001 01010 00100 01010 10001 10001",Y:"10001 10001 01010 00100 00100 00100 00100",Z:"11111 00001 00010 00100 01000 10000 11111","0":"01110 10011 10101 10101 11001 10001 01110","1":"00100 01100 00100 00100 00100 00100 01110","2":"01110 10001 00001 00110 01000 10000 11111","3":"11110 00001 00001 01110 00001 00001 11110","4":"00010 00110 01010 10010 11111 00010 00010","5":"11111 10000 11110 00001 00001 10001 01110","6":"01110 10000 10000 11110 10001 10001 01110","7":"11111 00001 00010 00100 01000 01000 01000","8":"01110 10001 10001 01110 10001 10001 01110","9":"01110 10001 10001 01111 00001 00001 01110","-":"00000 00000 00000 11111 00000 00000 00000",".":"00000 00000 00000 00000 00000 01100 01100","'":"00100 00100 00000 00000 00000 00000 00000","&":"01100 10010 10100 01000 10101 10010 01101"};
@@ -5206,9 +5210,20 @@ function makeSynth(c,out){
 var ctx=null,master=null,bus=null,S=null,hush=null,trainRate=0,trainNext=0,trainTick=null,clackN=0;
 function on(){try{return localStorage.getItem(LS)!=="off"}catch(e){return true}}
 function ensure(){if(ctx)return ctx;var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;
-  try{ctx=new AC();var comp=ctx.createDynamicsCompressor();bus=comp;master=ctx.createGain();master.gain.value=.85;master.connect(comp);comp.connect(ctx.destination);S=makeSynth(ctx,master)}catch(e){ctx=null}return ctx}
-function unlock(){if(!on())return;var c=ensure();if(c&&c.state==="suspended")c.resume().catch(function(){});}
-["pointerdown","keydown","touchend"].forEach(function(ev){addEventListener(ev,unlock,{passive:true})});
+  try{ctx=new AC();ctx.onstatechange=notify;var comp=ctx.createDynamicsCompressor();bus=comp;master=ctx.createGain();master.gain.value=.85;master.connect(comp);comp.connect(ctx.destination);S=makeSynth(ctx,master)}catch(e){ctx=null}return ctx}
+// iPhone: sound only starts from a tap (touchend / click), the context can sit "interrupted" after a call or a locked
+// screen (not just "suspended"), and the ring/silent switch mutes web audio unless the page says it is media playback.
+var silentEl=null,stateFns=[];
+function iosPlayback(){
+  try{if(navigator.audioSession&&navigator.audioSession.type!=="playback")navigator.audioSession.type="playback"}catch(e){}
+  try{if(!silentEl){silentEl=new Audio("data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==");silentEl.loop=true;silentEl.setAttribute("playsinline","");silentEl.volume=0.01}
+    var pr=silentEl.play();if(pr&&pr.catch)pr.catch(function(){})}catch(e){}
+}
+function unlock(){if(!on())return;var c=ensure();if(!c)return;iosPlayback();
+  if(c.state!=="running"){var pr=c.resume();if(pr&&pr.catch)pr.catch(function(){})}
+  try{var b=c.createBuffer(1,1,22050),src=c.createBufferSource();src.buffer=b;src.connect(c.destination);src.start(0)}catch(e){}}
+["pointerdown","keydown","touchend","click"].forEach(function(ev){addEventListener(ev,unlock,{passive:true,capture:true})});
+function notify(){stateFns.forEach(function(f){try{f()}catch(e){}})}
 function live(){return on()&&ctx&&ctx.state==="running"&&S}
 function now(){return ctx.currentTime+.02}
 var buf=null,bufP=null,mGain=null,mSrc=null,mWanted=false,mT0=0,mTimer=null;
@@ -5223,8 +5238,10 @@ var F={
   music:function(t0){mT0=t0||performance.now();mWanted=true;unlock();mLoad();clearInterval(mTimer);mTimer=setInterval(mTick,150);mTick()},
   musicStop:function(ms){mWanted=false;clearInterval(mTimer);if(mSrc&&mGain&&ctx){var t=ctx.currentTime,sr=mSrc,g=mGain;g.gain.cancelScheduledValues(t);g.gain.setValueAtTime(g.gain.value,t);g.gain.linearRampToValueAtTime(.0001,t+(ms||1000)/1000);try{sr.stop(t+(ms||1000)/1000+.05)}catch(e){}}mSrc=null;mGain=null},
   on:on,unlock:unlock,
-  prime:function(){unlock();return ctx&&ctx.state==="running"},
-  set:function(v){try{localStorage.setItem(LS,v?"on":"off")}catch(e){}if(v)unlock();else{F.stopAll();F.musicStop(300)}},
+  prime:function(){unlock();return !!(ctx&&ctx.state==="running")},
+  running:function(){return !!(on()&&ctx&&ctx.state==="running")},
+  onState:function(f){stateFns.push(f)},
+  set:function(v){try{localStorage.setItem(LS,v?"on":"off")}catch(e){}if(v)unlock();else{F.stopAll();F.musicStop(300);try{if(silentEl)silentEl.pause()}catch(e){}}notify()},
   click:function(v){if(live())S.click(now(),v)},
   punch:function(v){if(live())S.punch(now(),v)},
   stamp:function(v){if(live())S.stamp(now(),v)},
