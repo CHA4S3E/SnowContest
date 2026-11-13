@@ -121,6 +121,8 @@ def main():
     doc_id = today + SUFFIX[label]
 
     cfg = load(os.path.join(D_, "config.json"), {})
+    from pools import resolve
+    cfg_raw, cfg = cfg, resolve(cfg)   # pools made of another pool's members (cfg_raw is what gets saved)
     updates = load(os.path.join(D_, "updates.json"), [])
     weather_old = load(os.path.join(D_, "weather.json"), {}) or {}
     watch = load(os.path.join(D_, "watch.json"), None)

@@ -32,6 +32,8 @@ def et_date(utc_str, back_hours):
 
 today, edition = sys.argv[1], sys.argv[2]
 hist, season, config, nbm, ecmwf, weather, cpc = (load(p) for p in sys.argv[3:10])
+from pools import resolve
+config = resolve(config)   # pools made of another pool's members
 out_path = sys.argv[10]
 days = [(dt.date.fromisoformat(today) + dt.timedelta(days=i)).isoformat() for i in range(10)]
 

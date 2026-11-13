@@ -34,6 +34,9 @@ ridge_flag = "--ridge" in argv
 storm_flag = "--storm" in argv
 mid = json.load(open(args[0], encoding="utf-8"))
 cfg = json.load(open(args[1], encoding="utf-8"))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from pools import resolve  # noqa: E402
+cfg = resolve(cfg)   # pools made of another pool's members
 noon = json.load(open(args[2], encoding="utf-8"))[0]
 inputs = json.load(open(args[3], encoding="utf-8"))[0] if len(args) > 3 else {}
 outdir = os.path.dirname(os.path.abspath(args[2]))

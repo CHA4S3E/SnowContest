@@ -87,7 +87,8 @@ def update_hall(D, cfg, season, today):
         best = min(dd.values())
         return sorted(n for n, x in dd.items() if x == best)
     pools = {"meteo": {"name": cfg.get("label") or "Meteo", "picks": cfg.get("picks") or {}, "totals": cfg.get("totals") or {}}}
-    for pid, sp in (cfg.get("subpools") or {}).items():
+    from pools import resolve
+    for pid, sp in (resolve(cfg).get("subpools") or {}).items():   # a members-only pool takes its people's picks from the parent
         pools[pid] = {"name": sp.get("name") or pid, "picks": sp.get("picks") or {}, "totals": sp.get("totals") or {}}
     ordered = sorted(days)
     big = max(((v, d) for d, v in days.items() if isinstance(v, (int, float))), default=(0, None))

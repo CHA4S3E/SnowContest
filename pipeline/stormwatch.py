@@ -43,6 +43,8 @@ now = dt.datetime.strptime(sys.argv[1].rstrip("Z"), "%Y-%m-%dT%H:%M").replace(tz
 nbs, lamp = load(sys.argv[2]) or [], load(sys.argv[3]) or []
 metars = [l.strip().split(",", 2) for l in open(sys.argv[4]) if l.strip() and not l.startswith(("#", "station"))] if sys.argv[4] != "-" else []
 snowmap, hist, season, config, prev = (load(p) for p in sys.argv[5:10])
+from pools import resolve
+config = resolve(config)   # pools made of another pool's members
 seasonfc = load(sys.argv[11]) if len(sys.argv) > 11 else {}
 today = now.astimezone(ET).date()
 # the official total (season.json) covers days through season["through"]; anything after that still counts as new snow

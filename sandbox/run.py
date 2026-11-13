@@ -395,6 +395,16 @@ try:
 except Exception as _e:
     check("season extras ran", False, repr(_e))
 
+try:
+    import pools as _PL
+    _c = {"picks": {"A": "2026-11-01", "B": "2026-11-05", "C": "2026-11-09"}, "totals": {"A": 30, "C": 50},
+          "subpools": {"g": {"name": "G", "of": "meteo", "members": ["A", "C", "Z"]}, "r": {"name": "R", "picks": {"Q": "2026-11-02"}}}}
+    _r = _PL.resolve(_c)
+    check("pools: a member group takes its people's picks and guesses from Meteo", _r["subpools"]["g"]["picks"] == {"A": "2026-11-01", "C": "2026-11-09"} and _r["subpools"]["g"]["totals"] == {"A": 30, "C": 50}, _r["subpools"]["g"])
+    check("pools: other pools and the saved config are untouched", _r["subpools"]["r"] == _c["subpools"]["r"] and "picks" not in _c["subpools"]["g"])
+except Exception as _e:
+    check("pools ran", False, repr(_e))
+
 print("\n%d failed" % len(FAILS) if FAILS else "\nALL PASSED")
 print("data dir:", D)
 sys.exit(1 if FAILS else 0)

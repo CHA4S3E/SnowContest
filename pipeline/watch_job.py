@@ -51,6 +51,8 @@ def main():
     a = ap.parse_args()
     D_ = a.datadir
     cfg, prev = load(os.path.join(D_, "config.json"), {}), load(os.path.join(D_, "watch.json"))
+    from pools import resolve
+    cfg = resolve(cfg)   # pools made of another pool's members
     if prev and prev.get("test"):
         print("radar test running; watch job skipped")
         return 0
