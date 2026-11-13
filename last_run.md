@@ -1,8 +1,8 @@
-# 2026-11-12-pm
+# 2026-11-13
 
-First Flakes Nov 12: Maddie leads Meteo at 30.5%; Layla leads Ritner Floor 2 at 56.1%. Median Nov. 13.
+First Flakes Nov 13: Braeden leads Meteo at 37.5%; Braeden leads XYZ at 37.5%; Layla leads Ritner Floor 2 at 71.3%. Median Nov. 13.
 
-Headline (new): The European backs off tomorrow, down to 63%, but tomorrow barely moves, still near 46%. The median holds at Nov. 13.
+Headline (new): NWS raises today to snow showers likely, mainly this morning, and today's chance of first flakes is 70%. The curve's median holds steady at Nov. 13.
 
 ## Input health
 

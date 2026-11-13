@@ -1,8 +1,8 @@
 {
- "model": "gemini-3.5-flash-lite",
+ "model": "gemini-3.5-flash",
  "answer": {
   "afd_snow": "elevation_only",
-  "afd_quote": "The lake effect and upslope snow is expected to produce a coating to one inch of snow across the Laurels and the northwest mountains with localized amounts pushing closer to two inches in the favored snowbelts and summits.",
+  "afd_quote": "Elevation dependent wet snowfall in the Northern Tier and Endless Mountains continues into the morning.",
   "afd_snow_dates": [],
   "t610": {
    "cat": "A",
@@ -31,6 +31,19 @@
   "hazards": []
  },
  "changes": [
+  {
+   "what": "afd snow",
+   "parser": [
+    "state",
+    [
+     "2026-11-13"
+    ]
+   ],
+   "ai": [
+    "elev",
+    []
+   ]
+  },
   {
    "what": "hazards",
    "parser": [
