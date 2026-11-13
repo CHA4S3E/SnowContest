@@ -163,7 +163,7 @@ def main():
             raw, health = inputs.gather(today)
             inp, _ = F.build_inputs(today, raw, None, False)
             full = {"inp": inp, "pfc": (raw.get("pfc") or {}).get("days") or {}}
-            log.append("accum inputs: " + ", ".join(k for k in ("nbm", "gfs", "nam", "lamp", "ecmwf", "rrfs", "hrrr") if inp.get(k)) + "; %d outlook windows" % len(inp.get("windows") or []))
+            log.append("accum inputs: " + ", ".join(k for k in ("nbm", "gfs", "lamp", "ecmwf", "rrfs", "hrrr") if inp.get(k)) + "; %d outlook windows" % len(inp.get("windows") or []))
         except Exception as e:
             log.append("accum inputs failed: %r" % e)
     rows, run = [], ""

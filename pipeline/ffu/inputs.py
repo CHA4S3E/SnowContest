@@ -959,7 +959,7 @@ def gather(today):
     raw = {}
     raw["nbe"] = try_("National Blend (NBE)", nbe, today_utc)
     raw["mex"] = try_("GFS MOS (MEX)", mex, today_utc)
-    raw["nam"] = try_("NAM MOS", nam, today_utc)
+    raw["nam"] = None   # NAM MOS is retired: not requested any more
     raw["lamp"] = try_("LAMP", lamp)
     raw["ecmwf"] = try_("European (ECMWF)", ecmwf)
     raw["rrfs"] = try_("RRFS (NOAA)", cam, "rrfs")

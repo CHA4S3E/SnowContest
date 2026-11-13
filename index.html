@@ -4512,8 +4512,8 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       (Object.keys(pk).length && !(hap && k !== snowDay) ? '<p>' + (k === snowDay ? "Winner" : "Wins if it happens this day") + ': <b>' + esc(w.join(" & ")) + '</b>' + (w.length ? " (" + (Math.abs(dayDiff(pk[w[0]], k)) === 0 ? "exact" : Math.abs(dayDiff(pk[w[0]], k)) + " day" + (Math.abs(dayDiff(pk[w[0]], k)) === 1 ? "" : "s") + " off") + ")" : "") + '</p>' : "");
   }
   $("accMonths").addEventListener("click", (e) => { const b = e.target.closest(".day[data-d]"); if (!b) return; accSel = b.dataset.d; renderAccCal(accModel(), accHappened()); });
-  const ACC_SRC = { nbm: "National Blend", gfs: "GFS", nam: "NAM", lamp: "LAMP", ecmwf: "European", rrfs: "RRFS", hrrr: "HRRR" };
-  const accSrcNames = (ms) => ["nbm", "gfs", "ecmwf", "hrrr", "rrfs", "nam", "lamp"].filter((k) => ms.includes(k)).map((k) => ACC_SRC[k]).join(", ");
+  const ACC_SRC = { nbm: "National Blend", gfs: "GFS", lamp: "LAMP", ecmwf: "European", rrfs: "RRFS", hrrr: "HRRR" };
+  const accSrcNames = (ms) => ["nbm", "gfs", "ecmwf", "hrrr", "rrfs", "lamp"].filter((k) => ms.includes(k)).map((k) => ACC_SRC[k]).join(", ");
   function fillAccNames() { const sp = accPool(), all = new Set([...(sp && sp.members || []), ...Object.keys(accPicks())]); $("accNames").innerHTML = [...all].sort().map((n) => '<option value="' + esc(n) + '">').join(""); }
   const accFind = (raw) => Object.keys(accPicks()).find((n) => n.toLowerCase() === raw.toLowerCase()) || ((accPool() || {}).members || []).find((n) => n.toLowerCase() === raw.toLowerCase());
   const setAccNote = (t, k) => { const e = $("accNote"); e.textContent = t; e.className = "addnote" + (k ? " " + k : ""); };

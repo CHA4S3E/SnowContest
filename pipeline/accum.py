@@ -4,7 +4,7 @@ A day-by-day hazard, then the chance each day is the first.
 
 With the full First Flakes inputs (inp, built by ffu.facts.build_inputs from ffu.inputs.gather):
   model days      each day's chance of snow falling from the same blend First Flakes used (model3.consensus: National
-                  Blend 0.6, GFS MOS 0.3, European 0.15, NAM MOS / RRFS / HRRR / LAMP 0.1 each), times the chance it
+                  Blend 0.6, GFS MOS 0.3, European 0.15, RRFS / HRRR / LAMP 0.1 each), times the chance it
                   adds up to a tenth, from the forecast amount (National Blend, European, and HRRR / RRFS where they
                   reach, averaged):  p = chance x (0.3 + 0.7 x (1 - exp(-inches / 0.2)))
                   NWS's own point forecast: a day it says brings 0.1 in or more counts at least its chance of precipitation,
