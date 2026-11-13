@@ -393,6 +393,9 @@ input[type=range] { width: 100%; accent-color: var(--ice); }
 .detail p { margin: 0; color: var(--muted); }
 .detail b { color: var(--ink); }
 .coldnote { font-size: 0.85rem; color: var(--muted); margin: 0; }
+.acccal { display: grid; gap: 12px; margin-top: 18px; scroll-margin-top: 150px; }
+.acccal > h3 { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+.acccal > .sub { margin: 0; }
 
 /* Eliminated */
 .outlist { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -1014,6 +1017,7 @@ form.addform.card{position:relative;background:#f6ecd2;color:#3a2a14;color-schem
 @keyframes fftk{from{opacity:0;transform:translateY(-18px) rotate(-3deg) scaleY(.92)}to{opacity:1;transform:rotate(-.5deg)}}
 form.addform.card::before{content:"Admit one \00b7  First Flakes";font-family:var(--mono);font-size:.68rem;letter-spacing:.22em;text-transform:uppercase;color:#8a5a1a;padding-bottom:8px;border-bottom:2px dashed rgba(58,42,20,.3)}
 form#totForm.card::before{content:"Admit one \00b7  Season Total"}
+form#accForm.card::before{content:"Admit one \00b7  First Accumulation"}
 form.addform.card::after{content:"";position:absolute;left:13px;top:14px;bottom:14px;border-left:2px dashed rgba(58,42,20,.32);pointer-events:none}
 form.addform .addgrid label{font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:#8a5a1a}
 form.addform .addgrid input{background:transparent;border:0;border-bottom:2px solid #8a5a1a;border-radius:0;padding:4px 2px 5px;font-family:var(--display);font-weight:700;font-size:1.3rem;letter-spacing:0;text-transform:none;color:#3a2a14}
@@ -1136,6 +1140,7 @@ body:not(.st) .ffk-hold{display:none}
       <a href="#st-details" data-sec="st-details" class="st-only">Forecast details</a>
       <a href="#sec-rooting" data-sec="sec-rooting" class="ff-only">Rooting</a>
       <a href="#sec-calendar" data-sec="sec-calendar" class="ff-only">Calendar</a>
+      <a href="#accCal" data-sec="accCal" id="accCalChip" hidden>Accumulation calendar</a>
       <a href="#sec-trend" data-sec="sec-trend" class="ff-only">Trend</a>
       <a href="#sec-total" data-sec="sec-total" class="ff-only">Snow total</a>
       <a href="#sec-details" data-sec="sec-details" class="ff-only">Forecast details</a>
@@ -1216,6 +1221,12 @@ body:not(.st) .ffk-hold{display:none}
       <span id="accUnlockRow" hidden><input id="accPw" type="password" autocomplete="current-password" placeholder="Owner password" aria-label="Owner password"> <button type="submit" class="primary">Unlock</button> <span class="addnote" id="accPwMsg"></span></span>
     </form>
     <div id="accBody"></div>
+    <div id="accCal" class="acccal" hidden>
+      <h3>The calendar</h3>
+      <p class="sub">Deeper blue means a better chance the first 0.1 inch falls that day. Tap any day to see who wins if it happens then.</p>
+      <div class="months" id="accMonths"></div>
+      <div class="detail card" id="accDetail" aria-live="polite"><strong>Pick a day</strong><p>See the chance and who would win.</p></div>
+    </div>
   </section>
   <section id="sec-watch" hidden aria-live="polite">
     <div class="watch" id="watch"></div>
@@ -4444,7 +4455,63 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     } else if (!hap) h += '<p class="accnote">Odds start with the first season-mode update.</p>';
     body.innerHTML = h;
     fillAccNames();
+    renderAccCal(m, hap);
   }
+  let accSel = null;
+  function accCalOn() { const sp = accPool(); return !!sp && todayIso >= (sp.accumCalFrom || "2026-11-14"); }   // shows once First Flakes is over
+  function renderAccCal(m, hap) {
+    const on = accCalOn(); $("accCal").hidden = !on; $("accCalChip").hidden = !on;
+    if (!on) return;
+    const dist = (m && m.dist) || {}, maxP = Math.max(0.01, ...Object.values(dist));
+    const pk = accPicks(), byDate = {};
+    for (const [n, d] of Object.entries(pk)) (byDate[d] = byDate[d] || []).push(n);
+    const odds = hap ? {} : accOdds(dist), from = (m && m.start) || todayIso;
+    let end = "2026-12-31";
+    for (const d of Object.keys(byDate).concat(m && m.range80 ? [m.range80[1]] : [])) if (d > end) end = d;
+    const first = parse("2026-11-01"), last = parse(end), months = [];
+    for (let y = first.getFullYear(), mo = first.getMonth(); y < last.getFullYear() || (y === last.getFullYear() && mo <= last.getMonth()); mo === 11 ? (y++, mo = 0) : mo++) months.push([y, mo]);
+    const snowDay = hap ? hap[0] : null;
+    if (!accSel) accSel = snowDay || (todayIso >= from ? todayIso : from);
+    $("accMonths").innerHTML = months.map(([y, mo]) => {
+      const start = new Date(y, mo, 1).getDay(), days = new Date(y, mo + 1, 0).getDate();
+      let monthP = 0, monthPicks = 0;
+      let cells = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d, i) => '<div class="dow' + (i === 0 || i === 6 ? " we" : "") + '">' + d + '</div>').join("");
+      for (let i = 0; i < start; i++) cells += '<div class="day blank" aria-hidden="true"></div>';
+      for (let d = 1; d <= days; d++) {
+        const k = iso(new Date(y, mo, d)), p = hap ? 0 : dist[k] || 0;
+        monthP += p;
+        const a = p > 0 ? (0.08 + 0.82 * p / maxP) : 0, cls = ["day"];
+        if (k < from && k !== snowDay) cls.push("past");
+        if (k === todayIso) cls.push("today");
+        if (k === accSel) cls.push("sel");
+        if (k === snowDay) cls.push("snow");
+        if (a > 0.5) cls.push("hot");
+        const names = (byDate[k] || []).slice().sort();
+        if (names.length) { cls.push("haspick"); monthPicks += names.length; }
+        const lost = (nm) => hap ? !accWinners(snowDay).includes(nm) : (pk[nm] < from && !(odds[nm] > 0));
+        const style = (k !== snowDay && a) ? ' style="--frost:' + Math.min(1, a * 1.1).toFixed(2) + ';background:linear-gradient(160deg,rgba(var(--heat),' + Math.min(1, a + 0.08).toFixed(2) + '),rgba(var(--heat),' + Math.max(0.04, a - 0.1).toFixed(2) + '));' + (a > 0.5 ? "color:var(--solid);" : "") + '"' : "";
+        cells += '<button type="button" class="' + cls.join(" ") + '" data-d="' + k + '"' + style +
+          ' aria-label="' + LONG[mo] + " " + d + ", " + p.toFixed(1) + "% chance" + (names.length ? ", picked by " + esc(names.join(", ")) : "") + '">' +
+          '<span class="top"><span class="n">' + d + '</span></span>' +
+          (names.length ? '<span class="tags">' + names.map((nm) => '<span class="tag' + (lost(nm) ? " out" : "") + '" style="--c:' + pcolor(nm) + '">' + esc(nm) + '</span>').join("") + '</span>' : "") +
+          '<span class="pchance">' + (k === snowDay ? "0.1+ in" : p >= 0.05 ? p.toFixed(1) + "%" : "0%") + '</span></button>';
+      }
+      return '<div class="month card" data-name="' + LONG[mo] + '"><h3>' + LONG[mo] +
+        (monthP >= 0.5 ? '<span class="mpill">' + monthP.toFixed(0) + '% chance</span>' : "") +
+        (monthPicks ? '<span class="mpicks">' + monthPicks + (monthPicks === 1 ? " pick" : " picks") + '</span>' : "") +
+        '</h3><div class="grid7">' + cells + '</div></div>';
+    }).join("");
+    document.querySelectorAll("#accMonths .tag").forEach((t) => {   // shrink names that don't fit their day
+      let size = parseFloat(getComputedStyle(t).fontSize), g = 0;
+      while (t.scrollWidth > t.clientWidth + 0.5 && size > 6.5 && g++ < 20) { size -= 0.5; t.style.fontSize = size + "px"; if (size < 8.5) t.style.letterSpacing = "-0.04em"; }
+    });
+    const k = accSel, dt = parse(k), p = hap ? 0 : dist[k] || 0, w = accWinners(k), here = byDate[k] || [];
+    $("accDetail").innerHTML = '<strong>' + LONG[dt.getMonth()] + " " + dt.getDate() + '</strong>' +
+      (k === snowDay ? '<p>The station measured <b>' + stFmt(hap[1]) + ' in</b> this day.</p>' : hap ? "" : '<p>Chance the first 0.1 inch falls this day: <b>' + p.toFixed(1) + '%</b></p>') +
+      '<p>Picked by: <b>' + (here.length ? esc(here.join(", ")) : "nobody") + '</b></p>' +
+      (Object.keys(pk).length && !(hap && k !== snowDay) ? '<p>' + (k === snowDay ? "Winner" : "Wins if it happens this day") + ': <b>' + esc(w.join(" & ")) + '</b>' + (w.length ? " (" + (Math.abs(dayDiff(pk[w[0]], k)) === 0 ? "exact" : Math.abs(dayDiff(pk[w[0]], k)) + " day" + (Math.abs(dayDiff(pk[w[0]], k)) === 1 ? "" : "s") + " off") + ")" : "") + '</p>' : "");
+  }
+  $("accMonths").addEventListener("click", (e) => { const b = e.target.closest(".day[data-d]"); if (!b) return; accSel = b.dataset.d; renderAccCal(accModel(), accHappened()); });
   function fillAccNames() { const sp = accPool(), all = new Set([...(sp && sp.members || []), ...Object.keys(accPicks())]); $("accNames").innerHTML = [...all].sort().map((n) => '<option value="' + esc(n) + '">').join(""); }
   const accFind = (raw) => Object.keys(accPicks()).find((n) => n.toLowerCase() === raw.toLowerCase()) || ((accPool() || {}).members || []).find((n) => n.toLowerCase() === raw.toLowerCase());
   const setAccNote = (t, k) => { const e = $("accNote"); e.textContent = t; e.className = "addnote" + (k ? " " + k : ""); };
@@ -4723,7 +4790,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     $("accSave").disabled = true;
     const ok = await saveAcc(name, d, (had ? "Updated " : "Added ") + name + " · " + short(d) + ".");
     $("accSave").disabled = false;
-    if (ok && window.FFStamp) FFStamp.show({ tray: "ffTrayAcc", label: name + " " + short(d), top: "First accumulating snow", name: name, val: short(d), sub: "Pick is in", stamp: "Locked in" });
+    if (ok && window.FFStamp) FFStamp.show({ tray: "ffTrayAcc", label: name + " " + short(d), top: "Admit one", brand: "First Accumulation", name: name, val: short(d) + " · 0.1 in+", sub: "Pick is in", stamp: "Locked in" });
     if (ok) { $("accName").value = ""; $("accDate").value = ""; syncAcc(); }
   });
   $("accRemove").addEventListener("click", () => { $("accRemoveName").textContent = $("accName").value.trim(); $("accRemove").hidden = true; $("accConfirm").hidden = false; });
@@ -5286,7 +5353,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
 <div id="ffxm" aria-hidden="true"></div>
 <div id="ffs" role="dialog" aria-label="Guess locked in"><div class="ffs-wrap" id="ffsw">
  <div class="ffs-tk"><svg class="ffs-lock" viewBox="0 0 80 80" aria-hidden="true"><g class="ffs-shackle"><path d="M22 36V26a18 18 0 0 1 36 0v10" fill="none" stroke="#8a5a1a" stroke-width="7" stroke-linecap="round"/></g><rect x="12" y="34" width="56" height="38" rx="8" fill="#c99212"/><circle cx="40" cy="50" r="5" fill="#3a2a14"/><rect x="38" y="52" width="4" height="11" rx="2" fill="#3a2a14"/></svg>
- <div class="ffs-top"><span id="ffsTop">Admit one</span><span>First Flakes</span></div>
+ <div class="ffs-top"><span id="ffsTop">Admit one</span><span id="ffsBrand">First Flakes</span></div>
  <div class="ffs-name" id="ffsName"></div><div class="ffs-val" id="ffsVal"></div><div class="ffs-sub" id="ffsSub"></div><i class="ffs-hole"></i></div>
  <div class="ffs-stub" aria-hidden="true"><span id="ffsSer">No. 0000</span></div>
  <div class="ffs-stamp" id="ffsStamp">Locked in</div></div></div>
@@ -5326,7 +5393,7 @@ function show(o){
   if(open)close();open=true;clr();
   var w=$("ffsw"),root=$("ffs"),fancy=!o.lock&&!reduce,D=fancy?1000:0;
   w.className="ffs-wrap"+(o.lock?" lockmode":"")+(fancy?" tw":"");
-  $("ffsTop").textContent=o.top||"Admit one";
+  $("ffsTop").textContent=o.top||"Admit one";$("ffsBrand").textContent=o.brand||"First Flakes";
   var nm=o.name||"",vl=o.val||"",sb=o.sub||"";
   $("ffsSer").textContent="No. "+String(Math.floor(Math.random()*9000)+1000);
   $("ffsStamp").textContent=o.stamp||"Locked in";
