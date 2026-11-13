@@ -43,6 +43,21 @@ def metars():
     return out
 
 
+def close_for_snow(w, cfg, now_et):
+    """the pool owner declared first flakes: end the watch with that as its outcome (no names in the headline)"""
+    fs, half = cfg.get("firstSnow"), cfg.get("firstSnowHalf")
+    d = dt.date.fromisoformat(fs)
+    when = "%s %s" % (d.strftime("%A"), {"am": "morning", "pm": "afternoon"}.get(half, "")) if fs else "today"
+    w.update({"active": False, "stage": "ended", "endedAt": now_et, "firstSnow": fs,
+              "reported": {"time": now_et, "date": fs, "half": half, "declared": True},
+              "title": "First flakes are official",
+              "headline": "The pool owner made it official: the first flakes fell %s. The watch is closed and the winners are in." % when.strip(),
+              "headlineAt": now_et})
+    w["log"] = ((w.get("log") or []) + [{"t": now_et, "title": "First flakes are official",
+                                          "text": "Declared for %s. That ends the watch." % when.strip()}])[-12:]
+    return w
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("datadir")
@@ -60,8 +75,14 @@ def main():
         import storm_job
         return storm_job.run(D_)
     if cfg.get("firstSnow") and prev and (prev.get("active") or prev.get("stage") == "ondeck"):
-        prev.update({"active": False, "stage": "ended", "endedAt": dt.datetime.now(ET).isoformat(timespec="minutes")})
+        close_for_snow(prev, cfg, dt.datetime.now(ET).isoformat(timespec="minutes"))
         save(os.path.join(D_, "watch.json"), prev)
+        if prev.get("startedAt"):   # it ran live: keep it in the past-watches drawer
+            try:
+                import watchlib
+                watchlib.archive(D_, prev, "flakes")
+            except Exception as e:  # noqa: the library is a nice-to-have
+                print("watch library skipped:", repr(e))
         print("first snow declared; watch closed")
         return 0
     ondeck = bool(prev) and not prev.get("active") and prev.get("stage") == "ondeck"

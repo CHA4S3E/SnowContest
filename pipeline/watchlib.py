@@ -22,7 +22,7 @@ def entry(w, kind):
          "title": w.get("title"), "headline": w.get("headline"), "trend": nl[-48:], "peak": {"v": pk["v"], "t": pk["t"]}, "final": nl[-1]}
     if kind == "flakes":
         rep = w.get("reported")
-        e["reported"] = {"time": rep.get("time")} if isinstance(rep, dict) else None
+        e["reported"] = {"time": rep.get("time"), "declared": bool(rep.get("declared"))} if isinstance(rep, dict) else None
         e["log"] = [{"t": x.get("t"), "title": x.get("title"), "text": x.get("text")} for x in (w.get("log") or [])][-12:]
         e["checks"] = len(nl)
     else:

@@ -3527,7 +3527,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     box.innerHTML = rows.map((x) => {
       const storm = x.kind === "storm", unit = storm ? " in" : "%", f = (v) => (storm ? stFmt(v) : Math.round(v)) + unit;
       const outcome = storm ? "Final forecast storm total " + f(x.final.v) + (x.final.lo != null ? " (range " + stFmt(x.final.lo) + " to " + stFmt(x.final.hi) + " in)" : "")
-        : x.reported ? "Snow reported at the airport" + (x.reported.time ? " at " + clock(new Date(x.reported.time)) : "") : "No flakes fell; the window passed";
+        : x.reported ? (x.reported.declared ? "First flakes declared by the pool owner" : "Snow reported at the airport") + (x.reported.time ? " at " + clock(new Date(x.reported.time)) : "") : "No flakes fell; the window passed";
       const nums = '<span>Peak ' + (storm ? "expected total " : "chance ") + f(x.peak.v) + ", " + esc(clock(new Date(x.peak.t))) + '</span><span>' + (storm ? "Final " : "Final chance ") + f(x.final.v) + '</span>' + (storm && x.maxHourly ? '<span>Heaviest hour ' + stFmt(x.maxHourly) + ' in</span>' : "") + '<span>' + x.checks + ' checks</span>';
       const chart = watchTrend(x.trend, { ymax: storm ? (m) => Math.max(2, Math.ceil(m / 2) * 2) : (m) => Math.max(20, Math.ceil(m / 10) * 10), fmt: storm ? (v) => stFmt(v) + '"' : (v) => Math.round(v) + "%",
         label: (storm ? "Expected storm total" : "Chance of first flakes") + " over that watch", empty: "Too few checks to chart.", legend: "Line: " + (storm ? "expected storm total" : "chance of first flakes") + " at each check. Shaded: the likely range." });

@@ -405,6 +405,18 @@ try:
 except Exception as _e:
     check("pools ran", False, repr(_e))
 
+try:
+    import watch_job as _WJ, watchlib as _WL, tempfile as _tf2
+    _w = {"active": True, "stage": "live", "startedAt": "2026-11-12T04:08-05:00", "title": "Eyes on this morning",
+          "needleLog": [{"t": "2026-11-12T04:08-05:00", "v": 5}, {"t": "2026-11-13T06:08-05:00", "v": 17}], "log": []}
+    _WJ.close_for_snow(_w, {"firstSnow": "2026-11-13", "firstSnowHalf": "am"}, "2026-11-13T06:43-05:00")
+    check("watch: declaring first flakes ends the watch with that outcome", _w["stage"] == "ended" and not _w["active"] and _w["reported"]["declared"] and "Friday morning" in _w["headline"], _w["headline"])
+    check("watch: the closing headline names nobody", not any(n in _w["headline"] for n in ("Maddie", "Braeden", "Layla")))
+    with _tf2.TemporaryDirectory() as _D2:
+        check("watch: a declared watch is saved to past watches", _WL.archive(_D2, _w, "flakes") and json.load(open(os.path.join(_D2, "watchlib.json")))["entries"][0]["reported"]["declared"] is True)
+except Exception as _e:
+    check("watch close ran", False, repr(_e))
+
 print("\n%d failed" % len(FAILS) if FAILS else "\nALL PASSED")
 print("data dir:", D)
 sys.exit(1 if FAILS else 0)
