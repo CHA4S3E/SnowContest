@@ -4308,6 +4308,14 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     renderCase();
     setTimeout(() => $("bigred").focus(), 400);
   });
+  function saveWhy(err) {   // say why a save to GitHub failed, so it can be fixed rather than retried blindly
+    const m = String((err && err.message) || "");
+    if (/GitHub 401/.test(m)) return "Couldn't save: GitHub says the save key has expired or was revoked (401). It needs a new key.";
+    if (/GitHub 403/.test(m)) return "Couldn't save: GitHub refused the save key (403). It may lack write access to the repo.";
+    if (/GitHub 404/.test(m)) return "Couldn't save: GitHub can't find the repo with this key (404). The key may not include this repo.";
+    if (/GitHub 409|GitHub 422/.test(m)) return "Couldn't save: the data changed at the same moment. Hold again.";
+    return "Couldn't save (" + (m || "no connection") + "). Check your connection and hold again.";
+  }
   function setRing(frac) { $("ringFg").style.strokeDashoffset = (RING * (1 - frac)).toFixed(1); }
   function startHold(e) {
     if ($("bigred").disabled || holdRaf) return;
@@ -4350,7 +4358,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       return true;
     } catch (err) {
       setRing(0);
-      $("holdHint").textContent = err && err.code === "invalid_argument" ? "Only the pool owner can declare snow." : "Couldn't save. Check your connection and hold again.";
+      $("holdHint").textContent = err && err.code === "invalid_argument" ? "Only the pool owner can declare snow." : saveWhy(err);
       return false;
     }
   }
