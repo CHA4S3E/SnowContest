@@ -3601,28 +3601,30 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     const len = (l) => { let s = 0; for (let i = 1; i < l.length; i++) s += Math.hypot(l[i][0] - l[i - 1][0], l[i][1] - l[i - 1][1]); return s; };
     return out.filter((l) => l.length >= 4 && len(l) >= (minLen || 6)).map((l) => smooth(l).map((p) => [p[0] / (gw - 1), p[1] / (gh - 1)]));   // under ~15 miles is a speck, not a line
   }
-  function fzFut(t) {   // the forecast hours' surface grids, blended by time
-    const L = futDoc.fz, n = futDoc.gw * futDoc.gh;
+  function fzHours(L, gw, gh, t, smooth, minLen, C) {   // 32 F lines from hourly surface grids, blended by time
+    const n = gw * gh;
     L.forEach((h) => { if (!h._G) { h._G = fzGrid(h.b, n); h._t = new Date(h.t).getTime(); } });
     let a = L[0], b = L[L.length - 1];
-    for (let i = 0; i < L.length - 1; i++) if (L[i]._t <= t && L[i + 1]._t >= t) { a = L[i]; b = L[i + 1]; break; }
-    const w = b._t > a._t ? Math.min(1, Math.max(0, (t - a._t) / (b._t - a._t))) : 0, q = Math.round(w * 12), key = a.t + "|" + q;
-    futDoc._c = futDoc._c || {};
-    if (!futDoc._c[key]) {
-      const gw = futDoc.gw, gh = futDoc.gh, k = q / 12; let G = new Float32Array(n);
+    if (t <= a._t) b = a; else if (t >= b._t) a = b;
+    else for (let i = 0; i < L.length - 1; i++) if (L[i]._t <= t && L[i + 1]._t >= t) { a = L[i]; b = L[i + 1]; break; }
+    const w = b._t > a._t ? Math.min(1, Math.max(0, (t - a._t) / (b._t - a._t))) : 0, q = Math.round(w * 12), key = a.t + "|" + b.t + "|" + q;
+    if (!C[key]) {
+      const k = q / 12; let G = new Float32Array(n);
       for (let i = 0; i < n; i++) G[i] = a._G[i] * (1 - k) + b._G[i] * k;
-      for (let pass = 0; pass < 2; pass++) {   // a forecast hovering near 32 F would draw dozens of squiggles: smooth it, keep the main line
+      for (let pass = 0; pass < smooth; pass++) {   // a forecast hovering near 32 F would draw dozens of squiggles: smooth it, keep the main line
         const S = new Float32Array(n);
-        for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) { let t = 0, c = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const yy = y + dy, xx = x + dx; if (yy >= 0 && yy < gh && xx >= 0 && xx < gw) { t += G[yy * gw + xx]; c++; } } S[y * gw + x] = t / c; }
+        for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) { let s2 = 0, c = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const yy = y + dy, xx = x + dx; if (yy >= 0 && yy < gh && xx >= 0 && xx < gw) { s2 += G[yy * gw + xx]; c++; } } S[y * gw + x] = s2 / c; }
         G = S;
       }
-      futDoc._c[key] = fzContour(G, gw, gh, 12);
+      C[key] = fzContour(G, gw, gh, minLen);
     }
-    return futDoc._c[key];
+    return C[key];
   }
+  function fzFut(t) { futDoc._c = futDoc._c || {}; return fzHours(futDoc.fz, futDoc.gw, futDoc.gh, t, 2, 12, futDoc._c); }
   function fzLinesAt(fr, idx) {
     if (radarView === "future" && FUT && futDoc && futDoc.fz && futDoc.fz.length && idx > 0) return fzFut(new Date((fr[idx] || {}).t).getTime());
     const fz = radar && radar.freeze; if (!fz) return null;
+    if (fz.hrs && fz.hrs.length > 1 && fz.gw) { fz._hc = fz._hc || {}; return fzHours(fz.hrs, fz.gw, fz.gh, new Date((fr[idx] || {}).t).getTime(), 0, 6, fz._hc); }   // hourly model grids around now, blended by time
     if (!fz.b || !fz.gw) return fz.lines;
     const n = fz.gw * fz.gh;
     if (!fz._B) { fz._B = fzGrid(fz.b, n); fz._A = fz.a ? fzGrid(fz.a, n) : null; fz._c = {}; }

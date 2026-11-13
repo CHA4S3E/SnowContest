@@ -494,6 +494,30 @@ def model_fields(latest, lats, lons):
     return out
 
 
+def hrrr_t2m(valid, lats, lons, cache):
+    """the HRRR 2 m temperature (F) valid at `valid` (an exact hour), from the newest run that has it; cached"""
+    key = ("t2m", valid.strftime("%Y%m%d%H"))
+    if key in cache:
+        return cache[key]
+    import nowcast
+    for k in range(0, 4):
+        run = valid - dt.timedelta(hours=k)
+        try:
+            m = _hrrr_msgs(HRRR.format(d=run.strftime("%Y%m%d"), h=run.hour, f=k), (("TMP", "2 m above ground"),))
+        except Exception:
+            m = None
+        if m and "TMP" in m:
+            if cache.get("t2m_map") is None:
+                cache["t2m_map"] = nowcast._mapping(m["TMP"], lats, lons)
+            src, shape = cache["t2m_map"]
+            f = (nowcast._values(m["TMP"], src, shape) - 273.15) * 1.8 + 32
+            cache[key] = f
+            for old in [x for x in cache if isinstance(x, tuple) and x[0] == "t2m" and x != key and x[1] < (valid - dt.timedelta(hours=3)).strftime("%Y%m%d%H")]:
+                cache.pop(old, None)
+            return f
+    return None
+
+
 def wet_bulb_arr(tf, tdf):
     """vectorised Stull (2011) wet-bulb, F in and out"""
     t = (tf - 32) / 1.8
@@ -708,6 +732,7 @@ def main(out_path=None, step=10, cache=None):
     d = brg = mf = pt = None
     snowline = None
     adjusted = obs_done = False
+    sfc_corr = None
     ov = None
     wb_raw = wb
     for t in frames_t:
@@ -777,6 +802,7 @@ def main(out_path=None, step=10, cache=None):
                             wb_prev = wb_prev + cw
                         out["obs_wetbulb"] = sw
                     cs, ss = obs_correction(obs, lats, lons, sfc, 3)
+                    sfc_corr = cs
                     if cs is not None:
                         sfc = sfc + cs
                         if sfc_prev is not None and sfc_prev.shape == cs.shape:
@@ -811,6 +837,28 @@ def main(out_path=None, step=10, cache=None):
             fz.update({"gw": 96, "gh": 72, "s": 4, "b": pack_temp(sfc), "st": sfc_t.astimezone(ET).isoformat(timespec="minutes")})
             if sfc_prev is not None and sfc_prev.shape == sfc.shape:   # the model hour before: the page blends the two by time
                 fz.update({"a": pack_temp(sfc_prev), "pt": sfc_pt.astimezone(ET).isoformat(timespec="minutes")})
+            if str(out.get("surface_source", "")).startswith("HRRR") and cache.get("grid") is not None:
+                # the HRRR standing in: the hour before, this hour and the next, each like the radar's own (terrain,
+                # airports), so the page can move the 32 F line through the loop instead of holding one hour's
+                try:
+                    glats, glons = cache["grid"]
+                    hrs = []
+                    for k in (-1, 0, 1):
+                        vt = sfc_t + dt.timedelta(hours=k)
+                        g = sfc if k == 0 else hrrr_t2m(vt, glats, glons, cache)
+                        if g is None or g.shape != sfc.shape:
+                            continue
+                        if k != 0:
+                            mfx = cache.get("mf")
+                            if mfx is not None:
+                                g = terrain_adjust(g, mfx["elev"], mfx["elev_model"], LAPSE_SFC)
+                            if sfc_corr is not None and sfc_corr.shape == g.shape:
+                                g = g + sfc_corr
+                        hrs.append({"t": vt.astimezone(ET).isoformat(timespec="minutes"), "b": pack_temp(g)})
+                    if len(hrs) >= 2:
+                        fz["hrs"] = hrs
+                except Exception as e:
+                    out["freeze_hours_error"] = str(e)[:200]
             out["freeze"] = fz
         except Exception as e:
             out["freeze_error"] = str(e)[:200]
