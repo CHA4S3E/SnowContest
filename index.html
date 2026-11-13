@@ -865,6 +865,19 @@ body.alarm.holding #ffalarm { --spd: .55s; }
 .watch .sea { display: grid; gap: 6px; }
 .watch .sea .row { display: flex; justify-content: space-between; gap: 8px; font-size: .9rem; }
 .watch .sea .row b { font-family: var(--mono); }
+.watch .wscen { grid-column: 1 / -1; }
+.watch .scols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 560px) { .watch .scols { grid-template-columns: minmax(0, 1fr); } }
+.watch .scol { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); border-radius: 12px; padding: 10px 12px; display: grid; gap: 4px; align-content: start; }
+.watch .scol .shd { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: .8rem; opacity: .9; }
+.watch .scol .shd b { font: 800 1.15rem/1 var(--display); opacity: 1; }
+.watch .scol .ssub { font-size: .75rem; opacity: .7; }
+.watch .scol .slead { font: 700 .95rem/1.2 var(--display); margin: 4px 0 2px; }
+.watch .scol .srow { display: flex; justify-content: space-between; gap: 8px; font-size: .85rem; }
+.watch .scol .srow b { font-family: var(--mono); font-weight: 600; }
+.watch .scol i.up { font-style: normal; color: #9df5c0; font-size: .75rem; }
+.watch .scol i.dn { font-style: normal; color: #ffb3b3; font-size: .75rem; }
+.watch .scol .sout { font-size: .75rem; color: #ffd0d0; margin-top: 2px; }
 .watch.storm .wgrid .wbox:first-child { grid-row: auto; }
 @media (min-width: 760px) { .watch.storm .wgrid { grid-template-columns: minmax(0,1fr) minmax(0,1fr); } .watch.storm .wgrid .wbox:first-child { grid-column: 1 / -1; } }
 /* Season snow total mode */
@@ -881,6 +894,42 @@ body:not(.st) .st-only { display: none !important; }
 .ckey .k-norm { border-top: 2px dashed var(--muted); }
 .ckey .k-med { border-top: 2px dotted var(--ice); }
 .ckey .k-band { height: 10px; border: 0; background: rgba(var(--heat), .18); border-radius: 2px; }
+.pacechart { padding: 12px 12px 8px; }
+.pacechart svg { width: 100%; height: auto; display: block; }
+.pacechart .pk-band1 { fill: rgba(var(--heat), .10); } .pacechart .pk-band2 { fill: rgba(var(--heat), .16); }
+.pacechart .pk-med { fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-dasharray: 5 4; }
+.pacechart .pk-last { fill: none; stroke: #d4741c; stroke-width: 1.8; }
+.pacechart .pk-most { fill: none; stroke: #2a72c2; stroke-width: 1.4; opacity: .75; }
+.pacechart .pk-least { fill: none; stroke: #8a94a3; stroke-width: 1.4; opacity: .9; }
+.pacechart .pk-now { fill: none; stroke: var(--ice); stroke-width: 3.2; stroke-linecap: round; }
+.pacechart .pk-dot { fill: var(--ice); stroke: #fff; stroke-width: 1.5; }
+.pacechart .pk-today { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 2 3; }
+.pacechart .pk-guess { stroke: #c4497a; stroke-width: 2; }
+.pacechart .pk-sel { stroke: #c4497a; stroke-width: 2; stroke-dasharray: 4 4; fill: none; }
+.pacechart text { font: 500 11px var(--mono); fill: var(--muted); }
+.pacechart .pk-lab { font-weight: 700; }
+.ckey .k-last { border-top: 2px solid #d4741c; } .ckey .k-most { border-top: 2px solid #2a72c2; } .ckey .k-least { border-top: 2px solid #8a94a3; }
+.pacegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-top: 12px; }
+.pacecell { appearance: none; text-align: left; font: inherit; color: inherit; cursor: pointer; display: grid; gap: 3px; padding: 10px 12px; }
+.pacecell[aria-pressed="true"] { outline: 2px solid #c4497a; }
+.pacecell.pgone { cursor: default; grid-column: 1 / -1; }
+.pacecell .pn { display: flex; justify-content: space-between; gap: 8px; font-weight: 700; }
+.pacecell .pn span { font: 600 .82rem var(--mono); color: var(--muted); }
+.pacecell .pv { font-size: .85rem; } .pacecell .pt { font: 700 .72rem/1.2 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+.pacecell .pt.q { color: #6f7d8f; } .pacecell .pt.n { color: #2f9a86; } .pacecell .pt.s { color: #2a72c2; } .pacecell .pt.b { color: #7a5cc4; } .pacecell .pt.x { color: #b81f27; }
+.miles { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.mile { padding: 12px 14px; display: grid; gap: 4px; align-content: start; }
+.mile .me { font: 700 .7rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.mile .mv { font: 800 1.35rem/1.1 var(--display); }
+.mile .mn { font-size: .82rem; color: var(--muted); }
+.mile.pending { opacity: .62; } .mile.pending .mv { font-size: 1.05rem; }
+.mile.hit { border-color: rgba(var(--heat), .45); }
+.hofh { margin-top: 6px; }
+.hof { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.hofc { padding: 12px 14px; display: grid; gap: 6px; }
+.hofc .hs { display: flex; justify-content: space-between; align-items: baseline; font: 800 1.1rem var(--display); }
+.hofc .hs span { font: 600 .72rem var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.hofc .hr { display: flex; justify-content: space-between; gap: 8px; font-size: .86rem; } .hofc .hr b { text-align: right; }
 .ckey .k-guess { border-top: 0; height: 2px; background: linear-gradient(90deg, #c4497a, #d4741c, #2f9a86, #2a72c2, #7a5cc4); }
 .kline { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 10px; align-items: baseline; font-size: .9rem; padding: 4px 0; border-bottom: 1px solid var(--line); }
 .kline:last-child { border-bottom: 0; }
@@ -1058,6 +1107,8 @@ body:not(.st) .ffk-hold{display:none}
       <a href="#sec-season" data-sec="sec-season" class="st-only">Season race</a>
       <a href="#st-rooting" data-sec="st-rooting" class="st-only">Rooting</a>
       <a href="#st-trend" data-sec="st-trend" class="st-only">Trend</a>
+      <a href="#st-pace" data-sec="st-pace" class="st-only">Pace</a>
+      <a href="#st-miles" data-sec="st-miles" class="st-only">Milestones</a>
       <a href="#st-details" data-sec="st-details" class="st-only">Forecast details</a>
       <a href="#sec-rooting" data-sec="sec-rooting" class="ff-only">Rooting</a>
       <a href="#sec-calendar" data-sec="sec-calendar" class="ff-only">Calendar</a>
@@ -1263,6 +1314,26 @@ body:not(.st) .ffk-hold{display:none}
     </div>
     <p class="rootline" id="stRootline"></p>
     <div class="rooting" id="stRooting"></div>
+  </section>
+  <section id="st-pace" class="st-only">
+    <div>
+      <h2>Pace vs past winters</h2>
+      <p class="sub">This winter's snow against the last 35 State College winters, and the pace each guess needs from here.</p>
+    </div>
+    <div class="card pacechart" id="paceChart"></div>
+    <div class="pacegrid" id="paceTable"></div>
+  </section>
+  <section id="st-miles" class="st-only">
+    <div>
+      <h2>Milestones</h2>
+      <p class="sub">The moments that make a winter, checked against how State College usually does.</p>
+    </div>
+    <div class="miles" id="milesGrid"></div>
+    <div>
+      <h2 class="hofh">Season awards and hall of fame</h2>
+      <p class="sub" id="hofSub">Every finished season's winners, kept here for good.</p>
+    </div>
+    <div class="hof" id="hofGrid"></div>
   </section>
   <section id="st-trend" class="st-only">
     <div>
@@ -2507,6 +2578,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   // total (total.dist, 0.1-inch bins), and the page scores every pool's guesses from it, like First Flakes'
   // daily distribution. Before the switch the owner can preview it with #season-preview, fed by models/seasonfc.
   let seasonfc = null;
+  let pace = null, hall = [];   // past winters day by day (pace.json, served with the page); finished seasons (data/hall.json)
   const stOn = () => seasonMode() || (isOwner && location.hash === "#season-preview");
   const stFmt = (v) => (Math.round((v + 1e-9) * 10) / 10).toString();
   function stUpdates() {
@@ -2763,6 +2835,171 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     $("stRecap").hidden = !rc;
     if (rc) $("stRecap").innerHTML = '<h3>' + esc(rc.title || "") + '</h3><p>' + esc(rc.text || "") + '</p>' + (rc.facts && rc.facts.length ? '<div class="facts">' + rc.facts.map((f) => '<span>' + esc(f.label) + ' <b>' + esc(f.value) + '</b></span>').join("") + '</div>' : "");
   }
+
+  // ---------- Pace vs past winters, milestones, awards ----------
+  let paceSel = null;
+  const SEASON_OCT1 = (parseInt(SEASON_END.slice(0, 4), 10) - 1) + "-10-01";
+  function sDay(iso) {   // days since Oct 1 on a non-leap calendar (Feb 29 joins Feb 28), as in the season model
+    let n = dayDiff(iso, SEASON_OCT1);
+    const y2 = parseInt(SEASON_END.slice(0, 4), 10);
+    if (y2 % 4 === 0 && iso >= y2 + "-03-01") n -= 1;
+    return n;
+  }
+  function dayIso(n) {   // the reverse, for labels
+    const y2 = parseInt(SEASON_END.slice(0, 4), 10);
+    const d = new Date(SEASON_OCT1 + "T12:00:00");
+    d.setDate(d.getDate() + n + (y2 % 4 === 0 && n >= 151 ? 1 : 0));
+    return d.toISOString().slice(0, 10);
+  }
+  const mdy = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  function seasonCum() {   // [day, inches so far] for this winter, from Oct 1 through the last official day
+    const days = seasonDays(), thru = (season && season.through) || null; if (!thru) return [];
+    let tot = 0; const out = [];
+    for (const [d, v] of days) if (d < SEASON_OCT1 && typeof v === "number") tot += v;
+    const last = Math.min(sDay(thru), pace ? pace.endDay : 226), byDay = {};
+    for (const [d, v] of days) if (d >= SEASON_OCT1 && typeof v === "number") byDay[sDay(d)] = (byDay[sDay(d)] || 0) + v;
+    for (let k = 0; k <= last; k++) { tot += byDay[k] || 0; out.push([k, Math.round(tot * 10) / 10]); }
+    return out;
+  }
+  function pastFromHere(day, need) {   // how many past winters got at least `need` more inches from `day` to May 15
+    if (!pace || !pace.weekly) return null;
+    const wd = pace.weekDays; let i = 0; while (i < wd.length - 1 && wd[i + 1] <= day) i++;
+    const f = i < wd.length - 1 ? (day - wd[i]) / (wd[i + 1] - wd[i]) : 0;
+    let n = 0, all = 0;
+    for (const k in pace.weekly) { const c = pace.weekly[k], at = c[i] + (c[Math.min(i + 1, c.length - 1)] - c[i]) * f; all++; if (c[c.length - 1] - at >= need) n++; }
+    return [n, all];
+  }
+  function stPace(u, out) {
+    const el = $("paceChart"), tb = $("paceTable");
+    if (!pace || !pace.band) { el.innerHTML = '<div class="empty">Past winters are loading…</div>'; tb.innerHTML = ""; return; }
+    const tot = (config && config.totals) || {}, cum = seasonCum(), E = pace.endDay;
+    const today = cum.length ? cum[cum.length - 1][0] : Math.max(0, Math.min(E, sDay(todayIso)));
+    const so = cum.length ? cum[cum.length - 1][1] : stSoFar(u);
+    const W = 720, H = 300, L = 38, R = 92, T = 12, B = 28;
+    const gv = Object.values(tot).map(Number).filter(isFinite);
+    const ymax = Math.ceil(Math.max(pace.band["90"][E], pace.winters.last.total, so, gv.length ? Math.min(110, Math.max.apply(null, gv)) : 0, 20) / 10) * 10;
+    const X = (d) => L + d / E * (W - L - R), Y = (v) => T + (1 - Math.min(v, ymax * 1.02) / ymax) * (H - T - B);
+    const line = (arr) => arr.map((v, d) => (d ? "L" : "M") + X(d).toFixed(1) + " " + Y(v).toFixed(1)).join("");
+    const band = (lo, hi) => line(pace.band[hi]) + pace.band[lo].map((v, d) => d).reverse().map((d) => "L" + X(d).toFixed(1) + " " + Y(pace.band[lo][d]).toFixed(1)).join("") + "Z";
+    let g = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Season snowfall this winter compared with past winters"><defs><clipPath id="pkclip"><rect x="' + L + '" y="' + T + '" width="' + (W - L - R) + '" height="' + (H - T - B) + '"/></clipPath></defs>';
+    for (let v = 0; v <= ymax; v += ymax > 60 ? 20 : 10) g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="rgba(127,127,127,.15)"/><text x="' + (L - 6) + '" y="' + (Y(v) + 4) + '" text-anchor="end">' + v + '</text>';
+    [[0, "Oct"], [31, "Nov"], [61, "Dec"], [92, "Jan"], [123, "Feb"], [151, "Mar"], [182, "Apr"], [212, "May"]].forEach(([d, m]) => { g += '<text x="' + (X(d) + 2) + '" y="' + (H - 9) + '">' + m + '</text>'; });
+    g += '<g clip-path="url(#pkclip)"><path class="pk-band1" d="' + band("10", "90") + '"/><path class="pk-band2" d="' + band("25", "75") + '"/>' +
+      '<path class="pk-med" d="' + line(pace.band["50"]) + '"/><path class="pk-most" d="' + line(pace.winters.snowiest.cum) + '"/><path class="pk-least" d="' + line(pace.winters.least.cum) + '"/>' +
+      '<path class="pk-last" d="' + line(pace.winters.last.cum) + '"/>';
+    g += '<line class="pk-today" x1="' + X(today) + '" x2="' + X(today) + '" y1="' + T + '" y2="' + (H - B) + '"/>';
+    if (paceSel && tot[paceSel] != null && !out[paceSel]) g += '<path class="pk-sel" d="M' + X(today) + ' ' + Y(so) + 'L' + X(E) + ' ' + Y(+tot[paceSel]) + '"/>';
+    if (cum.length) g += '<path class="pk-now" d="' + cum.map(([d, v], i) => (i ? "L" : "M") + X(d).toFixed(1) + " " + Y(v).toFixed(1)).join("") + '"/><circle class="pk-dot" cx="' + X(today) + '" cy="' + Y(so) + '" r="4.5"/>';
+    g += '</g>';
+    for (const [n, v] of Object.entries(tot)) { const y = Y(Math.min(+v, ymax)); g += '<line class="pk-guess" x1="' + (W - R + 2) + '" x2="' + (W - R + 10) + '" y1="' + y + '" y2="' + y + '" opacity="' + (paceSel === n ? 1 : .55) + '"><title>' + esc(n) + ': ' + stFmt(v) + ' in</title></line>'; }
+    const tag = (txt, v, cls) => { const y = Math.max(T + 8, Math.min(H - B - 2, Y(Math.min(v, ymax)))); return '<text class="pk-lab" x="' + (W - R + 14) + '" y="' + (y + 4) + '" style="fill:' + cls + '">' + txt + '</text>'; };
+    const labs = [["Typical " + Math.round(pace.band["50"][E]), pace.band["50"][E], "var(--muted)"], ["Last yr " + Math.round(pace.winters.last.total), pace.winters.last.total, "#d4741c"],
+      [pace.winters.least.season.slice(0, 4) + " " + Math.round(pace.winters.least.total), pace.winters.least.total, "#8a94a3"],
+      [pace.winters.snowiest.season.slice(0, 4) + " " + Math.round(pace.winters.snowiest.total) + (pace.winters.snowiest.total > ymax ? " ↑" : ""), Math.min(pace.winters.snowiest.total, ymax), "#2a72c2"]]
+      .sort((a, b) => b[1] - a[1]);
+    let lastY = -1e9; labs.forEach((l) => { let y = Y(l[1]); if (y - lastY < 13) y = lastY + 13; lastY = y; g += tag(l[0], ymax * (1 - (y - T) / (H - T - B)), l[2]); });
+    el.innerHTML = '<div class="ckey"><span><i></i>This winter</span><span><i class="k-norm"></i>Typical winter</span><span><i class="k-band"></i>Middle half / 80% of winters</span>' +
+      '<span><i class="k-last"></i>Last winter</span><span><i class="k-most"></i>Snowiest (' + esc(pace.winters.snowiest.season) + ')</span><span><i class="k-least"></i>Least snowy (' + esc(pace.winters.least.season) + ')</span><span><i class="k-guess"></i>Guesses</span></div>' + g + '</svg>';
+    // pace each guess needs
+    const restN = pace.restMean[Math.min(E, today)], weeks = Math.max(0.5, (E - today) / 7);
+    const gone = Object.keys(tot).filter((n) => out[n]).sort((a, b) => tot[a] - tot[b]);
+    const rows = Object.entries(tot).filter(([n]) => !out[n]).sort((a, b) => a[1] - b[1]).map(([n, v]) => {
+      v = +v; const need = Math.round((v - so) * 10) / 10;
+      let t, c, line2;
+      if (need <= 0) { t = "Needs it to stop snowing now"; c = "q"; line2 = "The total is already at this guess; any more snow pulls it away."; }
+      else {
+        const r = restN > 0 ? Math.max(0, need) / restN : 9, ph = pastFromHere(today, Math.max(0, need));
+        [t, c] = r < 0.6 ? ["Needs a quiet rest of winter", "q"] : r < 0.9 ? ["A bit below normal from here", "n"] : r <= 1.15 ? ["About a normal rest of winter", "n"] : r <= 1.6 ? ["Needs a snowy rest of winter", "s"] : ["Needs a big winter", "b"];
+        line2 = (need > 0 ? stFmt(need) + " in more, about " + stFmt(Math.round(need / weeks * 10) / 10) + " in a week" : "Already there; needs it to stop") +
+          (ph && need > 0 ? " · " + ph[0] + " of " + ph[1] + " past winters got that much from here" : "");
+      }
+      return '<button type="button" class="card pacecell" data-n="' + esc(n) + '" aria-pressed="' + (paceSel === n) + '"><span class="pn">' + esc(n) + '<span>' + stFmt(v) + ' in</span></span>' +
+        '<span class="pt ' + c + '">' + t + '</span><span class="pv">' + line2 + '</span></button>';
+    });
+    tb.innerHTML = rows.join("") + (gone.length ? '<div class="card pacecell pgone"><span class="pt x">Already out</span><span class="pv">' + gone.map((n) => esc(n) + " (" + stFmt(tot[n]) + ")").join(", ") + '</span></div>' : "");
+    tb.querySelectorAll("button.pacecell").forEach((b) => b.onclick = () => { paceSel = paceSel === b.dataset.n ? null : b.dataset.n; stPace(u, out); });
+  }
+  function stMiles(u) {
+    const grid = $("milesGrid"); if (!grid) return;
+    const days = seasonDays().filter(([d]) => d >= SEASON_OCT1), num = days.filter(([, v]) => typeof v === "number");
+    const H = (pace && pace.hist) || {}, keysH = Object.keys(H).sort();
+    const med = (arr) => { const a = arr.filter((x) => x != null).sort((x, y) => x - y); return a.length ? a[Math.floor(a.length / 2)] : null; };
+    const card = (eyebrow, val, note, hit) => '<div class="card mile ' + (hit ? "hit" : "pending") + '"><span class="me">' + eyebrow + '</span><span class="mv">' + val + '</span><span class="mn">' + note + '</span></div>';
+    const vsUsual = (iso, medDay) => { if (medDay == null) return ""; const d = sDay(iso) - medDay; return Math.abs(d) <= 2 ? "Right about when it usually happens" : Math.abs(d) + " days " + (d < 0 ? "earlier" : "later") + " than usual (" + mdy(dayIso(medDay)) + ")"; };
+    const cards = [];
+    // first flakes
+    if (config && config.firstSnow) {
+      const w = winnersFor(config.firstSnow, config.firstSnowHalf, (baseConfig && poolId !== "meteo" && baseConfig.subpools && baseConfig.subpools[poolId] ? baseConfig.subpools[poolId].picks : null) || config.picks);
+      cards.push(card("First flakes", mdy(config.firstSnow), w.length ? "Won by " + w.map(esc).join(" and ") : "Declared by the pool owner", true));
+    }
+    // storms (runs of consecutive days with at least 0.1 in)
+    const st = []; let cur = null, prevD = null;
+    for (const [d, v] of days) {
+      const on = typeof v === "number" && v >= 0.1, next = prevD && dayDiff(d, prevD) === 1;
+      if (on) { if (cur && next) { cur.tot += v; cur.end = d; } else { cur = { start: d, end: d, tot: v }; st.push(cur); } } else cur = null;
+      prevD = d;
+    }
+    const f1 = num.find(([, v]) => v >= 1), m1 = med(keysH.map((k) => H[k].first1));
+    cards.push(f1 ? card("First 1-inch day", mdy(f1[0]), stFmt(f1[1]) + " in. " + vsUsual(f1[0], m1), true) : card("First 1-inch day", "Not yet", m1 != null ? "Usually by " + mdy(dayIso(m1)) : "", false));
+    const s6 = st.find((x) => x.tot >= 6), m6 = med(keysH.map((k) => H[k].first6)), n6 = keysH.filter((k) => H[k].first6 != null).length;
+    cards.push(s6 ? card("First 6-inch storm", mdy(s6.start), stFmt(Math.round(s6.tot * 10) / 10) + " in. " + vsUsual(s6.start, m6), true)
+      : card("First 6-inch storm", "Not yet", n6 + " of " + keysH.length + " winters get one" + (m6 != null ? ", usually by " + mdy(dayIso(m6)) : ""), false));
+    const big = num.slice().sort((a, b) => b[1] - a[1])[0];
+    if (big && big[1] > 0) {
+      const since = keysH.slice().reverse().find((k) => H[k].maxDay >= big[1]);
+      cards.push(card("Biggest day", stFmt(big[1]) + " in", mdy(big[0]) + ". " + (since ? "Biggest single day since the " + esc(since) + " winter" : "Bigger than any day in the last " + keysH.length + " winters"), true));
+    } else cards.push(card("Biggest day", "None yet", "Typical winter's biggest day: about " + stFmt(med(keysH.map((k) => H[k].maxDay))) + " in", false));
+    const bs = st.slice().sort((a, b) => b.tot - a.tot)[0];
+    if (bs && bs.tot >= 1) cards.push(card("Biggest storm", stFmt(Math.round(bs.tot * 10) / 10) + " in", mdy(bs.start) + (bs.end !== bs.start ? "–" + mdy(bs.end) : "") + ". A typical winter's biggest storm: about " + stFmt(med(keysH.map((k) => H[k].maxStorm))) + " in", true));
+    // season total marks
+    const cum = seasonCum(), so = cum.length ? cum[cum.length - 1][1] : 0, marks = [10, 25, 40, 50, 75];
+    const reached = marks.filter((m) => so >= m), nextM = marks.find((m) => so < m);
+    if (reached.length) {
+      const m = reached[reached.length - 1], d = cum.find(([, v]) => v >= m), mm = med(keysH.map((k) => H[k].reach[m]));
+      cards.push(card("Season total", "Hit " + m + " in", (d ? mdy(dayIso(d[0])) + ". " + vsUsual(dayIso(d[0]), mm) : ""), true));
+    }
+    if (nextM != null) {
+      const mm = med(keysH.map((k) => H[k].reach[nextM])), n = keysH.filter((k) => H[k].reach[nextM] != null).length;
+      cards.push(card("Next mark", nextM + " in", stFmt(Math.round((nextM - so) * 10) / 10) + " in to go. " + n + " of " + keysH.length + " winters get there" + (mm != null ? ", usually by " + mdy(dayIso(mm)) : ""), false));
+    }
+    // snow on the ground
+    const dep = (season && season.depth) || null;
+    if (dep) {
+      const thru = season.through; let run = 0, best = 0, k = SEASON_OCT1;
+      while (k <= thru) { const v = dep[k]; run = typeof v === "number" && v >= 1 ? run + 1 : 0; best = Math.max(best, run); const d = new Date(k + "T12:00:00"); d.setDate(d.getDate() + 1); k = d.toISOString().slice(0, 10); }
+      const mg = med(keysH.map((k2) => H[k2].ground)), deep = Object.entries(dep).filter((e) => typeof e[1] === "number").sort((a, b) => b[1] - a[1])[0];
+      cards.push(card("Snow on the ground", run ? run + (run === 1 ? " day" : " days") + " and counting" : best ? "Longest: " + best + (best === 1 ? " day" : " days") : "Not yet",
+        (deep ? "Deepest: " + stFmt(deep[1]) + " in on " + mdy(deep[0]) + ". " : "") + (mg != null ? "A typical winter's longest stretch with an inch or more down: " + mg + " days" : ""), run > 0 || best > 0));
+    }
+    const sd = num.filter(([, v]) => v >= 0.1).length, tr = days.filter(([, v]) => v === "T").length;
+    cards.push(card("Snow days", sd + (sd === 1 ? " day" : " days"), "With at least a tenth of an inch" + (tr ? ", plus " + tr + " with a trace" : ""), sd > 0));
+    grid.innerHTML = cards.join("");
+    stHall(u);
+  }
+  function stHall(u) {
+    const el = $("hofGrid"); if (!el) return;
+    const sk = (parseInt(SEASON_END.slice(0, 4), 10) - 1) + "-" + SEASON_END.slice(2, 4);
+    const rows = [];
+    const done = (hall || []).find((h) => h.season === sk);
+    if (!done) {   // this season, live
+      const tot = (config && config.totals) || {}, odds = (u && u.odds) || {};
+      const lead = Object.entries(odds).sort((a, b) => b[1] - a[1])[0];
+      const ff = config && config.firstSnow ? winnersFor(config.firstSnow, config.firstSnowHalf) : [];
+      rows.push('<div class="card hofc"><div class="hs">' + esc(sk) + '<span>In progress</span></div>' +
+        '<div class="hr"><span>First Flakes</span><b>' + (ff.length ? ff.map(esc).join(", ") + " (" + mdy(config.firstSnow) + ")" : "Not declared yet") + '</b></div>' +
+        '<div class="hr"><span>Season total leader</span><b>' + (lead ? esc(lead[0]) + " · " + Math.round(lead[1]) + "% to win" : "—") + '</b></div>' +
+        '<div class="hr"><span>Final crowned</span><b>After May 15</b></div></div>');
+    }
+    (hall || []).slice().sort((a, b) => b.season.localeCompare(a.season)).forEach((h) => {
+      const p = (h.pools && (h.pools[poolId] || h.pools.meteo)) || {};
+      rows.push('<div class="card hofc"><div class="hs">' + esc(h.season) + '<span>' + stFmt(h.total) + ' in</span></div>' +
+        '<div class="hr"><span>First Flakes</span><b>' + ((p.firstFlakes || []).map(esc).join(", ") || "—") + (h.firstSnow ? " (" + mdy(h.firstSnow) + ")" : "") + '</b></div>' +
+        '<div class="hr"><span>Season total</span><b>' + ((p.total || []).map((n) => esc(n) + " (" + stFmt((p.totalGuess || {})[n]) + " in)").join(", ") || "—") + '</b></div>' +
+        (h.biggestStorm ? '<div class="hr"><span>Biggest storm</span><b>' + stFmt(h.biggestStorm.inches) + ' in, ' + mdy(h.biggestStorm.start) + '</b></div>' : "") + '</div>');
+    });
+    el.innerHTML = rows.join("");
+    $("hofSub").textContent = (hall || []).length ? "Every finished season's winners, kept here for good." : "The first season of the pool. When it wraps up after May 15, its winners are added here for good.";
+  }
   function stRooting(u, out) {
     const tot = (config && config.totals) || {};
     const s = stSoFar(u), t1 = stQ(u, 1 / 3), t2 = stQ(u, 2 / 3), Z = stZones(tot);
@@ -2971,7 +3208,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     $("stSoFar").textContent = stFmt(s) + " in"; $("stSoFarN").textContent = Math.abs(s - norm) < 0.05 ? "Right on the normal pace" : stFmt(Math.abs(s - norm)) + (s > norm ? " ahead of" : " behind") + " normal";
     $("stMed").textContent = p50 != null ? Math.round(p50) + " in" : "—";
     $("stRng").textContent = p10 != null ? Math.round(p10) + "–" + Math.round(p90) + " in" : "—";
-    stWeek(u); stBoard(u, prev, out); stRace(u, out); stRooting(u, out); stTrend(u);
+    stWeek(u); stBoard(u, prev, out); stRace(u, out); stRooting(u, out); stTrend(u); stPace(u, out); stMiles(u);
     renderH2H(u, true);
     renderChanges(u, prev, true);
     $("stFactors").innerHTML = (u.factors || []).map((f) => '<div class="factor card ' + (f.effect === "more" ? "earlier" : f.effect === "less" ? "later" : "") + '"><em>' + (f.effect === "more" ? "Raises the total" : f.effect === "less" ? "Lowers the total" : "Baseline") + '</em><b>' + esc(f.name) + '</b><p>' + esc(f.text) + '</p></div>').join("") || '<div class="empty">Forecast details come with each season update.</div>';
@@ -3281,6 +3518,23 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     const ticks = [0, 1].map((f) => '<text x="' + (L - 6) + '" y="' + (Y(ymax * f) + 4).toFixed(1) + '" text-anchor="end" font-size="11" fill="currentColor" opacity=".85" font-family="IBM Plex Mono, monospace">' + o.fmt(ymax * f) + '</text>').join("");
     return '<svg class="wtrend" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(o.label) + '">' + ticks + bars + lab + '</svg><div class="wlegend">' + o.legend + '</div>';
   }
+  function stormScenarios() {   // what the storm does to the race if it comes in low, as expected, or high
+    const sc = (watch.scenarios && watch.scenarios[poolId]) || [];
+    if (!sc.length) return "";
+    const now = (watch.odds && watch.odds[poolId]) || {};
+    const word = { low: "If it comes in low", expected: "As expected", high: "If it overperforms" };
+    const col = (c) => {
+      const top = Object.entries(c.odds).filter((e) => e[1] > 0).slice(0, 3);
+      return '<div class="scol"><div class="shd"><span>' + word[c.label] + '</span><b>' + stFmt(c.inches) + ' in</b></div>' +
+        '<div class="ssub">Season at ' + stFmt(c.total) + ' in</div>' +
+        (c.leader ? '<div class="slead">' + esc(c.leader) + ' leads</div>' : '') +
+        top.map((e) => { const d = e[1] - (now[e[0]] || 0), ar = Math.abs(d) < 1 ? "" : (d > 0 ? ' <i class="up">+' + Math.round(d) + '</i>' : ' <i class="dn">' + Math.round(d) + '</i>');
+          return '<div class="srow"><span>' + esc(e[0]) + '</span><b>' + Math.round(e[1]) + '%' + ar + '</b></div>'; }).join("") +
+        (c.out && c.out.length ? '<div class="sout">Knocks out ' + c.out.map(esc).join(", ") + '</div>' : '') + '</div>';
+    };
+    return '<div class="wbox wscen"><h3>What this storm does to the race</h3><div class="scols">' + sc.map(col).join("") + '</div>' +
+      '<div class="wlegend">Win chances if the storm ends up at the NWS low, expected, or high amount; the change is from right now.</div></div>';
+  }
   function renderStormWatch() {
     const sec = $("sec-watch"), box = $("watch"), chip = $("watchChip");
     const on = !!(watch && watch.active && watch.mode === "total");
@@ -3372,6 +3626,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       '<div class="lrow"><b>' + esc(n) + ' (' + stFmt(config.totals[n]) + ' in)</b><span class="lp">' + Math.round(k.chance) + '%</span><span class="pbar"><i style="width:' + Math.min(100, k.chance).toFixed(0) + '%"></i></span>' +
       '<span class="ln">Out if the total passes ' + stFmt(k.line) + ' in: this storm needs ' + stFmt(Math.max(0, k.need)) + ' in</span></div>').join("") +
       '<div class="wlegend">Chance this storm knocks each person out.</div>' : '<p class="wlegend">Nobody is in knockout danger from this storm.</p>') + '</div></div>';
+    html += stormScenarios();
     // season box
     const s = stSoFar(Lu || {}), st = watch.storm || {};
     html += '<div class="wbox"><h3>Season total</h3><div class="sea">' +
@@ -4671,6 +4926,8 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       getJSON("snowmap.json").then((x) => { snowmap = x; }),
       getJSON("watchlib.json").then((x) => { watchlib = x; }),
       getJSON("seasonfc.json").then((x) => { seasonfc = x; }),
+      getJSON("hall.json").then((x) => { hall = Array.isArray(x) ? x : []; }),
+      (pace ? Promise.resolve() : fetch("pace.json?v=2").then((r) => r.ok ? r.json() : null).then((x) => { pace = x; }).catch(() => {})),
       loadRadar(),
       getJSON("updates.json").then((x) => { rawUpdates = (x || []).slice().sort(byOrd); })
     ];

@@ -3,7 +3,7 @@
 usage: python3 season_job.py DATADIR [--edition morning|evening] [--force]
 Writes data/season.json, seasonfc.json, and a new update (mode "total") in updates.json.
 """
-import argparse, datetime as dt, json, os, subprocess, sys, tempfile
+import argparse, re, datetime as dt, json, os, subprocess, sys, tempfile
 from zoneinfo import ZoneInfo
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -37,8 +37,86 @@ def refresh_season(D, today):
         if r.returncode:
             raise RuntimeError(r.stderr[-300:])
         s = json.load(open(sp))
+    try:   # snow on the ground (inches, "T" for a trace), for the milestones' snow-on-the-ground streak
+        dep = {}
+        for line in inputs.acis_csv("%d-07-01" % y, str(dt.date.fromisoformat(today) - dt.timedelta(1)), "snwd").splitlines():
+            m = re.match(r"^\s*(\d{4}-\d{2}-\d{2})\s*,\s*([^,\s]+)", line)
+            if m and m.group(2).upper() not in ("M", "0", "0.0"):
+                v = m.group(2).upper()
+                dep[m.group(1)] = "T" if v == "T" else round(float(v.rstrip("A")), 1)
+        s["depth"] = dep
+    except Exception as e:
+        print("snow depth not fetched:", e)
     save(os.path.join(D, "season.json"), s)
     return s
+
+
+def update_hall(D, cfg, season, today):
+    """After the season closes (May 15), add it to data/hall.json once: each pool's First Flakes and season total
+    winners, the official total, the first-flakes date and the season's biggest day and storm."""
+    year = int(today[:4])
+    y = year - 1                                   # the season that ends (or ended) May 15 of this year started last July
+    end, sk = "%d-05-15" % year, "%d-%02d" % (y, year % 100)
+    if str(cfg.get("season") or "") != str(y):     # only the pool's own season (its picks and guesses are this config's)
+        return None
+    if today <= end:
+        return None
+    path = os.path.join(D, "hall.json")
+    hall = load(path, [])
+    if any(h.get("season") == sk for h in hall):
+        return None
+    days = {d: v for d, v in (season.get("days") or {}).items() if "%d-07-01" % y <= d <= end}
+    tot = round(sum(v for v in days.values() if isinstance(v, (int, float))), 1)
+    fs, half = cfg.get("firstSnow"), cfg.get("firstSnowHalf")
+    def ff_winners(picks):
+        if not fs or not picks:
+            return []
+        dd = {n: abs((dt.date.fromisoformat(p) - dt.date.fromisoformat(fs)).days) for n, p in picks.items()}
+        best = min(dd.values())
+        who = [n for n, x in dd.items() if x == best]
+        if half and best > 0:
+            early = [n for n in who if picks[n] < fs]
+            late = [n for n in who if picks[n] > fs]
+            if early and late:
+                return early if half == "am" else late
+        return sorted(who)
+    def total_winners(totals):
+        if not totals:
+            return []
+        dd = {n: round(abs(float(g) - tot), 1) for n, g in totals.items()}
+        best = min(dd.values())
+        return sorted(n for n, x in dd.items() if x == best)
+    pools = {"meteo": {"name": cfg.get("label") or "Meteo", "picks": cfg.get("picks") or {}, "totals": cfg.get("totals") or {}}}
+    for pid, sp in (cfg.get("subpools") or {}).items():
+        pools[pid] = {"name": sp.get("name") or pid, "picks": sp.get("picks") or {}, "totals": sp.get("totals") or {}}
+    ordered = sorted(days)
+    big = max(((v, d) for d, v in days.items() if isinstance(v, (int, float))), default=(0, None))
+    run, best_storm, start = 0.0, (0.0, None), None
+    cal = []
+    if ordered:   # every calendar day, so a day with no report breaks a storm too
+        k, last = dt.date.fromisoformat(ordered[0]), dt.date.fromisoformat(ordered[-1])
+        while k <= last:
+            cal.append(k.isoformat())
+            k += dt.timedelta(days=1)
+    for d in cal + ["9999"]:
+        v = days.get(d)
+        if isinstance(v, (int, float)) and v >= 0.1:
+            if start is None:
+                start, run = d, 0.0
+            run += v
+        else:
+            if start is not None and run > best_storm[0]:
+                best_storm = (round(run, 1), start)
+            start = None
+    entry = {"season": sk, "total": tot, "firstSnow": fs, "firstSnowHalf": half,
+             "biggestDay": {"date": big[1], "inches": big[0]} if big[1] else None,
+             "biggestStorm": {"start": best_storm[1], "inches": best_storm[0]} if best_storm[1] else None,
+             "pools": {pid: {"name": p["name"], "firstFlakes": ff_winners(p["picks"]),
+                             "total": total_winners(p["totals"]),
+                             "totalGuess": {n: p["totals"][n] for n in total_winners(p["totals"])}} for pid, p in pools.items()}}
+    hall.append(entry)
+    save(path, hall)
+    return entry
 
 
 def nbm_rows(today_utc):
@@ -69,6 +147,12 @@ def main():
     except Exception as e:
         season = load(os.path.join(D, "season.json"), {"total": 0})
         log.append("season total kept: %r" % e)
+    try:
+        h = update_hall(D, cfg, season, today)
+        if h:
+            log.append("hall of fame: added %s" % h["season"])
+    except Exception as e:
+        log.append("hall of fame failed: %r" % e)
     rows, run = [], ""
     try:
         rows, run = nbm_rows(str(dt.datetime.now(dt.timezone.utc).date()))

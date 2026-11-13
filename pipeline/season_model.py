@@ -245,6 +245,22 @@ def run(inp):
                             "stormChance": round(float((sim["S"] > need).mean() * 100), 1) if sim.get("S") is not None else None,
                             "seasonChance": round(float((final > hi).mean() * 100), 1)}
         out["pools"][pid] = {"odds": odds, "zones": {n: list(z) for n, z in zones.items()}, "out": sorted(outd), "knockout": knock}
+        st = inp.get("storm") or {}
+        if sim.get("S") is not None and st.get("p50") is not None:
+            # what this storm does to the race: the same simulated winters, with the storm coming in low / as expected /
+            # high (the NWS 10th / 50th / 90th percentile totals) in place of its own random amount
+            sc = []
+            for label, x in (("low", st.get("p10")), ("expected", st.get("p50")), ("high", st.get("p90"))):
+                if x is None:
+                    continue
+                x = float(x)
+                ox, _, outx = odds_for(final - sim["S"] + x, guesses, so_far + x)
+                rank = sorted(ox.items(), key=lambda a: (-a[1], a[0]))
+                sc.append({"label": label, "inches": round(x, 1), "total": round(so_far + x, 1),
+                           "odds": {n: v for n, v in rank},
+                           "leader": rank[0][0] if rank and rank[0][1] > 0 else None,
+                           "out": sorted(n for n in outx if n not in outd)})
+            out["pools"][pid]["scenarios"] = sc
     return out
 
 

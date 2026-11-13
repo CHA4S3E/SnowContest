@@ -373,6 +373,28 @@ if _RD is not None:
     check("nowcast: the line is found north of town from temperature alone", _ln and _ln.get("dir", "").startswith("N") and 50 < _ln["mi"] < 70, _ln)
     check("nowcast log: airport weather codes map to kinds", (_NL.kind_of("-RA BR"), _NL.kind_of("-RASN"), _NL.kind_of("SN"), _NL.kind_of("FZRA"), _NL.kind_of("BR")) == ("rain", "mix", "snow", "fzra", None))
 
+try:
+    import season_model as _SM, season_job as _SJ, tempfile as _tf, json as _js
+    _H = _js.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models", "seasonhist.json")))
+    _G = {"A": 20.0, "B": 30.0, "C": 45.0}
+    _r = _SM.run({"asOf": "2027-01-10", "soFar": 18.0, "hist": _H, "pools": {"p": _G}, "storm": {"days": ["2027-01-10", "2027-01-11"], "p10": 1.0, "p50": 4.0, "p90": 12.0}})
+    _sc = {x["label"]: x for x in _r["pools"]["p"]["scenarios"]}
+    check("season: storm scenarios come in low / expected / high", list(_sc) == ["low", "expected", "high"], list(_sc))
+    check("season: a big storm knocks out the low guess", "A" in _sc["high"]["out"], _sc["high"])
+    check("season: a big storm helps the high guess", _sc["high"]["odds"]["C"] > _sc["low"]["odds"]["C"], (_sc["low"]["odds"], _sc["high"]["odds"]))
+    with _tf.TemporaryDirectory() as _D:
+        _cfg = {"season": "2026", "firstSnow": "2026-11-14", "picks": {"A": "2026-11-13", "B": "2026-11-20"}, "totals": _G}
+        _sd = {"days": {"2026-12-01": 5.0, "2026-12-02": 3.0, "2027-01-15": 9.0, "2027-01-16": 0.0, "2027-02-01": 13.0}}
+        check("hall: nothing is written before the season closes", _SJ.update_hall(_D, _cfg, _sd, "2027-03-01") is None)
+        _e = _SJ.update_hall(_D, _cfg, _sd, "2027-05-20")
+        check("hall: the season's winners are recorded after May 15", _e and _e["pools"]["meteo"]["firstFlakes"] == ["A"] and _e["pools"]["meteo"]["total"] == ["B"] and _e["total"] == 30.0, _e)
+        check("hall: a storm is consecutive days only", _e["biggestStorm"]["inches"] == 13.0, _e["biggestStorm"])
+        check("hall: a season is recorded once", _SJ.update_hall(_D, _cfg, _sd, "2027-05-21") is None)
+    _P = _js.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pace.json")))
+    check("pace: 35 winters with a band, named winters and per-winter history", _P["n"] == 35 and set(_P["band"]) == {"10", "25", "50", "75", "90"} and len(_P["hist"]) == 35 and len(_P["weekly"]) == 35)
+except Exception as _e:
+    check("season extras ran", False, repr(_e))
+
 print("\n%d failed" % len(FAILS) if FAILS else "\nALL PASSED")
 print("data dir:", D)
 sys.exit(1 if FAILS else 0)
