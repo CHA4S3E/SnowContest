@@ -912,6 +912,8 @@ body:not(.st) .st-only { display: none !important; }
 .accweek .wd .bar { width: 14px; height: 54px; border-radius: 8px; background: rgba(var(--heat), .12); display: flex; align-items: flex-end; overflow: hidden; }
 .accweek .wd .bar i { display: block; width: 100%; background: var(--ice); border-radius: 8px; }
 .accweek .wd span { font-family: var(--mono); color: var(--muted); }
+.ownlock { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: .85rem; }
+.ownlock input { padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--solid); color: var(--ink); font: inherit; }
 .accdone { padding: 16px; text-align: center; border: 2px solid var(--gold); display: grid; gap: 4px; }
 .accdone .big { font: 800 clamp(1.4rem, 5vw, 2.1rem)/1.1 var(--display); color: var(--gold); }
 .accnote { font-size: .8rem; color: var(--muted); margin: 0; }
@@ -1203,11 +1205,15 @@ body:not(.st) .ffk-hold{display:none}
           <button type="button" class="ghost" id="accCancel">Cancel</button>
         </div>
       </div>
-      <div class="addnote" id="accNote">Pick a name from the list to change or remove a pick, or type a new name.</div>
+      <div class="addnote" id="accNote">Pick your name from the list, then your date.</div>
       <div class="confirm" id="accRemoveRow" hidden>
         <button type="button" class="ghost danger" id="accRemove">Remove this pick</button>
         <span id="accConfirm" hidden>Remove <b id="accRemoveName"></b>'s pick? <button type="button" class="ghost danger" id="accYes">Yes, remove</button> <button type="button" class="ghost" id="accNo">Keep</button></span>
       </div>
+    </form>
+    <form class="ownlock" id="accUnlock" hidden>
+      <button type="button" class="linkbtn" id="accUnlockOpen">Pool owner? Unlock to add picks</button>
+      <span id="accUnlockRow" hidden><input id="accPw" type="password" autocomplete="current-password" placeholder="Owner password" aria-label="Owner password"> <button type="submit" class="primary">Unlock</button> <span class="addnote" id="accPwMsg"></span></span>
     </form>
     <div id="accBody"></div>
   </section>
@@ -3333,6 +3339,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   });
 
   function render() {
+    try { if (!isOwner && config && localStorage.getItem("ff-owner") === "1") { unlockOwner(); return; } } catch (_) {}   // this device unlocked before
     try { renderAccum(); } catch (e) { console.error(e); }
     document.body.classList.toggle("st", stOn());
     fxAmbient();
@@ -4395,7 +4402,8 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     $("accEyebrow").textContent = (sp.name || poolId) + " · side contest";
     const lk = new Date(accLockAt()), lkTxt = "12:00 AM " + lk.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "America/New_York" });
     $("accLockNote").innerHTML = accLocked() ? "<b>Picks locked " + esc(lkTxt) + ".</b>" : "<b>Picks lock " + esc(lkTxt) + ".</b>";
-    $("accBtn").hidden = !isOwner || accLocked();
+    $("accBtn").hidden = accLocked();   // anyone can add or change a pick until the lock
+    $("accUnlock").hidden = isOwner || accLocked();
     if (accLocked()) $("accForm").hidden = true;
     const pk = accPicks(), names = Object.keys(pk), hap = accHappened(), m = accModel(), body = $("accBody");
     let h = "";
@@ -4428,7 +4436,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       }).join("") + '</div>';
       const sum = odds ? Object.values(odds).reduce((a, b) => a + b, 0) : 0;
       if (sum > 100.5) h += '<p class="accnote">The chances add up to more than 100% because a day exactly halfway between two picks is a shared win: both people win it.</p>';
-    } else h += '<p class="accnote">No picks yet.' + (isOwner ? " Add them with the button above." : " The pool owner adds them.") + '</p>';
+    } else h += '<p class="accnote">No picks yet. Add yours with the button above.</p>';
     if (!hap && m && m.days && m.days.length) {
       const top = Math.max(10, ...m.days.map((d) => d.chance));
       h += '<div class="card accweek" aria-label="Chance of 0.1 inch or more each day">' + m.days.map((d) => '<div class="wd"><span>' + (d.date === todayIso ? "Today" : WD[parse(d.date).getDay()].slice(0, 3)) + '</span><b>' + parse(d.date).getDate() + '</b><span class="bar"><i style="height:' + Math.round(d.chance / top * 100) + '%"></i></span><span>' + (d.chance < 1 && d.chance > 0 ? "<1" : Math.round(d.chance)) + '%</span></div>').join("") + '</div>' +
@@ -4441,13 +4449,19 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   const accFind = (raw) => Object.keys(accPicks()).find((n) => n.toLowerCase() === raw.toLowerCase()) || ((accPool() || {}).members || []).find((n) => n.toLowerCase() === raw.toLowerCase());
   const setAccNote = (t, k) => { const e = $("accNote"); e.textContent = t; e.className = "addnote" + (k ? " " + k : ""); };
   function syncAcc() { const n = accFind($("accName").value.trim()), pk = accPicks(); if (n && pk[n]) { $("accDate").value = pk[n]; $("accSave").textContent = "Update pick"; $("accRemoveRow").hidden = false; } else { $("accSave").textContent = "Add pick"; $("accRemoveRow").hidden = true; } $("accConfirm").hidden = true; $("accRemove").hidden = false; }
-  async function saveAcc(picks, okMsg) {
+  async function saveAcc(name, date, okMsg) {   // one pick (date null removes it), applied to the newest config on GitHub so friends saving at once never overwrite each other
     if (accLocked()) { setAccNote("Picks locked at " + new Date(accLockAt()).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }) + ".", "err"); return false; }
-    if (!db || !baseConfig) { setAccNote("Can't save right now. Reload the page and try again.", "err"); return false; }
-    const subs = Object.assign({}, baseConfig.subpools); subs[poolId] = Object.assign({}, subs[poolId], { accumPicks: picks });
-    const next = Object.assign({}, baseConfig, { subpools: subs });
-    try { await db.doc("pool/config").set(next); setAccNote(okMsg, "ok"); setBase(next); render(); return true; }
-    catch (e) { setAccNote(saveWhy(e), "err"); return false; }
+    if (!baseConfig || typeof ghWrite !== "function") { setAccNote("Can't save right now. Reload the page and try again.", "err"); return false; }
+    const pid = poolId;
+    try {
+      const next = await ghWrite("config.json", (old) => {
+        const sp = old.subpools && old.subpools[pid]; if (!sp) throw new Error("pool missing");
+        const pk = Object.assign({}, sp.accumPicks || {});
+        if (date) pk[name] = date; else delete pk[name];
+        sp.accumPicks = pk; return old;
+      });
+      setAccNote(okMsg, "ok"); setBase(next); rebuild(); render(); return true;
+    } catch (e) { setAccNote(saveWhy(e), "err"); return false; }
   }
   function renderCase() {
     const done = !!(config && config.firstSnow);
@@ -4472,6 +4486,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     try { ok = (await sha256(val)) === PW_HASH; } catch (_) { ok = false; }
     if (!ok) { $("pw").value = ""; setMsg("Wrong password. The glass holds.", "err"); const c = $("case"); c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake"); return; }
     if (!isOwner && !unlockOwner()) { setMsg("Right password, but saving is not set up yet.", "err"); return; }
+    try { localStorage.setItem("ff-owner", "1"); } catch (_) {}
     $("pw").value = "";
     setMsg("");
     caseOpen = true;
@@ -4685,8 +4700,19 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     if (!tform.hidden) { $("totName").value = ""; $("totIn").value = ""; delete $("totIn").dataset.touched; setTotNote("Pick a name from the list to change or remove a guess, or type a new name."); fillTotNames(); syncTot(); $("totName").focus(); }
   });
   $("totCancel").addEventListener("click", () => { tform.hidden = true; });
-  $("accBtn").addEventListener("click", () => { const f = $("accForm"); f.hidden = !f.hidden; if (!f.hidden) { $("accName").value = ""; $("accDate").value = ""; setAccNote("Pick a name from the list to change or remove a pick, or type a new name."); fillAccNames(); syncAcc(); $("accName").focus(); } });
+  $("accBtn").addEventListener("click", () => { const f = $("accForm"); f.hidden = !f.hidden; if (!f.hidden) { $("accName").value = ""; $("accDate").value = ""; setAccNote("Pick your name from the list, then your date."); fillAccNames(); syncAcc(); $("accName").focus(); } });
   $("accCancel").addEventListener("click", () => { $("accForm").hidden = true; });
+  $("accUnlockOpen").addEventListener("click", () => { $("accUnlockRow").hidden = false; $("accUnlockOpen").hidden = true; $("accPw").focus(); });
+  $("accUnlock").addEventListener("submit", async (e) => {   // the owner unlock for when the glass case is already broken
+    e.preventDefault();
+    const val = $("accPw").value.trim().toLowerCase(); let ok = false;
+    try { ok = (await sha256(val)) === PW_HASH; } catch (_) { ok = false; }
+    if (!ok) { $("accPw").value = ""; $("accPwMsg").textContent = "Wrong password."; return; }
+    $("accPw").value = ""; $("accPwMsg").textContent = "";
+    if (!isOwner && !unlockOwner()) { $("accPwMsg").textContent = "Right password, but saving is not set up."; return; }
+    try { localStorage.setItem("ff-owner", "1"); } catch (_) {}
+    $("accForm").hidden = false; fillAccNames(); syncAcc(); $("accName").focus();
+  });
   $("accName").addEventListener("input", syncAcc);
   $("accForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -4695,14 +4721,14 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     if (!d) return setAccNote("Pick a date.", "err");
     const name = accFind(raw) || raw, had = !!accPicks()[name];
     $("accSave").disabled = true;
-    const ok = await saveAcc(Object.assign({}, accPicks(), { [name]: d }), (had ? "Updated " : "Added ") + name + " · " + short(d) + ".");
+    const ok = await saveAcc(name, d, (had ? "Updated " : "Added ") + name + " · " + short(d) + ".");
     $("accSave").disabled = false;
     if (ok && window.FFStamp) FFStamp.show({ tray: "ffTrayAcc", label: name + " " + short(d), top: "First accumulating snow", name: name, val: short(d), sub: "Pick is in", stamp: "Locked in" });
     if (ok) { $("accName").value = ""; $("accDate").value = ""; syncAcc(); }
   });
   $("accRemove").addEventListener("click", () => { $("accRemoveName").textContent = $("accName").value.trim(); $("accRemove").hidden = true; $("accConfirm").hidden = false; });
   $("accNo").addEventListener("click", () => { $("accConfirm").hidden = true; $("accRemove").hidden = false; });
-  $("accYes").addEventListener("click", async () => { const n = accFind($("accName").value.trim()); if (!n) return; const pk = Object.assign({}, accPicks()); delete pk[n]; if (await saveAcc(pk, "Removed " + n + "'s pick.")) { $("accName").value = ""; $("accDate").value = ""; syncAcc(); } });
+  $("accYes").addEventListener("click", async () => { const n = accFind($("accName").value.trim()); if (!n) return; if (await saveAcc(n, null, "Removed " + n + "'s pick.")) { $("accName").value = ""; $("accDate").value = ""; syncAcc(); } });
   $("totName").addEventListener("input", () => { delete $("totIn").dataset.touched; syncTot(); });
   $("totIn").addEventListener("input", () => { $("totIn").dataset.touched = "1"; });
   async function saveTotals(totals, okMsg) {
