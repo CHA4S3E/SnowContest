@@ -9,6 +9,7 @@ usage: python3 season_run.py today edition hist.json season.json config.json nbm
   ecmwf.json     European {run, periods: [{end (UTC), hours, tp, sf (mm water), t}]}  or {} if not available
   weather.json   NWS point forecast highs/lows by date
   cpc.json       {"t610","p610","t814","p814"}: "A" | "N" | "B" | "EC"  (or {})
+  full.json      (optional, after out.json) {"inp": the First Flakes model inputs, "pfc": NWS point forecast days}, for accum.py
 Any input file may be missing or {} except hist, season and config.
 """
 import json, sys, datetime as dt
@@ -79,7 +80,8 @@ out = {"asOf": today, "edition": edition, "updatedAt": dt.datetime.now(ET).isofo
        "week": week, "cpc": cpc or {}, "sources": {"nbmDays": sorted(nbm_in), "ecmwfRun": (ecmwf or {}).get("run")}}
 try:   # the XYZ contest: first day with 0.1 in or more (accum.py)
     import accum
-    out["accum"] = accum.run(today, season, hist, nbm_ch, forecast)
+    full = load(sys.argv[11]) if len(sys.argv) > 11 else {}   # the First Flakes inputs (season_job gathers them while the contest is open)
+    out["accum"] = accum.run(today, season, hist, nbm_ch, forecast, inp=full.get("inp"), et_date=et_date, pfc_days=full.get("pfc"))
 except Exception as e:
     out["accum"] = {"error": repr(e)[:200]}
 json.dump(out, open(out_path, "w"), separators=(",", ":"))

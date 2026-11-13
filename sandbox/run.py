@@ -419,12 +419,23 @@ except Exception as _e:
 
 try:
     import accum as _AC
+    import datetime as _dt2
     _Hh = _js.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models", "seasonhist.json")))
     _a = _AC.run("2026-11-13", {"days": {"2026-11-12": 0.0}, "through": "2026-11-12"}, _Hh, {"2026-11-14": 0.6}, {"2026-11-14": 1.0})
     check("accum: chances run from today and add up to nearly 100%", _a["start"] == "2026-11-13" and 95 < sum(_a["dist"].values()) <= 100.01, sum(_a["dist"].values()))
     check("accum: a snowy forecast day carries a big share", _a["dist"].get("2026-11-14", 0) > 40, _a["dist"].get("2026-11-14"))
     _h = _AC.run("2026-11-30", {"days": {"2026-11-27": 0.05, "2026-11-28": 0.4}}, _Hh, {}, {})
     check("accum: the first 0.1-inch day decides it (a few hundredths does not)", _h.get("happened") == "2026-11-28", _h)
+    _et = lambda u, b: (_dt2.datetime.strptime(u[:16], "%Y-%m-%d %H:%M") - _dt2.timedelta(hours=b + 5)).date().isoformat()
+    _inp = {"date": "2026-11-13", "nbm": [{"ftime": "2026-11-15 00:00", "txn": 30, "p12": 80, "psn": 90}, {"ftime": "2026-11-15 12:00", "txn": 25, "p12": 70, "psn": 95}], "windows": []}
+    _f = _AC.run("2026-11-13", {"days": {}, "through": "2026-11-12"}, _Hh, {}, {"2026-11-14": 2.0}, inp=_inp, et_date=_et)
+    check("accum (full inputs): a snowy blend day with 2 in forecast carries most of the chance", _f["dist"].get("2026-11-14", 0) > 50 and "nbm" in _f["models"], (_f["dist"].get("2026-11-14"), _f.get("models")))
+    _g = _AC.run("2026-11-13", {"days": {}, "through": "2026-11-12"}, _Hh, {}, {"2026-11-14": 2.0}, inp=_inp, et_date=_et, pfc_days={"2026-11-14": {"snow_in": 0.0, "pop": 80}})
+    check("accum (full inputs): NWS saying no accumulation holds the day to 10%", _g["days"][1]["chance"] <= 10.0, _g["days"][1])
+    _w = dict(_inp, windows=[{"start": "2026-11-20", "end": "2026-12-05", "cat": "A", "conf": 5}])
+    _ww = _AC.run("2026-11-13", {"days": {}, "through": "2026-11-12"}, _Hh, {}, {}, inp=_w, et_date=_et)
+    _cc = _AC.run("2026-11-13", {"days": {}, "through": "2026-11-12"}, _Hh, {}, {}, inp=_inp, et_date=_et)
+    check("accum (full inputs): a warm CPC outlook pushes the median later", _ww["center"] >= _cc["center"] and _ww["outlook"], (_ww["center"], _cc["center"]))
 except Exception as _e:
     check("accum ran", False, repr(_e))
 

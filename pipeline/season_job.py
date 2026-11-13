@@ -154,6 +154,18 @@ def main():
             log.append("hall of fame: added %s" % h["season"])
     except Exception as e:
         log.append("hall of fame failed: %r" % e)
+    full, raw = {}, {}
+    open_accum = any(sp.get("accum") for sp in (cfg.get("subpools") or {}).values()) and not any(
+        isinstance(v, (int, float)) and v >= 0.1 for d, v in (season.get("days") or {}).items() if d >= "%d-10-01" % (int(today[:4]) - (today[5:7] < "07")))
+    if open_accum:   # the XYZ contest is still open: gather everything First Flakes used (models, NWS, CPC, WPC)
+        try:
+            from ffu import facts as F
+            raw, health = inputs.gather(today)
+            inp, _ = F.build_inputs(today, raw, None, False)
+            full = {"inp": inp, "pfc": (raw.get("pfc") or {}).get("days") or {}}
+            log.append("accum inputs: " + ", ".join(k for k in ("nbm", "gfs", "nam", "lamp", "ecmwf", "rrfs", "hrrr") if inp.get(k)) + "; %d outlook windows" % len(inp.get("windows") or []))
+        except Exception as e:
+            log.append("accum inputs failed: %r" % e)
     rows, run = [], ""
     try:
         rows, run = nbm_rows(str(dt.datetime.now(dt.timezone.utc).date()))
@@ -161,7 +173,7 @@ def main():
         log.append("NBE failed: %r" % e)
     ec = {}
     try:
-        e = inputs.ecmwf()
+        e = raw.get("ecmwf") or inputs.ecmwf()   # already read with the contest inputs when they were gathered
         ec = {"run": e[1] if isinstance(e, tuple) else e.get("run"), "periods": (e[0] if isinstance(e, tuple) else e.get("periods")) or []}
     except Exception as e:
         log.append("ECMWF failed: %r" % e)
@@ -182,7 +194,7 @@ def main():
         P = lambda n, o: (save(os.path.join(td, n), o), os.path.join(td, n))[1]
         out = os.path.join(td, "out.json")
         cmd = [sys.executable, os.path.join(HERE, "season_run.py"), today, edition, P("h.json", hist), os.path.join(D, "season.json"), os.path.join(D, "config.json"),
-               P("n.json", rows), P("e.json", ec), P("w.json", wx), P("c.json", cpc), out]
+               P("n.json", rows), P("e.json", ec), P("w.json", wx), P("c.json", cpc), out, P("full.json", full)]
         r = subprocess.run(cmd, capture_output=True, text=True)
         print(r.stdout[-600:], r.stderr[-600:])
         if r.returncode:

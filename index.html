@@ -4451,7 +4451,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     if (!hap && m && m.days && m.days.length) {
       const top = Math.max(10, ...m.days.map((d) => d.chance));
       h += '<div class="card accweek" aria-label="Chance of 0.1 inch or more each day">' + m.days.map((d) => '<div class="wd"><span>' + (d.date === todayIso ? "Today" : WD[parse(d.date).getDay()].slice(0, 3)) + '</span><b>' + parse(d.date).getDate() + '</b><span class="bar"><i style="height:' + Math.round(d.chance / top * 100) + '%"></i></span><span>' + (d.chance < 1 && d.chance > 0 ? "<1" : Math.round(d.chance)) + '%</span></div>').join("") + '</div>' +
-        '<p class="accnote">Bars: the chance of 0.1 inch or more each day (National Blend forecast for the week, then 35 winters of State College history). Updated with each season update' + (m.at ? ", last " + esc(clock(new Date(m.at))) : "") + '.</p>';
+        '<p class="accnote">Bars: the chance of 0.1 inch or more each day. ' + (m.models && m.models.length > 1 ? "The same model blend First Flakes used (" + esc(accSrcNames(m.models)) + "), checked against the NWS forecast for town, then 35 winters of State College history adjusted by the CPC outlooks." : "National Blend forecast for the week, then 35 winters of State College history.") + ' Updated with each season update' + (m.at ? ", last " + esc(clock(new Date(m.at))) : "") + '.</p>';
     } else if (!hap) h += '<p class="accnote">Odds start with the first season-mode update.</p>';
     body.innerHTML = h;
     fillAccNames();
@@ -4512,6 +4512,8 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       (Object.keys(pk).length && !(hap && k !== snowDay) ? '<p>' + (k === snowDay ? "Winner" : "Wins if it happens this day") + ': <b>' + esc(w.join(" & ")) + '</b>' + (w.length ? " (" + (Math.abs(dayDiff(pk[w[0]], k)) === 0 ? "exact" : Math.abs(dayDiff(pk[w[0]], k)) + " day" + (Math.abs(dayDiff(pk[w[0]], k)) === 1 ? "" : "s") + " off") + ")" : "") + '</p>' : "");
   }
   $("accMonths").addEventListener("click", (e) => { const b = e.target.closest(".day[data-d]"); if (!b) return; accSel = b.dataset.d; renderAccCal(accModel(), accHappened()); });
+  const ACC_SRC = { nbm: "National Blend", gfs: "GFS", nam: "NAM", lamp: "LAMP", ecmwf: "European", rrfs: "RRFS", hrrr: "HRRR" };
+  const accSrcNames = (ms) => ["nbm", "gfs", "ecmwf", "hrrr", "rrfs", "nam", "lamp"].filter((k) => ms.includes(k)).map((k) => ACC_SRC[k]).join(", ");
   function fillAccNames() { const sp = accPool(), all = new Set([...(sp && sp.members || []), ...Object.keys(accPicks())]); $("accNames").innerHTML = [...all].sort().map((n) => '<option value="' + esc(n) + '">').join(""); }
   const accFind = (raw) => Object.keys(accPicks()).find((n) => n.toLowerCase() === raw.toLowerCase()) || ((accPool() || {}).members || []).find((n) => n.toLowerCase() === raw.toLowerCase());
   const setAccNote = (t, k) => { const e = $("accNote"); e.textContent = t; e.className = "addnote" + (k ? " " + k : ""); };
@@ -5564,7 +5566,7 @@ if(sb){lab();sb.addEventListener("click",function(){F.set(!on());lab();if(on())F
 var $=function(i){return document.getElementById(i)};
 var reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
 var snd=function(f,a){try{if(window.FFSnd)FFSnd[f](a)}catch(e){}};
-var m=$("months");
+function calFx(m){   // the calendar touches, for First Flakes (#months) and the accumulation contest (#accMonths)
 // calendar day press + flake pop
 var pressed=null;
 function rel(){if(pressed){pressed.classList.remove("pressed");pressed=null}}
@@ -5585,6 +5587,8 @@ var io=("IntersectionObserver" in window&&!reduce)?new IntersectionObserver(func
   var n=Date.now();if(n-lastTick>400){lastTick=n;snd("tick",.5)}})},{threshold:.7}):null;
 function scan(){if(!m)return;m.querySelectorAll(".day.haspick:not(.stampin):not(.prestamp)").forEach(function(d){var k=d.dataset.d;if(!io||seen[k])return;d.classList.add("prestamp");io.observe(d);setTimeout(function(){if(d.classList.contains("prestamp")){d.classList.remove("prestamp");seen[k]=1}},9000)})}
 if(m&&window.MutationObserver){new MutationObserver(scan).observe(m,{childList:true});scan()}
+}
+calFx($("months"));calFx($("accMonths"));
 // scouting report opens like a drawer
 var flag=null,ft;
 document.addEventListener("click",function(e){if(!e.target.closest)return;if(e.target.closest(".editpick"))return;var b=e.target.closest(".ddbtn,.ddrow,.row[data-who],.row[data-st]");if(!b)return;var ex=b.hasAttribute("aria-expanded")?b:b.querySelector("[aria-expanded]");if(!ex)return;flag={who:b.dataset.who||b.dataset.st,open:ex.getAttribute("aria-expanded")!=="true"};stashNow();stashAnims();clearTimeout(ft);ft=setTimeout(function(){flag=null},800)},true);
