@@ -1,5 +1,15 @@
 {
- "updated": "2026-11-12T22:53:00Z",
- "entries": 2,
- "wetbulb_error_f": {}
+ "updated": "2026-11-12T23:53:00Z",
+ "entries": 3,
+ "wetbulb_error_f": {
+  "0-2h": {
+   "bias": -0.3,
+   "mae": 0.3,
+   "n": 1
+  }
+ },
+ "kind_match": {
+  "rate": 1.0,
+  "n": 1
+ }
 }
