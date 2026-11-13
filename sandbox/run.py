@@ -417,6 +417,17 @@ try:
 except Exception as _e:
     check("watch close ran", False, repr(_e))
 
+try:
+    import accum as _AC
+    _Hh = _js.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models", "seasonhist.json")))
+    _a = _AC.run("2026-11-13", {"days": {"2026-11-12": 0.0}, "through": "2026-11-12"}, _Hh, {"2026-11-14": 0.6}, {"2026-11-14": 1.0})
+    check("accum: chances run from today and add up to nearly 100%", _a["start"] == "2026-11-13" and 95 < sum(_a["dist"].values()) <= 100.01, sum(_a["dist"].values()))
+    check("accum: a snowy forecast day carries a big share", _a["dist"].get("2026-11-14", 0) > 40, _a["dist"].get("2026-11-14"))
+    _h = _AC.run("2026-11-30", {"days": {"2026-11-27": 0.05, "2026-11-28": 0.4}}, _Hh, {}, {})
+    check("accum: the first 0.1-inch day decides it (a few hundredths does not)", _h.get("happened") == "2026-11-28", _h)
+except Exception as _e:
+    check("accum ran", False, repr(_e))
+
 print("\n%d failed" % len(FAILS) if FAILS else "\nALL PASSED")
 print("data dir:", D)
 sys.exit(1 if FAILS else 0)

@@ -206,7 +206,7 @@ def main():
         log.append("headline lint: %s" % probs)
     doc = {"id": uid, "date": today, "edition": edition, "mode": "total", "updatedAt": fc["updatedAt"], "headline": hl,
            "weekline": T.weekline(v, wk), "rootline": T.rootline(v, wk),
-           "total": tot, "odds": fc["odds"], "knockout": fc["knockout"], "week": fc["week"], "cpc": fc["cpc"],
+           "total": tot, "odds": fc["odds"], "knockout": fc["knockout"], "week": fc["week"], "cpc": fc["cpc"], "accum": fc.get("accum"),
            "factors": T.factors(v, {"week": wk, "window": tot["window"]["expected"], "days": tot["window"]["days"], "rest": tot["restClimo"],
                                     "trend": tot.get("trendPerDecade"), "cpc": cpc, "through": season.get("through")}),
            "sources": T.SOURCES, "_log": log}

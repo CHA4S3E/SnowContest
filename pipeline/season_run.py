@@ -77,6 +77,11 @@ out = {"asOf": today, "edition": edition, "updatedAt": dt.datetime.now(ET).isofo
        "knockout": {k: v["knockout"] for k, v in res["pools"].items()},
        "odds": {k: v["odds"] for k, v in res["pools"].items()},
        "week": week, "cpc": cpc or {}, "sources": {"nbmDays": sorted(nbm_in), "ecmwfRun": (ecmwf or {}).get("run")}}
+try:   # the XYZ contest: first day with 0.1 in or more (accum.py)
+    import accum
+    out["accum"] = accum.run(today, season, hist, nbm_ch, forecast)
+except Exception as e:
+    out["accum"] = {"error": repr(e)[:200]}
 json.dump(out, open(out_path, "w"), separators=(",", ":"))
 q = res["final"]
 lead = {k: max(v["odds"].items(), key=lambda a: a[1]) for k, v in res["pools"].items() if v["odds"]}
