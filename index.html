@@ -1844,13 +1844,29 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     if (!r) return null;
     return Object.assign({}, base, r, { date: todayIso, live: true, liveAt: watch.updatedAt, power: null });
   }
-  const ord = (u) => u.date + (u.edition === "late" ? "~4" : u.edition === "evening" ? "~3" : u.edition === "midday" ? "~2" : "~1");
+  // Once first flakes are declared, the newest point on the timeline is the result itself: that day is certain, every
+  // other day is out, and the winner (or winners) hold the whole pool, so the calendar, the next 7 days, the odds and
+  // every stat agree with the declaration instead of still showing the last forecast. Earlier forecasts stay viewable.
+  function resultEntry() {
+    const fs = config && config.firstSnow; if (!fs) return null;
+    const base = updates.length ? updates[updates.length - 1] : (rawUpdates.length ? rawUpdates[rawUpdates.length - 1] : null);
+    if (!base) return null;
+    const win = winnersFor(fs, config.firstSnowHalf), odds = {};
+    for (const n of Object.keys(config.picks || {})) odds[n] = win.includes(n) ? 100 : 0;
+    const when = short(fs) + (config.firstSnowHalf ? ", " + halfWord(config.firstSnowHalf) : "");
+    return Object.assign({}, base, {
+      date: fs > base.date ? fs : base.date, edition: "result", result: true, live: false,
+      dist: { [fs]: 100 }, center: fs, range80: [fs, fs], pOct: fs <= "2026-10-31" ? 100 : 0, odds,
+      headline: "First flakes fell " + when + ". " + (win.length ? win.join(" and ") + (win.length > 1 ? " win" : " wins") + " the pool." : ""),
+      updatedAt: config.firstSnowAt || base.updatedAt });
+  }
+  const ord = (u) => u.date + (u.edition === "result" ? "~9" : u.edition === "late" ? "~4" : u.edition === "evening" ? "~3" : u.edition === "midday" ? "~2" : "~1");
   const byOrd = (a, b) => (ord(a) < ord(b) ? -1 : ord(a) > ord(b) ? 1 : 0);
   const tag = (u) => {
     if ((u.edition === "midday" || u.edition === "late") && u.updatedAt && /T\d\d:/.test(u.updatedAt)) {
       const h = +u.updatedAt.slice(11, 13); return " " + ((h % 12) || 12) + (h < 12 ? "am" : "pm");
     }
-    return ({ morning: " 5am", evening: " 5pm", midday: " noon", late: " 11pm", overnight: " 12am" }[u.edition] || "");
+    return ({ morning: " 5am", evening: " 5pm", midday: " noon", late: " 11pm", overnight: " 12am", result: " · first flakes" }[u.edition] || "");
   };
   function rebuild() {
     if (stOn()) {
@@ -1864,7 +1880,9 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       return Object.assign({}, u, extra);
     });
     const live = liveEntry();
-    if (live) updates.push(Object.assign(live, { odds: computeOdds(live) }));
+    const res = resultEntry();
+    if (res) updates.push(res);
+    else if (live) updates.push(Object.assign(live, { odds: computeOdds(live) }));
     else if (updates.length && !(config && config.firstSnow)) {
       // Past midnight but before the morning update: the day that just ended had no flakes,
       // so it drops out and the rest rescale (the next update refreshes everything)
@@ -1923,10 +1941,10 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     // Out if their last winnable day is before the view date and no snow has fallen by then
     const ends = zoneEnds(), out = {};
     const snow = config && config.firstSnow;
-    for (const [n, end] of Object.entries(ends)) {
-      if (!end) continue;
-      if (snow && snow <= asOf) { if (!snowWinners().includes(n)) out[n] = snow; }
-      else if (end < asOf) out[n] = addDays(end, 1);
+    for (const n of Object.keys(config.picks || {})) {
+      const end = ends[n];
+      if (snow && snow <= asOf) { if (!snowWinners().includes(n)) out[n] = snow; }   // after the snow, everyone but the winners is out, the latest pick too
+      else if (end && end < asOf) out[n] = addDays(end, 1);
     }
     return out;
   }
@@ -3302,7 +3320,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       const top = sorted[0];
       $("favName").innerHTML = top ? esc(top[0]) + "<small>" + top[1].toFixed(1) + "%</small>" : "—";
       $("center").textContent = u.center ? short(u.center) : "—";
-      $("range").textContent = u.range80 ? short(u.range80[0]) + "–" + short(u.range80[1]) : "—";
+      $("range").textContent = u.range80 ? (u.range80[0] === u.range80[1] ? short(u.range80[0]) : short(u.range80[0]) + "–" + short(u.range80[1])) : "—";
       { const bm = boxMonth(u), c = monthChance(u, bm);
         $("poct").textContent = c != null ? c.toFixed(0) + "%" : "—";
         const lab = $("poctLabel"); if (lab) lab.textContent = "Chance it's in " + monthName(bm); }
