@@ -4403,7 +4403,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     const lk = new Date(accLockAt()), lkTxt = "12:00 AM " + lk.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "America/New_York" });
     $("accLockNote").innerHTML = accLocked() ? "<b>Picks locked " + esc(lkTxt) + ".</b>" : "<b>Picks lock " + esc(lkTxt) + ".</b>";
     $("accBtn").hidden = accLocked();   // anyone can add or change a pick until the lock
-    $("accUnlock").hidden = isOwner || accLocked();
+    $("accUnlock").hidden = true;   // no owner unlock needed: anyone can add picks
     if (accLocked()) $("accForm").hidden = true;
     const pk = accPicks(), names = Object.keys(pk), hap = accHappened(), m = accModel(), body = $("accBody");
     let h = "";
