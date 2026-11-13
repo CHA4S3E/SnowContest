@@ -1,16 +1,16 @@
 {
- "updated": "2026-11-13T03:55:00Z",
- "entries": 7,
+ "updated": "2026-11-13T04:55:00Z",
+ "entries": 8,
  "wetbulb_error_f": {
   "0-2h": {
    "bias": -0.1,
    "mae": 0.3,
-   "n": 9
+   "n": 11
   },
   "3-6h": {
-   "bias": 0.1,
-   "mae": 0.2,
-   "n": 6
+   "bias": 0.2,
+   "mae": 0.3,
+   "n": 10
   }
  },
  "kind_match": {
