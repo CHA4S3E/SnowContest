@@ -189,6 +189,8 @@ def main():
             raise SystemExit("season_run failed")
         fc = json.load(open(out))
     save(os.path.join(D, "seasonfc.json"), fc)
+    if fc.get("accum") and not fc["accum"].get("error"):   # the XYZ side contest's forecast, in its own small file for the page
+        save(os.path.join(D, "accum.json"), dict(fc["accum"], updatedAt=fc.get("updatedAt")))
     v = Voice(uid + str(sorted(cfg.get("totals") or {})[:3]))
     tot = fc["total"]
     wk = sum(d["inches"] for d in fc["week"])

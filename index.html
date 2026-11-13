@@ -1189,7 +1189,7 @@ body:not(.st) .ffk-hold{display:none}
       <div>
         <span class="eyebrow" id="accEyebrow">Side contest</span>
         <h2 id="accH">First accumulating snow</h2>
-        <p class="sub"><b>Rules:</b> the first day the official State College weather station measures <b>0.1 inch or more</b> of snow. Closest date wins; picks the same number of days away share the win.</p>
+        <p class="sub"><b>Rules:</b> the first day the official State College weather station measures <b>0.1 inch or more</b> of snow. Closest date wins; picks the same number of days away share the win. <span id="accLockNote"></span></p>
       </div>
       <button type="button" class="addbtn" id="accBtn" hidden><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Add or change a pick</button>
     </div>
@@ -2681,7 +2681,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   // total (total.dist, 0.1-inch bins), and the page scores every pool's guesses from it, like First Flakes'
   // daily distribution. Before the switch the owner can preview it with #season-preview, fed by models/seasonfc.
   let seasonfc = null;
-  let pace = null, hall = [];   // past winters day by day (pace.json, served with the page); finished seasons (data/hall.json)
+  let pace = null, hall = [], accDoc = null;   // past winters day by day (pace.json, served with the page); finished seasons (data/hall.json)
   const stOn = () => seasonMode() || (isOwner && location.hash === "#season-preview");
   const stFmt = (v) => (Math.round((v + 1e-9) * 10) / 10).toString();
   function stUpdates() {
@@ -4370,10 +4370,16 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     for (const [n, p] of Object.entries(pk)) { dd[n] = Math.abs(dayDiff(p, date)); best = Math.min(best, dd[n]); }
     return Object.keys(dd).filter((n) => dd[n] === best).sort();
   }
-  function accModel() {   // the newest season update's day-by-day chances (season_run.py / accum.py)
-    for (let i = rawUpdates.length - 1; i >= 0; i--) { const a = rawUpdates[i].accum; if (a && (a.dist || a.happened)) return Object.assign({ at: rawUpdates[i].updatedAt }, a); }
-    return null;
+  function accModel() {   // the newest day-by-day chances: data/accum.json or the newest season update (season_run.py / accum.py)
+    let best = accDoc ? Object.assign({ at: accDoc.updatedAt }, accDoc) : null;
+    for (let i = rawUpdates.length - 1; i >= 0; i--) {
+      const a = rawUpdates[i].accum;
+      if (a && (a.dist || a.happened)) { if (!best || (rawUpdates[i].updatedAt || "") > (best.at || "")) best = Object.assign({ at: rawUpdates[i].updatedAt }, a); break; }
+    }
+    return best;
   }
+  function accLockAt() { const sp = accPool(); return (sp && sp.accumLock) || "2026-11-15T00:00:00-05:00"; }
+  function accLocked() { return Date.now() >= Date.parse(accLockAt()); }
   function accOdds(dist) {   // closest pick wins; picks equally close share the day in full
     const pk = accPicks(), names = Object.keys(pk), odds = {}; names.forEach((n) => odds[n] = 0);
     if (!names.length) return odds;
@@ -4387,7 +4393,10 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     sec.hidden = !sp;
     if (!sp) return;
     $("accEyebrow").textContent = (sp.name || poolId) + " · side contest";
-    $("accBtn").hidden = !isOwner;
+    const lk = new Date(accLockAt()), lkTxt = "12:00 AM " + lk.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "America/New_York" });
+    $("accLockNote").innerHTML = accLocked() ? "<b>Picks locked " + esc(lkTxt) + ".</b>" : "<b>Picks lock " + esc(lkTxt) + ".</b>";
+    $("accBtn").hidden = !isOwner || accLocked();
+    if (accLocked()) $("accForm").hidden = true;
     const pk = accPicks(), names = Object.keys(pk), hap = accHappened(), m = accModel(), body = $("accBody");
     let h = "";
     if (hap) {
@@ -4433,6 +4442,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
   const setAccNote = (t, k) => { const e = $("accNote"); e.textContent = t; e.className = "addnote" + (k ? " " + k : ""); };
   function syncAcc() { const n = accFind($("accName").value.trim()), pk = accPicks(); if (n && pk[n]) { $("accDate").value = pk[n]; $("accSave").textContent = "Update pick"; $("accRemoveRow").hidden = false; } else { $("accSave").textContent = "Add pick"; $("accRemoveRow").hidden = true; } $("accConfirm").hidden = true; $("accRemove").hidden = false; }
   async function saveAcc(picks, okMsg) {
+    if (accLocked()) { setAccNote("Picks locked at " + new Date(accLockAt()).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }) + ".", "err"); return false; }
     if (!db || !baseConfig) { setAccNote("Can't save right now. Reload the page and try again.", "err"); return false; }
     const subs = Object.assign({}, baseConfig.subpools); subs[poolId] = Object.assign({}, subs[poolId], { accumPicks: picks });
     const next = Object.assign({}, baseConfig, { subpools: subs });
@@ -5151,6 +5161,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       getJSON("watchlib.json").then((x) => { watchlib = x; }),
       getJSON("seasonfc.json").then((x) => { seasonfc = x; }),
       getJSON("hall.json").then((x) => { hall = Array.isArray(x) ? x : []; }),
+      getJSON("accum.json").then((x) => { accDoc = x && (x.dist || x.happened) ? x : null; }),
       (pace ? Promise.resolve() : fetch("pace.json?v=2").then((r) => r.ok ? r.json() : null).then((x) => { pace = x; }).catch(() => {})),
       loadRadar(),
       getJSON("updates.json").then((x) => { rawUpdates = (x || []).slice().sort(byOrd); })
