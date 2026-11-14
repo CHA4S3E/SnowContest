@@ -125,6 +125,21 @@ def nbm_rows(today_utc):
     return (r[0], r[1]) if r else ([], "")
 
 
+def story(c):
+    """what a season headline can say, rounded the way the headline shows it"""
+    return (round(c["so_far"], 1), round(c["week"], 1), round(c["p50"]), round(c["p10"]), round(c["p90"]), round(c.get("yday") or 0, 1))
+
+
+def same_story(updates, uid, today, edition, ctx):
+    """the morning's headline, when this is the evening check-in and none of its facts moved; else None"""
+    if edition != "evening":
+        return None
+    am = next((u for u in reversed(updates) if u.get("mode") == "total" and u.get("date") == today and u.get("id") != uid and u.get("edition") == "morning"), None)
+    if not am or not am.get("headline") or not am.get("story"):
+        return None
+    return am["headline"] if list(am["story"]) == list(story(ctx)) else None
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("datadir")
@@ -214,11 +229,15 @@ def main():
         ctx.update(last_dm=dm(last), days_since=(dt.date.fromisoformat(today) - dt.date.fromisoformat(last)).days, snow_days=len(snowy), big=max(sd[d] for d in snowy))
     ctx["yday"] = sd.get(str(dt.date.fromisoformat(today) - dt.timedelta(1)), 0) or 0
     hl = T.headline(v, ctx)
+    keep = same_story(updates, uid, today, edition, ctx)
+    if keep:   # evening check-in with nothing new since the morning: keep the morning's headline
+        hl = keep
+        log.append("headline kept from the morning: nothing changed")
     names = sorted(set(cfg.get("totals") or {}))
     probs = lint.check(hl, names=names)
     if probs:
         log.append("headline lint: %s" % probs)
-    doc = {"id": uid, "date": today, "edition": edition, "mode": "total", "updatedAt": fc["updatedAt"], "headline": hl,
+    doc = {"id": uid, "date": today, "edition": edition, "mode": "total", "updatedAt": fc["updatedAt"], "headline": hl, "story": story(ctx),
            "weekline": T.weekline(v, wk), "rootline": T.rootline(v, wk),
            "total": tot, "odds": fc["odds"], "knockout": fc["knockout"], "week": fc["week"], "cpc": fc["cpc"], "accum": fc.get("accum"),
            "factors": T.factors(v, {"week": wk, "window": tot["window"]["expected"], "days": tot["window"]["days"], "rest": tot["restClimo"],
