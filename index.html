@@ -299,7 +299,7 @@ input[type=range] { width: 100%; accent-color: var(--ice); }
 
 /* Rooting guide */
 .rootline { margin: 0; font-size: 0.95rem; }
-.rooting { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.rooting { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; align-items: start; }
 .rgroup { padding: 14px; display: grid; gap: 10px; align-content: start; border-top: 4px solid var(--line); min-width: 0; }
 .rgroup.early { border-top-color: var(--ice); }
 .rgroup.mid { border-top-color: var(--gold); }
@@ -3364,7 +3364,9 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       $("place").textContent = poolName(poolId) + " · " + (config.place || "State College, PA") + " · " + (config.season || "");
       for (const b of document.querySelectorAll("#pools button")) b.setAttribute("aria-selected", String(b.dataset.pool === poolId));
       if (baseConfig && baseConfig.subpools) for (const b of document.querySelectorAll("#pools button")) if (b.dataset.pool !== "meteo") b.textContent = poolName(b.dataset.pool);
-      $("rule").textContent = config.rule || "";
+      $("rule").textContent = document.body.classList.contains("st")
+        ? "Rules: every inch measured at the official State College weather station counts toward the season total. The season normally wraps up April 30, but it stays open through May 15 in case a late storm shows up. Closest guess to the final total wins; identical guesses share the win, and so do two guesses exactly the same distance from it."
+        : config.rule || "";
       const st = $("status");
       if (config.firstSnow) {
         const w = snowWinners();

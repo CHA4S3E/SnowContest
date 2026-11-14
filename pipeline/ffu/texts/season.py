@@ -189,3 +189,8 @@ SOURCES = [{"label": "National Blend of Models (via Iowa Mesonet)", "url": "http
            {"label": "ECMWF via Open-Meteo", "url": "https://open-meteo.com/en/docs/ecmwf-api"},
            {"label": "CPC outlooks", "url": "https://www.cpc.ncep.noaa.gov/products/predictions/814day/"},
            {"label": "NOAA ACIS State College snowfall", "url": "https://www.rcc-acis.org/"}]
+# also used while the XYZ accumulation contest is open (the First Flakes inputs, for each day's chance of snow)
+SOURCES_FULL = [{"label": "GFS MOS and LAMP (via Iowa Mesonet)", "url": "https://mesonet.agron.iastate.edu/mos/"},
+                {"label": "HRRR and RRFS (NOAA)", "url": "https://rapidrefresh.noaa.gov/"},
+                {"label": "NWS State College forecast", "url": "https://forecast.weather.gov/MapClick.php?lat=40.7934&lon=-77.86"},
+                {"label": "WPC winter weather outlooks", "url": "https://www.wpc.ncep.noaa.gov/wwd/winter_wx.shtml"}]

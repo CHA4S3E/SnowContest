@@ -223,7 +223,7 @@ def main():
            "total": tot, "odds": fc["odds"], "knockout": fc["knockout"], "week": fc["week"], "cpc": fc["cpc"], "accum": fc.get("accum"),
            "factors": T.factors(v, {"week": wk, "window": tot["window"]["expected"], "days": tot["window"]["days"], "rest": tot["restClimo"],
                                     "trend": tot.get("trendPerDecade"), "cpc": cpc, "through": season.get("through")}),
-           "sources": T.SOURCES, "_log": log}
+           "sources": T.SOURCES + (T.SOURCES_FULL if full else []), "_log": log}
     updates = [u for u in updates if u.get("id") != uid] + [doc]
     updates.sort(key=lambda u: (u.get("date", ""), 1 if str(u.get("id", "")).endswith("-pm") else 0))
     save(os.path.join(D, "updates.json"), updates)

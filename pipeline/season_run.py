@@ -81,6 +81,18 @@ out = {"asOf": today, "edition": edition, "updatedAt": dt.datetime.now(ET).isofo
 try:   # the XYZ contest: first day with 0.1 in or more (accum.py)
     import accum
     full = load(sys.argv[11]) if len(sys.argv) > 11 else {}   # the First Flakes inputs (season_job gathers them while the contest is open)
+    if full.get("inp"):   # "chance of any snow" each day from the whole model blend (model3.consensus), not the National Blend alone
+        try:
+            import model3
+            inp = full["inp"]
+            model3.NOW = dt.datetime.strptime(inp["now"][:16], "%Y-%m-%dT%H:%M").replace(tzinfo=dt.timezone.utc) if inp.get("now") else None
+            cons, _ = model3.consensus(inp)
+            for w in week:
+                if w["date"] in cons:
+                    w["chance"] = round(cons[w["date"]] * 100)
+            out["sources"]["chance"] = "blend"
+        except Exception as e:
+            out["sources"]["chanceError"] = repr(e)[:120]
     out["accum"] = accum.run(today, season, hist, nbm_ch, forecast, inp=full.get("inp"), et_date=et_date, pfc_days=full.get("pfc"))
 except Exception as e:
     out["accum"] = {"error": repr(e)[:200]}
