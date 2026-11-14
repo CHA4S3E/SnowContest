@@ -3354,7 +3354,10 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     try { renderAccum(); } catch (e) { console.error(e); }
     document.body.classList.toggle("st", stOn());
     fxAmbient();
-    if (stOn()) { renderST(); maybeCine(); return; }
+    if (stOn()) {
+      $("rule").textContent = "Rules: every inch measured at the official State College weather station counts toward the season total. The season normally wraps up April 30, but it stays open through May 15 in case a late storm shows up. Closest guess to the final total wins; identical guesses share the win, and so do two guesses exactly the same distance from it.";
+      renderST(); maybeCine(); return;
+    }
     const u = view();
     const prev = updates[idx - 1];
     const asOf = u ? u.date : todayIso;
@@ -3364,9 +3367,7 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
       $("place").textContent = poolName(poolId) + " · " + (config.place || "State College, PA") + " · " + (config.season || "");
       for (const b of document.querySelectorAll("#pools button")) b.setAttribute("aria-selected", String(b.dataset.pool === poolId));
       if (baseConfig && baseConfig.subpools) for (const b of document.querySelectorAll("#pools button")) if (b.dataset.pool !== "meteo") b.textContent = poolName(b.dataset.pool);
-      $("rule").textContent = document.body.classList.contains("st")
-        ? "Rules: every inch measured at the official State College weather station counts toward the season total. The season normally wraps up April 30, but it stays open through May 15 in case a late storm shows up. Closest guess to the final total wins; identical guesses share the win, and so do two guesses exactly the same distance from it."
-        : config.rule || "";
+      $("rule").textContent = config.rule || "";
       const st = $("status");
       if (config.firstSnow) {
         const w = snowWinners();
