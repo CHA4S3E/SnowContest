@@ -4993,6 +4993,8 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     const m = new Map();
     for (const el of document.querySelectorAll(FX_SEL)) {
       const k = fxKey(el); if (!k) continue;
+      if (el.getAnimations) for (const a of el.getAnimations()) if (a.__fx) a.cancel();   // measure where it rests, not mid-flight from the last scrub step
+      if (!el.offsetHeight) continue;   // hidden (another pool's view, a collapsed list): nothing to slide from
       const r = el.getBoundingClientRect(), pct = el.querySelector(".pct, .podds"), bar = el.querySelector(".bar i");
       m.set((el.classList.contains("pod") ? "pod:" : "row:") + k, { top: r.top, left: r.left, pct: pct ? fxNum(pct.textContent) : null, bar: bar ? bar.style.width : null });
     }
@@ -5013,12 +5015,16 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     for (const el of document.querySelectorAll(FX_SEL)) {
       const k = (el.classList.contains("pod") ? "pod:" : "row:") + fxKey(el), b = before.get(k);
       const pct = el.querySelector(".pct, .podds");
-      if (!b) { el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 }); continue; }
-      const r = el.getBoundingClientRect(), dy = b.top - r.top, dx = el.classList.contains("pod") ? b.left - r.left : 0;
-      if (Math.abs(dy) > 1 || Math.abs(dx) > 1) el.animate([{ transform: "translate(" + dx + "px," + dy + "px)" }, { transform: "none" }], { duration: 480, easing: "cubic-bezier(.2,.8,.2,1)" });
+      if (!el.offsetHeight) continue;
+      const r = el.getBoundingClientRect(), vh = window.innerHeight;
+      if (r.bottom < -40 || r.top > vh + 40) { if (pct && b) fxCount(pct, b.pct, fxNum(pct.textContent)); continue; }   // off screen: no motion to see
+      if (!b) { (el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300 })).__fx = 1; continue; }
+      const dy = b.top - r.top, dx = el.classList.contains("pod") ? b.left - r.left : 0;
+      if (Math.abs(dy) > vh * 0.6 || Math.abs(dx) > window.innerWidth * 0.6) { (el.animate([{ opacity: 0.25 }, { opacity: 1 }], { duration: 260 })).__fx = 1; }   // a long jump: fade in place instead of sweeping across the screen
+      else if (Math.abs(dy) > 1 || Math.abs(dx) > 1) (el.animate([{ transform: "translate(" + dx + "px," + dy + "px)" }, { transform: "none" }], { duration: 480, easing: "cubic-bezier(.2,.8,.2,1)" })).__fx = 1;
       if (pct) fxCount(pct, b.pct, fxNum(pct.textContent));
       const bar = el.querySelector(".bar i");
-      if (bar && b.bar && b.bar !== bar.style.width) bar.animate([{ width: b.bar }, { width: bar.style.width }], { duration: 480, easing: "cubic-bezier(.2,.8,.2,1)" });
+      if (bar && b.bar && b.bar !== bar.style.width) (bar.animate([{ width: b.bar }, { width: bar.style.width }], { duration: 480, easing: "cubic-bezier(.2,.8,.2,1)" })).__fx = 1;
       const sm = el.querySelector(".smi svg");
       if (sm && b.pct != null && pct && Math.abs(fxNum(pct.textContent) - b.pct) >= 0.05) sm.animate([{ transform: "scale(.85)" }, { transform: "scale(1.06)" }, { transform: "none" }], { duration: 480 });
     }
