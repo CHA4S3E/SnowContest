@@ -4414,8 +4414,10 @@ const SN = (fn, ...a) => { try { if (window.FFSnd && FFSnd[fn]) FFSnd[fn](...a);
     sec.hidden = !sp;
     if (!sp) return;
     $("accEyebrow").textContent = (sp.name || poolId) + " · side contest";
-    const lk = new Date(accLockAt()), lkTxt = "12:00 AM " + lk.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "America/New_York" });
-    $("accLockNote").innerHTML = accLocked() ? "<b>Picks locked " + esc(lkTxt) + ".</b>" : "<b>Picks lock " + esc(lkTxt) + ".</b>";
+    const lk = new Date(accLockAt()), mid = lk.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }) === "12:00 AM",
+      shown = mid ? new Date(lk.getTime() - 60000) : lk,   // a midnight lock reads as the end of the day before ("11:59 PM Wednesday")
+      lkTxt = shown.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" }) + " " + shown.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "America/New_York" });
+    $("accLockNote").innerHTML = accLocked() ? "<b>Picks locked after " + esc(lkTxt) + ".</b>" : "<b>Picks are open through " + esc(lkTxt) + ".</b>";
     $("accBtn").hidden = accLocked();   // anyone can add or change a pick until the lock
     $("accUnlock").hidden = true;   // no owner unlock needed: anyone can add picks
     if (accLocked()) $("accForm").hidden = true;
